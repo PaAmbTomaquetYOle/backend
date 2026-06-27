@@ -41,10 +41,6 @@ class OffboardingProcess:
     def state(self) -> OffboardingProcessState:
         return self.__state
 
-    @state.setter
-    def state(self, state: OffboardingProcessState):
-        self.__state = state
-
     @property
     def employee_id(self) -> EmployeeId:
         return self.__employee_id
