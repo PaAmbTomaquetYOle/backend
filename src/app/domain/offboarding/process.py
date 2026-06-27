@@ -64,3 +64,45 @@ class OffboardingProcess:
     @created_at.setter
     def created_at(self, created_at: datetime):
         self.__created_at = created_at
+
+    def start(self) -> OffboardingProcessState:
+        """
+        Start the offboarding process.
+
+        Returns:
+            OffboardingProcessState: The new state of the offboarding process after starting.
+
+        Raises:
+            InvalidOffboardingProcessStateTransitionError: If the transition is invalid.
+        """
+        new_state = self.__state.start()
+        self.__state = new_state
+        return new_state
+
+    def submit_for_review(self) -> OffboardingProcessState:
+        """
+        Submit the offboarding process for review.
+
+        Returns:
+            OffboardingProcessState: The new state of the offboarding process after submission.
+
+        Raises:
+            InvalidOffboardingProcessStateTransitionError: If the transition is invalid.
+        """
+        new_state = self.__state.submit_for_review()
+        self.__state = new_state
+        return new_state
+
+    def complete(self) -> OffboardingProcessState:
+        """
+        Complete the offboarding process.
+
+        Returns:
+            OffboardingProcessState: The new state of the offboarding process after completing.
+
+        Raises:
+            InvalidOffboardingProcessStateTransitionError: If the transition is invalid.
+        """
+        new_state = self.__state.complete()
+        self.__state = new_state
+        return new_state
