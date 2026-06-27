@@ -6,10 +6,12 @@ from base import OffboardingProcessState
 from finished import FinishedState
 from in_progress import InProgressState
 from not_started import NotStartedState
+from pending_revision import PendingRevisionState
 
 __all__ = [
     "OffboardingProcessState",
     "FinishedState",
     "InProgressState",
     "NotStartedState",
+    "PendingRevisionState",
 ]
