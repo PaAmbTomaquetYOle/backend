@@ -1,5 +1,5 @@
 from app.domain.enums import OffboardingProcessStateEnum
-from app.domain.offboarding.state import OffboardingProcessState
+from app.domain.offboarding.state import OffboardingProcessState, PendingRevisionState
 
 
 class InProgressState(OffboardingProcessState):
@@ -9,3 +9,6 @@ class InProgressState(OffboardingProcessState):
 
     def get_state(self) -> OffboardingProcessStateEnum:
         return OffboardingProcessStateEnum.IN_PROGRESS
+    
+    def submit_for_review(self) -> OffboardingProcessState:
+        return PendingRevisionState()
