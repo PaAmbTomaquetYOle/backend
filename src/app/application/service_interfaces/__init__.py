@@ -27,10 +27,12 @@ Empty for now. As contracts are added, export them here and list them in
 ``__all__``.
 """
 
+from .dossier_service_interface import IDossierService
 from .interview_service_interface import IInterviewService
 from .process_service_interface import IProcessService
 
 __all__: list[str] = [
+    "IDossierService",
     "IInterviewService",
     "IProcessService",
 ]
