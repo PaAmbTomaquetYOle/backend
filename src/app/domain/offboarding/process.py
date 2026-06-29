@@ -3,8 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from app.domain.base_process import Process
+
 if TYPE_CHECKING:
-    from app.domain.base_process import Process
+    from app.domain.enums import OffboardingProcessStateEnum
     from app.domain.offboarding import (
         DossierId,
         EmployeeId,
@@ -43,6 +45,10 @@ class OffboardingProcess(Process):
     @property
     def state(self) -> OffboardingProcessState:
         return self.__state
+
+    @property
+    def state_value(self) -> OffboardingProcessStateEnum:
+        return self.__state.get_state()
 
     def start(self) -> OffboardingProcessState:
         """
