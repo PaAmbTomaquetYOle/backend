@@ -38,3 +38,15 @@ class IDossierService(ABC):
         Returns:
             dossier (Dossier): The dossier
         """
+
+    @abstractmethod
+    async def get_process_dossier(self, process_id: ProcessId) -> Dossier:
+        """
+        Get a specific dossier by process id
+
+        Args:
+            process_id (ProcessId): The process id
+
+        Returns:
+            dossier (Dossier): The dossier
+        """
