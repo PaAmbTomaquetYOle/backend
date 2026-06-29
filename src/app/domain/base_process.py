@@ -1,13 +1,18 @@
-from abc import ABC
-from datetime import datetime
+from __future__ import annotations
 
-from app.domain import (
-    DossierId,
-    EmployeeId,
-    InterviewId,
-    ManagerId,
-    ProcessId,
-)
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.domain.enums.process_state import ProcessStateEnum
+    from app.domain.offboarding.id import (
+        DossierId,
+        EmployeeId,
+        InterviewId,
+        ManagerId,
+        ProcessId,
+    )
 
 
 class Process(ABC):
@@ -84,3 +89,8 @@ class Process(ABC):
     @dossier_id.setter
     def dossier_id(self, dossier_id: DossierId | None):
         self.__dossier_id = dossier_id
+
+    @property
+    @abstractmethod
+    def state_value(self) -> ProcessStateEnum:
+        pass
