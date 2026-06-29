@@ -11,7 +11,7 @@ from app.domain.exceptions.dossier import DossierInterviewNotCompletedError
 if TYPE_CHECKING:
     from app.domain.dossier.section import DossierSection
     from app.domain.dossier.state.base import DossierState
-    from app.domain.offboarding.id import DossierId, InterviewId, OffboardingProcessId
+    from app.domain.offboarding.id import DossierId, InterviewId, ProcessId
 
 
 class Dossier:
@@ -20,7 +20,7 @@ class Dossier:
     def __init__(
         self,
         dossier_id: DossierId,
-        process_id: OffboardingProcessId,
+        process_id: ProcessId,
         interview_id: InterviewId,
         state: DossierState,
         created_at: datetime,
@@ -44,7 +44,7 @@ class Dossier:
         self.__id = dossier_id
 
     @property
-    def process_id(self) -> OffboardingProcessId:
+    def process_id(self) -> ProcessId:
         return self.__process_id
 
     @property

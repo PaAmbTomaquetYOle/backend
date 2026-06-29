@@ -11,7 +11,7 @@ from app.domain.exceptions.interview import InterviewNotInProgressError
 if TYPE_CHECKING:
     from app.domain.interview.state.base import InterviewState
     from app.domain.interview.turn import InterviewTurn
-    from app.domain.offboarding.id import InterviewId, OffboardingProcessId
+    from app.domain.offboarding.id import InterviewId, ProcessId
 
 
 class Interview:
@@ -20,7 +20,7 @@ class Interview:
     def __init__(
         self,
         interview_id: InterviewId,
-        process_id: OffboardingProcessId,
+        process_id: ProcessId,
         state: InterviewState,
         scheduled_at: datetime,
         created_at: datetime,
@@ -38,7 +38,7 @@ class Interview:
         return self.__id
 
     @property
-    def process_id(self) -> OffboardingProcessId:
+    def process_id(self) -> ProcessId:
         return self.__process_id
 
     @property
