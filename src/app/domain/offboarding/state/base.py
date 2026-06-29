@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from abc import ABC, abstractmethod
+from app.domain.enums import OffboardingProcessStateEnum
+from app.domain.exceptions import InvalidOffboardingProcessStateTransitionError
 
-    from app.domain.enums import OffboardingProcessStateEnum
-    from app.domain.exceptions import InvalidOffboardingProcessStateTransitionError
+if TYPE_CHECKING:
+    pass
 
 
 class OffboardingProcessState(ABC):
@@ -23,43 +24,16 @@ class OffboardingProcessState(ABC):
         """
 
     def start(self) -> OffboardingProcessState:
-        """
-        Starts the offboarding process
-
-        Returns:
-            OffboardingProcessState: The offboarding process state
-
-        Raises:
-            InvalidOffboardingProcessStateTransitionError: If the transition is invalid
-        """
         raise InvalidOffboardingProcessStateTransitionError(
             self.get_state(), OffboardingProcessStateEnum.IN_PROGRESS
         )
 
     def submit_for_review(self) -> OffboardingProcessState:
-        """
-        Submits the offboarding process
-
-        Returns:
-            OffboardingProcessState: The offboarding process state
-
-        Raises:
-            InvalidOffboardingProcessStateTransitionError: If the transition is invalid
-        """
         raise InvalidOffboardingProcessStateTransitionError(
             self.get_state(), OffboardingProcessStateEnum.PENDING_REVISION
         )
 
     def complete(self) -> OffboardingProcessState:
-        """
-        Completes the offboarding process
-
-        Returns:
-            OffboardingProcessState: The offboarding process state
-
-        Raises:
-            InvalidOffboardingProcessStateTransitionError: If the transition is invalid
-        """
         raise InvalidOffboardingProcessStateTransitionError(
             self.get_state(), OffboardingProcessStateEnum.FINISHED
         )
