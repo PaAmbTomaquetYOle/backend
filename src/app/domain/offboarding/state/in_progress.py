@@ -1,5 +1,6 @@
 from app.domain.enums import OffboardingProcessStateEnum
-from app.domain.offboarding.state import OffboardingProcessState, PendingRevisionState
+from app.domain.offboarding.state.base import OffboardingProcessState
+from app.domain.offboarding.state.pending_revision import PendingRevisionState
 
 
 class InProgressState(OffboardingProcessState):
