@@ -1,0 +1,86 @@
+"""Interview aggregate root."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from app.domain.enums import InterviewStateEnum
+from app.domain.exceptions.interview import InterviewNotInProgressError
+
+if TYPE_CHECKING:
+    from app.domain.interview.state.base import InterviewState
+    from app.domain.interview.turn import InterviewTurn
+    from app.domain.offboarding.id import InterviewId, OffboardingProcessId
+
+
+class Interview:
+    """Interview aggregate root. 1:1 with OffboardingProcess."""
+
+    def __init__(
+        self,
+        interview_id: InterviewId,
+        process_id: OffboardingProcessId,
+        state: InterviewState,
+        scheduled_at: datetime,
+        created_at: datetime,
+        turns: list[InterviewTurn] | None = None,
+    ) -> None:
+        self.__id = interview_id
+        self.__process_id = process_id
+        self.__state = state
+        self.__scheduled_at = scheduled_at
+        self.__created_at = created_at
+        self.__turns: list[InterviewTurn] = turns if turns is not None else []
+
+    @property
+    def interview_id(self) -> InterviewId:
+        return self.__id
+
+    @property
+    def process_id(self) -> OffboardingProcessId:
+        return self.__process_id
+
+    @property
+    def state(self) -> InterviewState:
+        return self.__state
+
+    @property
+    def scheduled_at(self) -> datetime:
+        return self.__scheduled_at
+
+    @scheduled_at.setter
+    def scheduled_at(self, value: datetime) -> None:
+        self.__scheduled_at = value
+
+    @property
+    def created_at(self) -> datetime:
+        return self.__created_at
+
+    @property
+    def turns(self) -> list[InterviewTurn]:
+        return list(self.__turns)
+
+    def start(self) -> InterviewState:
+        """Transition to IN_PROGRESS. Raises InvalidInterviewStateTransitionError if invalid."""
+        new_state = self.__state.start()
+        self.__state = new_state
+        return new_state
+
+    def complete(self) -> InterviewState:
+        """Transition to COMPLETED. Raises InvalidInterviewStateTransitionError if invalid."""
+        new_state = self.__state.complete()
+        self.__state = new_state
+        return new_state
+
+    def cancel(self) -> InterviewState:
+        """Transition to CANCELLED. Raises InvalidInterviewStateTransitionError if invalid."""
+        new_state = self.__state.cancel()
+        self.__state = new_state
+        return new_state
+
+    def add_turn(self, turn: InterviewTurn) -> None:
+        """Add a turn to the interview. Interview must be IN_PROGRESS."""
+        if self.__state.get_state() != InterviewStateEnum.IN_PROGRESS:
+            raise InterviewNotInProgressError()
+        self.__turns.append(turn)
