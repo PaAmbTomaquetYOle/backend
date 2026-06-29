@@ -24,15 +24,15 @@ Empty for now. As domain types are added, export them here and list them in
 ``__all__``.
 """
 
-from enums import (
+from .enums import (
     OffboardingProcessStateEnum,
 )
-from exceptions import (
+from .exceptions import (
     DomainException,
     InvalidOffboardingProcessStateTransitionError,
     InvalidStateTransitionError,
 )
-from offboarding import (
+from .offboarding import (
     EmployeeId,
     FinishedState,
     Id,
