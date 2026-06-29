@@ -10,7 +10,9 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session
 
-from app.infrastructure.adapters.repositories.offboarding_process import OffboardingProcessRepository
+from app.infrastructure.adapters.repositories.offboarding_process import (
+    OffboardingProcessRepository,
+)
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
