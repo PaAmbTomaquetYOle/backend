@@ -22,6 +22,8 @@ Empty for now. As adapters are added, export them here and list them in
 ``__all__``.
 """
 
-from app.infrastructure.adapters.repositories.offboarding_process import OffboardingProcessRepository
+from app.infrastructure.adapters.repositories.offboarding_process import (
+    OffboardingProcessRepository,
+)
 
 __all__: list[str] = ["OffboardingProcessRepository"]
