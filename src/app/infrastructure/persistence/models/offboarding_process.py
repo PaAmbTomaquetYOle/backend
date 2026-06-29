@@ -1,16 +1,16 @@
-"""SQLModel persistence models for the offboarding domain."""
+"""SQLModel persistence model for offboarding processes (class table inheritance at SQL level)."""
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
 
+import sqlalchemy as sa
+from sqlalchemy import CheckConstraint, Column, ForeignKey
 from sqlmodel import Field, SQLModel
 
 from app.domain.enums import OffboardingProcessStateEnum
-from app.domain.offboarding.id import EmployeeId, ManagerId, OffboardingProcessId
-from app.domain.offboarding.process import OffboardingProcess
 from app.domain.offboarding.state.base import OffboardingProcessState
+from app.domain.offboarding.state.cancelled import CancelledState
 from app.domain.offboarding.state.finished import FinishedState
 from app.domain.offboarding.state.in_progress import InProgressState
 from app.domain.offboarding.state.not_started import NotStartedState
@@ -21,34 +21,27 @@ _STATE_FACTORIES: dict[str, type[OffboardingProcessState]] = {
     OffboardingProcessStateEnum.IN_PROGRESS.value: InProgressState,
     OffboardingProcessStateEnum.PENDING_REVISION.value: PendingRevisionState,
     OffboardingProcessStateEnum.FINISHED.value: FinishedState,
+    OffboardingProcessStateEnum.CANCELLED.value: CancelledState,
 }
 
 
-class OffboardingProcessModel(SQLModel, table=True): #TODO: Update the model when all DB architecture decisions are made
+class OffboardingProcessModel(SQLModel, table=True):
     __tablename__ = "offboarding_processes"
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('not_started','in_progress','pending_revision','finished','cancelled')",
+            name="ck_offboarding_processes_state",
+        ),
+    )
 
-    id: uuid.UUID = Field(primary_key=True)
-    employee_id: uuid.UUID = Field(index=True)
-    manager_id: uuid.UUID
-    state: str
-    created_at: datetime
-
-    @classmethod
-    def from_domain(cls, process: OffboardingProcess) -> OffboardingProcessModel:
-        return cls(
-            id=process.process_id.get_id(),
-            employee_id=process.employee_id.get_id(),
-            manager_id=process.manager_id.get_id(),
-            state=process.state.get_state().value,
-            created_at=process.created_at,
+    id: uuid.UUID = Field(
+        sa_column=Column(
+            sa.Uuid,
+            ForeignKey("processes.id", ondelete="CASCADE"),
+            primary_key=True,
         )
+    )
+    state: str = Field(nullable=False)
 
-    def to_domain(self) -> OffboardingProcess:
-        state = _STATE_FACTORIES[self.state]()
-        return OffboardingProcess(
-            process_id=OffboardingProcessId(self.id),
-            state=state,
-            employee_id=EmployeeId(self.employee_id),
-            manager_id=ManagerId(self.manager_id),
-            created_at=self.created_at,
-        )
+    def get_state_factory(self) -> OffboardingProcessState:
+        return _STATE_FACTORIES[self.state]()
