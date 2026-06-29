@@ -27,4 +27,8 @@ Empty for now. As contracts are added, export them here and list them in
 ``__all__``.
 """
 
-__all__: list[str] = []
+from .process_service_interface import IProcessService
+
+__all__: list[str] = [
+    "IProcessService",
+]
