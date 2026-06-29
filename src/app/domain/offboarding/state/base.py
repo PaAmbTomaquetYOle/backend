@@ -37,3 +37,8 @@ class OffboardingProcessState(ABC):
         raise InvalidOffboardingProcessStateTransitionError(
             self.get_state(), OffboardingProcessStateEnum.FINISHED
         )
+
+    def cancel(self) -> OffboardingProcessState:
+        raise InvalidOffboardingProcessStateTransitionError(
+            self.get_state(), OffboardingProcessStateEnum.CANCELLED
+        )

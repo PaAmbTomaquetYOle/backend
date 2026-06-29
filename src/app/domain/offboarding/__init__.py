@@ -1,8 +1,9 @@
 """Package representing IDs domain objects"""
 
-from .id import EmployeeId, Id, ManagerId, OffboardingProcessId
+from .id import DossierId, EmployeeId, Id, InterviewId, ManagerId, OffboardingProcessId
 from .process import OffboardingProcess
 from .state import (
+    CancelledState,
     FinishedState,
     InProgressState,
     NotStartedState,
@@ -11,11 +12,14 @@ from .state import (
 )
 
 __all__ = [
+    'DossierId',
     'EmployeeId',
     'Id',
+    'InterviewId',
     'ManagerId',
     'OffboardingProcessId',
     'OffboardingProcess',
+    'CancelledState',
     'FinishedState',
     'InProgressState',
     'NotStartedState',
