@@ -23,11 +23,12 @@ What does NOT go here:
 from app.application.ports.dossier import IDossierRepository
 from app.application.ports.interview import IInterviewRepository
 from app.application.ports.offboarding_process import IOffboardingProcessRepository
-from app.application.service_interfaces import IProcessService
+from app.application.service_interfaces import IInterviewService, IProcessService
 
 __all__: list[str] = [
     "IDossierRepository",
     "IInterviewRepository",
     "IOffboardingProcessRepository",
+    "IInterviewService",
     "IProcessService",
 ]
