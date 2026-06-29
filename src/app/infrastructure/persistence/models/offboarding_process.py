@@ -24,7 +24,7 @@ _STATE_FACTORIES: dict[str, type[OffboardingProcessState]] = {
 }
 
 
-class OffboardingProcessModel(SQLModel, table=True):
+class OffboardingProcessModel(SQLModel, table=True): #TODO: Update the model when all DB architecture decisions are made
     __tablename__ = "offboarding_processes"
 
     id: uuid.UUID = Field(primary_key=True)
