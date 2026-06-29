@@ -1,11 +1,20 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
-from app.domain import DossierId, EmployeeId, InterviewId, ManagerId, Process, ProcessId
+from app.domain import (
+    DossierId,
+    EmployeeId,
+    InterviewId,
+    ManagerId,
+    Process,
+    ProcessId,
+)
+from app.domain.enums import ProcessStateEnum
 
 
 class IProcessService(ABC):
     """
-    Interface for process services
+    Interface for all process services.
     """
 
     @abstractmethod
@@ -39,4 +48,27 @@ class IProcessService(ABC):
 
         Returns:
             Process object
+        """
+
+    @abstractmethod
+    async def get_filtered_processes(
+            self,
+            employee_id: EmployeeId | None = None,
+            manager_id: ManagerId | None = None,
+            interview_id: InterviewId | None = None,
+            dossier_id: DossierId | None = None,
+            state: ProcessStateEnum | None = None,
+    ) -> Iterable[Process]:
+        """
+        Get all processes filtered by the given parameters.
+
+        Args:
+            employee_id: Employee id
+            manager_id: Manager id
+            interview_id: Interview id
+            dossier_id: Dossier id
+            state: Process state
+
+        Returns:
+            Iterable of Process objects
         """
