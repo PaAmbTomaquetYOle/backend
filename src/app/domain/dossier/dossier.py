@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class Dossier:
-    """Dossier aggregate root. 1:1 with OffboardingProcess."""
+    """Dossier aggregate root. 1:1 with Process."""
 
     def __init__(
         self,
