@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.domain import Dossier, DossierSection, ProcessId
+from app.domain import Dossier, DossierId, DossierSection, ProcessId
 
 
 class IDossierService(ABC):
@@ -23,6 +23,18 @@ class IDossierService(ABC):
             summary (str | None): The summary of the dossier
             sections (list[DossierSection]): The sections of the dossier
             
+        Returns:
+            dossier (Dossier): The dossier
+        """
+
+    @abstractmethod
+    async def get_dossier(self, dossier_id: DossierId) -> Dossier:
+        """
+        Get a specific dossier
+
+        Args:
+            dossier_id (DossierId): The dossier
+
         Returns:
             dossier (Dossier): The dossier
         """
