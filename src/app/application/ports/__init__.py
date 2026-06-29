@@ -23,4 +23,8 @@ What does NOT go here:
 Empty for now. As ports are added, export them here and list them in ``__all__``.
 """
 
-__all__: list[str] = []
+from offboarding_process import IOffboardingProcessRepository
+
+__all__: list[str] = [
+    "IOffboardingProcessRepository",
+]

@@ -20,4 +20,8 @@ What does NOT go here:
   rules (those belong in ``domain``).
 """
 
-__all__: list[str] = []
+from ports import IOffboardingProcessRepository
+
+__all__: list[str] = [
+    "IOffboardingProcessRepository",
+]
