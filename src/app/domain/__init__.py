@@ -24,6 +24,7 @@ Empty for now. As domain types are added, export them here and list them in
 ``__all__``.
 """
 
+from .base_process import Process
 from .dossier import (
     ApprovedDossierState,
     CancelledDossierState,
@@ -92,6 +93,8 @@ from .offboarding import (
 )
 
 __all__: list[str] = [
+    # Base process domain
+    "Process",
     # Dossier domain
     "ApprovedDossierState",
     "CancelledDossierState",
