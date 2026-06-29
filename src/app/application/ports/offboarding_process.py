@@ -1,3 +1,5 @@
+"""Repository port interface for OffboardingProcess."""
+
 from abc import ABC, abstractmethod
 
 from app.domain.offboarding.id import EmployeeId, OffboardingProcessId
