@@ -1,5 +1,5 @@
 from app.domain.enums import OffboardingProcessStateEnum
-from app.domain.exceptions import DomainException
+from app.domain.exceptions.base import DomainException
 
 
 class InvalidStateTransitionError(DomainException):
