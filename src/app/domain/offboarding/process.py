@@ -4,7 +4,13 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.domain.offboarding import DossierId, EmployeeId, InterviewId, ManagerId, OffboardingProcessId
+    from app.domain.offboarding import (
+        DossierId,
+        EmployeeId,
+        InterviewId,
+        ManagerId,
+        OffboardingProcessId,
+    )
     from app.domain.offboarding.state import OffboardingProcessState
 
 
