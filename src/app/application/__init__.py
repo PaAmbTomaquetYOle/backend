@@ -20,7 +20,7 @@ What does NOT go here:
   rules (those belong in ``domain``).
 """
 
-from ports import IOffboardingProcessRepository
+from app.application.ports.offboarding_process import IOffboardingProcessRepository
 
 __all__: list[str] = [
     "IOffboardingProcessRepository",
