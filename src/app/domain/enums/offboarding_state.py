@@ -1,7 +1,7 @@
-from enum import Enum
+from app.domain.enums.process_state import ProcessStateEnum
 
 
-class OffboardingProcessStateEnum(Enum):
+class OffboardingProcessStateEnum(ProcessStateEnum):
     """
     Enum representing the different states of the offboarding process.
     """

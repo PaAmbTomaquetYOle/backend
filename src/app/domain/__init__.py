@@ -47,6 +47,7 @@ from .enums import (
     DossierStateEnum,
     InterviewStateEnum,
     OffboardingProcessStateEnum,
+    ProcessStateEnum,
     SpeakerRoleEnum,
 )
 from .exceptions import (
@@ -116,6 +117,7 @@ __all__: list[str] = [
     "DossierStateEnum",
     "InterviewStateEnum",
     "OffboardingProcessStateEnum",
+    "ProcessStateEnum",
     "SpeakerRoleEnum",
     # Exceptions
     "DomainException",
