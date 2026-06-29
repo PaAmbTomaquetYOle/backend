@@ -1,4 +1,5 @@
 """SQLModel-backed repository for interviews."""
+from collections.abc import Sequence
 
 from sqlmodel import Session, col, select
 
@@ -40,22 +41,23 @@ class InterviewRepository(IInterviewRepository):
         model = self._session.get(InterviewModel, interview_id.get_id())
         if not model:
             return None
-        turns = self._session.exec(
+        turns: Sequence[InterviewTurnModel] = self._session.exec(
             select(InterviewTurnModel).where(
                 col(InterviewTurnModel.interview_id) == model.id
             )
         ).all()
+        # noinspection PyTypeChecker
         return model.to_domain(list(turns))
 
     def find_by_process_id(self, process_id: OffboardingProcessId) -> Interview | None:
-        model = self._session.exec(
+        model: InterviewModel | None = self._session.exec(
             select(InterviewModel).where(
                 col(InterviewModel.process_id) == process_id.get_id()
             )
         ).first()
         if not model:
             return None
-        turns = self._session.exec(
+        turns: Sequence[InterviewTurnModel] = self._session.exec(
             select(InterviewTurnModel).where(
                 col(InterviewTurnModel.interview_id) == model.id
             )

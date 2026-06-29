@@ -46,13 +46,14 @@ class DossierRepository(IDossierRepository):
         self._session.commit()
 
     def find_by_id(self, dossier_id: DossierId) -> Dossier | None:
-        model = self._session.get(DossierModel, dossier_id.get_id())
+        # noinspection PyTypeChecker
+        model: DossierModel | None = self._session.get(DossierModel, dossier_id.get_id())
         if not model:
             return None
         return self._load_with_sections(model)
 
     def find_by_process_id(self, process_id: OffboardingProcessId) -> Dossier | None:
-        model = self._session.exec(
+        model: DossierModel | None = self._session.exec(
             select(DossierModel).where(
                 col(DossierModel.process_id) == process_id.get_id()
             )
@@ -62,7 +63,7 @@ class DossierRepository(IDossierRepository):
         return self._load_with_sections(model)
 
     def find_by_interview_id(self, interview_id: InterviewId) -> Dossier | None:
-        model = self._session.exec(
+        model: DossierModel | None = self._session.exec(
             select(DossierModel).where(
                 col(DossierModel.interview_id) == interview_id.get_id()
             )

@@ -46,10 +46,12 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
 
     def find_by_id(self, process_id: OffboardingProcessId) -> OffboardingProcess | None:
         pid = process_id.get_id()
-        base = self._session.get(ProcessModel, pid)
+        # noinspection PyTypeChecker
+        base: ProcessModel | None = self._session.get(ProcessModel, pid)
         if not base:
             return None
-        child = self._session.get(OffboardingProcessModel, pid)
+        # noinspection PyTypeChecker
+        child: OffboardingProcessModel | None = self._session.get(OffboardingProcessModel, pid)
         if not child:
             return None
         return self._to_domain(base, child)
