@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from collections import defaultdict
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.application.ports.dossier import IDossierRepository
 from app.domain.dossier.dossier import Dossier
@@ -54,7 +54,7 @@ class DossierRepository(IDossierRepository):
     def find_by_process_id(self, process_id: OffboardingProcessId) -> Dossier | None:
         model = self._session.exec(
             select(DossierModel).where(
-                DossierModel.process_id == process_id.get_id()
+                col(DossierModel.process_id) == process_id.get_id()
             )
         ).first()
         if not model:
@@ -64,7 +64,7 @@ class DossierRepository(IDossierRepository):
     def find_by_interview_id(self, interview_id: InterviewId) -> Dossier | None:
         model = self._session.exec(
             select(DossierModel).where(
-                DossierModel.interview_id == interview_id.get_id()
+                col(DossierModel.interview_id) == interview_id.get_id()
             )
         ).first()
         if not model:
@@ -85,7 +85,7 @@ class DossierRepository(IDossierRepository):
         section_models = list(
             self._session.exec(
                 select(DossierSectionModel).where(
-                    DossierSectionModel.dossier_id == model.id
+                    col(DossierSectionModel.dossier_id) == model.id
                 )
             ).all()
         )
@@ -122,7 +122,7 @@ class DossierRepository(IDossierRepository):
     def _delete_sections(self, dossier_id: uuid.UUID) -> None:
         existing = self._session.exec(
             select(DossierSectionModel).where(
-                DossierSectionModel.dossier_id == dossier_id
+                col(DossierSectionModel.dossier_id) == dossier_id
             )
         ).all()
         for section in existing:

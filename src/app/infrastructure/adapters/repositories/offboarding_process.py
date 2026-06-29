@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.application.ports.offboarding_process import IOffboardingProcessRepository
 from app.domain.offboarding.id import (
@@ -59,9 +59,9 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
             select(ProcessModel, OffboardingProcessModel)
             .join(
                 OffboardingProcessModel,
-                ProcessModel.id == OffboardingProcessModel.id,
+                col(ProcessModel.id) == col(OffboardingProcessModel.id),
             )
-            .where(ProcessModel.employee_id == employee_id.get_id())
+            .where(col(ProcessModel.employee_id) == employee_id.get_id())
         )
         rows = self._session.exec(stmt).all()
         return [self._to_domain(base, child) for base, child in rows]
@@ -69,7 +69,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
     def find_all(self) -> list[OffboardingProcess]:
         stmt = select(ProcessModel, OffboardingProcessModel).join(
             OffboardingProcessModel,
-            ProcessModel.id == OffboardingProcessModel.id,
+            col(ProcessModel.id) == col(OffboardingProcessModel.id),
         )
         rows = self._session.exec(stmt).all()
         return [self._to_domain(base, child) for base, child in rows]
@@ -100,12 +100,12 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
     ) -> tuple[uuid.UUID | None, uuid.UUID | None]:
         interview_row = self._session.exec(
             select(InterviewModel.id).where(
-                InterviewModel.process_id == process_id
+                col(InterviewModel.process_id) == process_id
             )
         ).first()
         dossier_row = self._session.exec(
             select(DossierModel.id).where(
-                DossierModel.process_id == process_id
+                col(DossierModel.process_id) == process_id
             )
         ).first()
         return interview_row, dossier_row
