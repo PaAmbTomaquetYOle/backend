@@ -70,12 +70,22 @@ class OffboardingProcessId(Id):
     Class representing an Offboarding Process ID
     """
 
+
 class EmployeeId(Id):
     """
     Class representing an Employee ID
     """
 
+
 class ManagerId(Id):
     """
     Class representing a Manager ID
     """
+
+
+class InterviewId(Id):
+    """Class representing an Interview ID"""
+
+
+class DossierId(Id):
+    """Class representing a Dossier ID"""

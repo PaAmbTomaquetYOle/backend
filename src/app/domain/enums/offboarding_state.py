@@ -10,3 +10,4 @@ class OffboardingProcessStateEnum(Enum):
     IN_PROGRESS = "in_progress"
     PENDING_REVISION = "pending_revision"
     FINISHED = "finished"
+    CANCELLED = "cancelled"
