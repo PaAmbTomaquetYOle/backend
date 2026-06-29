@@ -52,10 +52,10 @@ from .exceptions import (
     DomainException,
     DossierAlreadyExistsForProcessError,
     DossierDomainError,
+    DossierInterviewNotCompletedError,
     DossierSectionError,
     InterviewAlreadyExistsForProcessError,
     InterviewDomainError,
-    DossierInterviewNotCompletedError,
     InterviewNotInProgressError,
     InterviewTurnOrderError,
     InvalidDossierStateTransitionError,
@@ -88,6 +88,7 @@ from .offboarding import (
     OffboardingProcessId,
     OffboardingProcessState,
     PendingRevisionState,
+    ProcessId,
 )
 
 __all__: list[str] = [
@@ -151,4 +152,5 @@ __all__: list[str] = [
     "OffboardingProcessId",
     "OffboardingProcessState",
     "PendingRevisionState",
+    "ProcessId",
 ]

@@ -64,8 +64,12 @@ class Id(ABC):
         else:
             raise TypeError(f"Cannot compare Id with {type(other)}")
 
+class ProcessId(Id):
+    """
+    Class representing a Process ID
+    """
 
-class OffboardingProcessId(Id):
+class OffboardingProcessId(ProcessId):
     """
     Class representing an Offboarding Process ID
     """
