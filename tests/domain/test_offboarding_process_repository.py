@@ -11,7 +11,9 @@ from app.domain.offboarding.id import EmployeeId, ManagerId, OffboardingProcessI
 from app.domain.offboarding.process import OffboardingProcess
 from app.domain.offboarding.state.in_progress import InProgressState
 from app.domain.offboarding.state.not_started import NotStartedState
-from app.infrastructure.adapters.repositories.offboarding_process import OffboardingProcessRepository
+from app.infrastructure.adapters.repositories.offboarding_process import (
+    OffboardingProcessRepository,
+)
 from app.infrastructure.persistence import models as _models  # noqa: F401 — registers tables
 
 
