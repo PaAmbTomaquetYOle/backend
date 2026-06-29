@@ -23,17 +23,17 @@ class Process(ABC):
     __employee_id: EmployeeId
     __manager_id: ManagerId
     __created_at: datetime
-    __interview_id: InterviewId
-    __dossier_id: DossierId
-    
+    __interview_id: InterviewId | None
+    __dossier_id: DossierId | None
+
     def __init__(
             self,
             process_id: ProcessId,
             employee_id: EmployeeId,
             manager_id: ManagerId,
             created_at: datetime,
-            interview_id: InterviewId,
-            dossier_id: DossierId,
+            interview_id: InterviewId | None = None,
+            dossier_id: DossierId | None = None,
     ) -> None:
         self.__id = process_id
         self.__employee_id = employee_id
@@ -75,19 +75,19 @@ class Process(ABC):
         self.__created_at = created_at
 
     @property
-    def interview_id(self) -> InterviewId:
+    def interview_id(self) -> InterviewId | None:
         return self.__interview_id
 
     @interview_id.setter
-    def interview_id(self, interview_id: InterviewId):
+    def interview_id(self, interview_id: InterviewId | None):
         self.__interview_id = interview_id
 
     @property
-    def dossier_id(self) -> DossierId:
+    def dossier_id(self) -> DossierId | None:
         return self.__dossier_id
 
     @dossier_id.setter
-    def dossier_id(self, dossier_id: DossierId):
+    def dossier_id(self, dossier_id: DossierId | None):
         self.__dossier_id = dossier_id
 
     @property
