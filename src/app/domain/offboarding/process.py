@@ -28,8 +28,8 @@ class OffboardingProcess(Process):
             employee_id: EmployeeId,
             manager_id: ManagerId,
             created_at: datetime,
-            interview_id: InterviewId | None = None,
-            dossier_id: DossierId | None = None,
+            interview_id: InterviewId,
+            dossier_id: DossierId,
     ) -> None:
         super().__init__(process_id, employee_id, manager_id, created_at, interview_id, dossier_id)
         self.__state = state
