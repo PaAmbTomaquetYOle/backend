@@ -1,21 +1,32 @@
+"""OffboardingProcess aggregate root."""
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from app.domain.base_process import Process
+
 if TYPE_CHECKING:
-    from app.domain.offboarding import DossierId, EmployeeId, InterviewId, ManagerId, OffboardingProcessId
+    from app.domain.enums import OffboardingProcessStateEnum
+    from app.domain.offboarding import (
+        DossierId,
+        EmployeeId,
+        InterviewId,
+        ManagerId,
+        OffboardingProcessId,
+    )
     from app.domain.offboarding.state import OffboardingProcessState
 
 
-class OffboardingProcess:
+class OffboardingProcess(Process):
+    """Aggregate root representing an employee offboarding process.
+
+    Owns the lifecycle state machine and references to its Interview and Dossier by ID.
+    """
+
     __id: OffboardingProcessId
     __state: OffboardingProcessState
-    __employee_id: EmployeeId
-    __manager_id: ManagerId
-    __created_at: datetime
-    __interview_id: InterviewId | None
-    __dossier_id: DossierId | None
 
     def __init__(
             self,
@@ -27,65 +38,40 @@ class OffboardingProcess:
             interview_id: InterviewId | None = None,
             dossier_id: DossierId | None = None,
     ) -> None:
+        """Initialize the offboarding process with all its attributes.
+
+        Args:
+            process_id: Unique identifier for this offboarding process.
+            state: Initial state of the process (typically NotStartedState).
+            employee_id: ID of the employee being offboarded.
+            manager_id: ID of the manager overseeing the offboarding.
+            created_at: Timestamp when the process was created.
+            interview_id: ID of the associated interview, if any. Defaults to None.
+            dossier_id: ID of the associated dossier, if any. Defaults to None.
+        """
+        super().__init__(process_id, employee_id, manager_id, created_at, interview_id, dossier_id)
         self.__id = process_id
         self.__state = state
-        self.__employee_id = employee_id
-        self.__manager_id = manager_id
-        self.__created_at = created_at
-        self.__interview_id = interview_id
-        self.__dossier_id = dossier_id
 
     @property
     def process_id(self) -> OffboardingProcessId:
+        """The unique identifier of this offboarding process."""
         return self.__id
 
     @process_id.setter
     def process_id(self, process_id: OffboardingProcessId):
+        """Set the process identifier."""
         self.__id = process_id
 
     @property
     def state(self) -> OffboardingProcessState:
+        """The current state object of this offboarding process."""
         return self.__state
 
     @property
-    def employee_id(self) -> EmployeeId:
-        return self.__employee_id
-
-    @employee_id.setter
-    def employee_id(self, employee_id: EmployeeId):
-        self.__employee_id = employee_id
-
-    @property
-    def manager_id(self) -> ManagerId:
-        return self.__manager_id
-
-    @manager_id.setter
-    def manager_id(self, manager_id: ManagerId):
-        self.__manager_id = manager_id
-
-    @property
-    def created_at(self) -> datetime:
-        return self.__created_at
-
-    @created_at.setter
-    def created_at(self, created_at: datetime):
-        self.__created_at = created_at
-
-    @property
-    def interview_id(self) -> InterviewId | None:
-        return self.__interview_id
-
-    @interview_id.setter
-    def interview_id(self, interview_id: InterviewId | None):
-        self.__interview_id = interview_id
-
-    @property
-    def dossier_id(self) -> DossierId | None:
-        return self.__dossier_id
-
-    @dossier_id.setter
-    def dossier_id(self, dossier_id: DossierId | None):
-        self.__dossier_id = dossier_id
+    def state_value(self) -> OffboardingProcessStateEnum:
+        """The current state as an enum value."""
+        return self.__state.get_state()
 
     def start(self) -> OffboardingProcessState:
         """

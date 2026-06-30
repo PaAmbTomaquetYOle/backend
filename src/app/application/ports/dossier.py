@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 
 from app.domain.dossier.dossier import Dossier
-from app.domain.offboarding.id import DossierId, InterviewId, OffboardingProcessId
+from app.domain.offboarding.id import DossierId, InterviewId, ProcessId
 
 
 class IDossierRepository(ABC):
@@ -18,7 +18,7 @@ class IDossierRepository(ABC):
         """Return the dossier with the given ID, or None if not found."""
 
     @abstractmethod
-    def find_by_process_id(self, process_id: OffboardingProcessId) -> Dossier | None:
+    def find_by_process_id(self, process_id: ProcessId) -> Dossier | None:
         """Return the dossier for the given process, or None if not found."""
 
     @abstractmethod

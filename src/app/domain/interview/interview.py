@@ -11,7 +11,7 @@ from app.domain.exceptions.interview import InterviewNotInProgressError
 if TYPE_CHECKING:
     from app.domain.interview.state.base import InterviewState
     from app.domain.interview.turn import InterviewTurn
-    from app.domain.offboarding.id import InterviewId, OffboardingProcessId
+    from app.domain.offboarding.id import InterviewId, ProcessId
 
 
 class Interview:
@@ -20,12 +20,22 @@ class Interview:
     def __init__(
         self,
         interview_id: InterviewId,
-        process_id: OffboardingProcessId,
+        process_id: ProcessId,
         state: InterviewState,
         scheduled_at: datetime,
         created_at: datetime,
         turns: list[InterviewTurn] | None = None,
     ) -> None:
+        """Initialize the interview with its identifying attributes.
+
+        Args:
+            interview_id: Unique identifier for this interview.
+            process_id: ID of the offboarding process this interview belongs to.
+            state: Initial state of the interview (typically ScheduledInterviewState).
+            scheduled_at: When the interview is scheduled to take place.
+            created_at: Timestamp when the interview record was created.
+            turns: Pre-existing conversation turns. Defaults to an empty list.
+        """
         self.__id = interview_id
         self.__process_id = process_id
         self.__state = state
@@ -35,30 +45,37 @@ class Interview:
 
     @property
     def interview_id(self) -> InterviewId:
+        """The unique identifier of this interview."""
         return self.__id
 
     @property
-    def process_id(self) -> OffboardingProcessId:
+    def process_id(self) -> ProcessId:
+        """The ID of the offboarding process this interview is associated with."""
         return self.__process_id
 
     @property
     def state(self) -> InterviewState:
+        """The current state object of this interview."""
         return self.__state
 
     @property
     def scheduled_at(self) -> datetime:
+        """When the interview is scheduled to take place."""
         return self.__scheduled_at
 
     @scheduled_at.setter
     def scheduled_at(self, value: datetime) -> None:
+        """Set or update the scheduled time of the interview."""
         self.__scheduled_at = value
 
     @property
     def created_at(self) -> datetime:
+        """Timestamp when the interview record was created."""
         return self.__created_at
 
     @property
     def turns(self) -> list[InterviewTurn]:
+        """A copy of the conversation turns recorded in this interview."""
         return list(self.__turns)
 
     def start(self) -> InterviewState:

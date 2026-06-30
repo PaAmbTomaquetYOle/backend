@@ -1,3 +1,5 @@
+"""COMPLETED state: interview has been completed. Terminal state."""
+
 from __future__ import annotations
 
 from app.domain.enums import InterviewStateEnum
@@ -8,4 +10,5 @@ class CompletedInterviewState(InterviewState):
     """Represents the "Completed" state of an interview. Terminal state."""
 
     def get_state(self) -> InterviewStateEnum:
+        """Returns the COMPLETED state enum value."""
         return InterviewStateEnum.COMPLETED

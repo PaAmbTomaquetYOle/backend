@@ -1,3 +1,5 @@
+"""Exceptions raised when an invalid state machine transition is attempted."""
+
 from app.domain.enums import DossierStateEnum, InterviewStateEnum, OffboardingProcessStateEnum
 from app.domain.exceptions.base import DomainException
 
@@ -8,6 +10,12 @@ class InvalidStateTransitionError(DomainException):
     """
 
     def __init__(self, current_state: str, attempted_transition: str):
+        """Initialize with the invalid transition details.
+
+        Args:
+            current_state: The state the entity was in when the transition was attempted.
+            attempted_transition: The state the entity was trying to transition to.
+        """
         self.current_state = current_state
         self.attempted_transition = attempted_transition
         super().__init__(f"Invalid state transition from {current_state} to {attempted_transition}")
@@ -23,6 +31,12 @@ class InvalidOffboardingProcessStateTransitionError(InvalidStateTransitionError)
             current_state: OffboardingProcessStateEnum,
             attempted_transition: OffboardingProcessStateEnum
     ):
+        """Initialize with the offboarding process states involved in the invalid transition.
+
+        Args:
+            current_state: The offboarding process state at the time of the attempt.
+            attempted_transition: The offboarding process state that was not reachable.
+        """
         self.current_state = current_state
         self.attempted_transition = attempted_transition
         super().__init__(
@@ -37,6 +51,12 @@ class InvalidInterviewStateTransitionError(InvalidStateTransitionError):
     """
 
     def __init__(self, current_state: InterviewStateEnum, attempted_transition: InterviewStateEnum):
+        """Initialize with the interview states involved in the invalid transition.
+
+        Args:
+            current_state: The interview state at the time of the attempt.
+            attempted_transition: The interview state that was not reachable.
+        """
         self.current_state = current_state
         self.attempted_transition = attempted_transition
         super().__init__(
@@ -51,6 +71,12 @@ class InvalidDossierStateTransitionError(InvalidStateTransitionError):
     """
 
     def __init__(self, current_state: DossierStateEnum, attempted_transition: DossierStateEnum):
+        """Initialize with the dossier states involved in the invalid transition.
+
+        Args:
+            current_state: The dossier state at the time of the attempt.
+            attempted_transition: The dossier state that was not reachable.
+        """
         self.current_state = current_state
         self.attempted_transition = attempted_transition
         super().__init__(

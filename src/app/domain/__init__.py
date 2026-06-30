@@ -24,6 +24,7 @@ Empty for now. As domain types are added, export them here and list them in
 ``__all__``.
 """
 
+from .base_process import Process
 from .dossier import (
     ApprovedDossierState,
     CancelledDossierState,
@@ -46,22 +47,27 @@ from .enums import (
     DossierStateEnum,
     InterviewStateEnum,
     OffboardingProcessStateEnum,
+    ProcessStateEnum,
     SpeakerRoleEnum,
 )
 from .exceptions import (
     DomainException,
     DossierAlreadyExistsForProcessError,
     DossierDomainError,
+    DossierInterviewNotCompletedError,
+    DossierNotFoundError,
     DossierSectionError,
     InterviewAlreadyExistsForProcessError,
     InterviewDomainError,
-    DossierInterviewNotCompletedError,
+    InterviewNotFoundError,
     InterviewNotInProgressError,
     InterviewTurnOrderError,
     InvalidDossierStateTransitionError,
     InvalidInterviewStateTransitionError,
     InvalidOffboardingProcessStateTransitionError,
     InvalidStateTransitionError,
+    OffboardingDomainError,
+    ProcessNotFoundError,
 )
 from .interview import (
     CancelledInterviewState,
@@ -88,9 +94,12 @@ from .offboarding import (
     OffboardingProcessId,
     OffboardingProcessState,
     PendingRevisionState,
+    ProcessId,
 )
 
 __all__: list[str] = [
+    # Base process domain
+    "Process",
     # Dossier domain
     "ApprovedDossierState",
     "CancelledDossierState",
@@ -112,21 +121,26 @@ __all__: list[str] = [
     "DossierStateEnum",
     "InterviewStateEnum",
     "OffboardingProcessStateEnum",
+    "ProcessStateEnum",
     "SpeakerRoleEnum",
     # Exceptions
     "DomainException",
     "DossierAlreadyExistsForProcessError",
     "DossierDomainError",
+    "DossierInterviewNotCompletedError",
+    "DossierNotFoundError",
     "DossierSectionError",
     "InterviewAlreadyExistsForProcessError",
     "InterviewDomainError",
-    "DossierInterviewNotCompletedError",
+    "InterviewNotFoundError",
     "InterviewNotInProgressError",
     "InterviewTurnOrderError",
     "InvalidDossierStateTransitionError",
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
     "InvalidStateTransitionError",
+    "OffboardingDomainError",
+    "ProcessNotFoundError",
     # Interview domain
     "CancelledInterviewState",
     "CompletedInterviewState",
@@ -151,4 +165,5 @@ __all__: list[str] = [
     "OffboardingProcessId",
     "OffboardingProcessState",
     "PendingRevisionState",
+    "ProcessId",
 ]

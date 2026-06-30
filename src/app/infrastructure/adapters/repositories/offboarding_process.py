@@ -1,40 +1,134 @@
-from sqlmodel import Session, select
+"""SQLModel-backed repository for offboarding processes."""
+
+from __future__ import annotations
+
+import uuid
+
+from sqlmodel import Session, col, select
 
 from app.application.ports.offboarding_process import IOffboardingProcessRepository
-from app.domain.offboarding.id import EmployeeId, OffboardingProcessId
+from app.domain.offboarding.id import (
+    DossierId,
+    EmployeeId,
+    InterviewId,
+    ManagerId,
+    OffboardingProcessId,
+)
 from app.domain.offboarding.process import OffboardingProcess
-from app.infrastructure.persistence.models import OffboardingProcessModel
+from app.infrastructure.persistence.models.dossier import DossierModel
+from app.infrastructure.persistence.models.interview import InterviewModel
+from app.infrastructure.persistence.models.offboarding_process import (
+    OffboardingProcessModel,
+)
+from app.infrastructure.persistence.models.process import ProcessModel
 
 
 class OffboardingProcessRepository(IOffboardingProcessRepository):
-    """SQLModel-backed repository for offboarding processes."""
+    """SQLModel-backed implementation of IOffboardingProcessRepository."""
 
     def __init__(self, session: Session) -> None:
+        """Initialize the repository with a database session.
+
+        Args:
+            session: The active SQLModel session to use for all queries.
+        """
         self._session = session
 
     def save(self, process: OffboardingProcess) -> None:
-        model = OffboardingProcessModel.from_domain(process)
-        self._session.merge(model)
+        """Persist an offboarding process (insert or update)."""
+        base = ProcessModel(
+            id=process.process_id.get_id(),
+            type="offboarding",
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+            created_at=process.created_at,
+        )
+        child = OffboardingProcessModel(
+            id=base.id,
+            state=process.state.get_state().value,
+        )
+        self._session.merge(base)
+        self._session.merge(child)
         self._session.commit()
 
     def find_by_id(self, process_id: OffboardingProcessId) -> OffboardingProcess | None:
-        model = self._session.get(OffboardingProcessModel, process_id.get_id())
-        return model.to_domain() if model else None
+        """Return the process with the given ID, or None if not found."""
+        pid = process_id.get_id()
+        # noinspection PyTypeChecker
+        base: ProcessModel | None = self._session.get(ProcessModel, pid)
+        if not base:
+            return None
+        # noinspection PyTypeChecker
+        child: OffboardingProcessModel | None = self._session.get(OffboardingProcessModel, pid)
+        if not child:
+            return None
+        return self._to_domain(base, child)
 
     def find_by_employee_id(self, employee_id: EmployeeId) -> list[OffboardingProcess]:
-        statement = select(OffboardingProcessModel).where(
-            OffboardingProcessModel.employee_id == employee_id.get_id()
+        """Return all processes for the given employee."""
+        stmt = (
+            select(ProcessModel, OffboardingProcessModel)
+            .join(
+                OffboardingProcessModel,
+                col(ProcessModel.id) == col(OffboardingProcessModel.id),
+            )
+            .where(col(ProcessModel.employee_id) == employee_id.get_id())
         )
-        results = self._session.exec(statement).all()
-        return [r.to_domain() for r in results]
+        rows = self._session.exec(stmt).all()
+        return [self._to_domain(base, child) for base, child in rows]
 
     def find_all(self) -> list[OffboardingProcess]:
-        statement = select(OffboardingProcessModel)
-        results = self._session.exec(statement).all()
-        return [r.to_domain() for r in results]
+        """Return all stored offboarding processes."""
+        stmt = select(ProcessModel, OffboardingProcessModel).join(
+            OffboardingProcessModel,
+            col(ProcessModel.id) == col(OffboardingProcessModel.id),
+        )
+        rows = self._session.exec(stmt).all()
+        return [self._to_domain(base, child) for base, child in rows]
 
     def delete(self, process_id: OffboardingProcessId) -> None:
-        model = self._session.get(OffboardingProcessModel, process_id.get_id())
-        if model:
-            self._session.delete(model)
+        """Remove the process with the given ID (no-op if not found)."""
+        base = self._session.get(ProcessModel, process_id.get_id())
+        if base:
+            self._session.delete(base)
             self._session.commit()
+
+    def _to_domain(
+        self, base: ProcessModel, child: OffboardingProcessModel
+    ) -> OffboardingProcess:
+        """Reconstruct a domain OffboardingProcess from its base and child persistence models."""
+        interview_id, dossier_id = self._resolve_related_ids(base.id)
+        state = child.get_state_factory()
+        return OffboardingProcess(
+            process_id=OffboardingProcessId(base.id),
+            state=state,
+            employee_id=EmployeeId(base.employee_id),
+            manager_id=ManagerId(base.manager_id),
+            created_at=base.created_at,
+            interview_id=InterviewId(interview_id) if interview_id else None,
+            dossier_id=DossierId(dossier_id) if dossier_id else None,
+        )
+
+    def _resolve_related_ids(
+        self, process_id: uuid.UUID
+    ) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+        """Resolve the interview and dossier IDs associated with this process.
+
+        Args:
+            process_id: The UUID of the process to look up.
+
+        Returns:
+            tuple[uuid.UUID | None, uuid.UUID | None]: A (interview_id, dossier_id) pair,
+                each None if not yet assigned.
+        """
+        interview_row = self._session.exec(
+            select(InterviewModel.id).where(
+                col(InterviewModel.process_id) == process_id
+            )
+        ).first()
+        dossier_row = self._session.exec(
+            select(DossierModel.id).where(
+                col(DossierModel.process_id) == process_id
+            )
+        ).first()
+        return interview_row, dossier_row

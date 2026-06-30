@@ -23,9 +23,27 @@ What does NOT go here:
 from app.application.ports.dossier import IDossierRepository
 from app.application.ports.interview import IInterviewRepository
 from app.application.ports.offboarding_process import IOffboardingProcessRepository
+from app.application.service_interfaces import (
+    IDossierService,
+    IInterviewService,
+    IOffboardingDossierFacade,
+    IOffboardingInterviewFacade,
+    IOffboardingProcessFacade,
+    IOffboardingProcessService,
+    IOffboardingServiceFacade,
+    IProcessService,
+)
 
 __all__: list[str] = [
     "IDossierRepository",
     "IInterviewRepository",
     "IOffboardingProcessRepository",
+    "IDossierService",
+    "IInterviewService",
+    "IOffboardingDossierFacade",
+    "IOffboardingInterviewFacade",
+    "IOffboardingProcessFacade",
+    "IOffboardingProcessService",
+    "IOffboardingServiceFacade",
+    "IProcessService",
 ]

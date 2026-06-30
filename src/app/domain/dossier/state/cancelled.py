@@ -10,4 +10,5 @@ class CancelledDossierState(DossierState):
     """Dossier has been cancelled. Terminal state."""
 
     def get_state(self) -> DossierStateEnum:
+        """Returns the CANCELLED state enum value."""
         return DossierStateEnum.CANCELLED

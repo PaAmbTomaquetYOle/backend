@@ -10,7 +10,20 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Session
 
-from app.infrastructure.adapters.repositories.offboarding_process import OffboardingProcessRepository
+from app.application.service_interfaces.offboarding_facade_interface import (
+    IOffboardingDossierFacade,
+    IOffboardingInterviewFacade,
+    IOffboardingProcessFacade,
+)
+from app.application.services.dossier_service import DossierService
+from app.application.services.interview_service import InterviewService
+from app.application.services.offboarding_facade_service import OffboardingFacadeService
+from app.application.services.offboarding_process_service import OffboardingProcessService
+from app.infrastructure.adapters.repositories.dossier import DossierRepository
+from app.infrastructure.adapters.repositories.interview import InterviewRepository
+from app.infrastructure.adapters.repositories.offboarding_process import (
+    OffboardingProcessRepository,
+)
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
@@ -25,3 +38,75 @@ def offboarding_repository_dependency(
 ) -> OffboardingProcessRepository:
     """Provide a SQLModel-backed offboarding process repository."""
     return OffboardingProcessRepository(session)
+
+
+def interview_repository_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> InterviewRepository:
+    """Provide a SQLModel-backed interview repository."""
+    return InterviewRepository(session)
+
+
+def dossier_repository_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> DossierRepository:
+    """Provide a SQLModel-backed dossier repository."""
+    return DossierRepository(session)
+
+
+def offboarding_process_service_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> OffboardingProcessService:
+    """Provide an offboarding process service wired with its repository."""
+    return OffboardingProcessService(OffboardingProcessRepository(session))
+
+
+def interview_service_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> InterviewService:
+    """Provide an interview service wired with its repository."""
+    return InterviewService(InterviewRepository(session))
+
+
+def dossier_service_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> DossierService:
+    """Provide a dossier service wired with its repository."""
+    return DossierService(DossierRepository(session))
+
+
+def _build_facade(session: Session) -> OffboardingFacadeService:
+    """Assemble the full OffboardingFacadeService from session-scoped services.
+
+    Args:
+        session: The active SQLModel session shared across all composed services.
+
+    Returns:
+        OffboardingFacadeService: A fully wired facade instance.
+    """
+    return OffboardingFacadeService(
+        process_service=OffboardingProcessService(OffboardingProcessRepository(session)),
+        interview_service=InterviewService(InterviewRepository(session)),
+        dossier_service=DossierService(DossierRepository(session)),
+    )
+
+
+def offboarding_process_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingProcessFacade:
+    """Provide the facade narrowed to IOffboardingProcessFacade for the process router."""
+    return _build_facade(session)
+
+
+def offboarding_interview_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingInterviewFacade:
+    """Provide the facade narrowed to IOffboardingInterviewFacade for the interview router."""
+    return _build_facade(session)
+
+
+def offboarding_dossier_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingDossierFacade:
+    """Provide the facade narrowed to IOffboardingDossierFacade for the dossier router."""
+    return _build_facade(session)

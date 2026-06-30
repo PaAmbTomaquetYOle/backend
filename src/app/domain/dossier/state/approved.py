@@ -10,4 +10,5 @@ class ApprovedDossierState(DossierState):
     """Dossier has been approved. Terminal state."""
 
     def get_state(self) -> DossierStateEnum:
+        """Returns the APPROVED state enum value."""
         return DossierStateEnum.APPROVED
