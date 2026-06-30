@@ -21,9 +21,7 @@ class IProcessService(ABC):
     async def create_process(
             self,
             employee_id: EmployeeId,
-            manager_id: ManagerId,
-            interview_id: InterviewId,
-            dossier_id: DossierId
+            manager_id: ManagerId
     ) -> Process:
         """
         Create a new process object.
@@ -31,8 +29,6 @@ class IProcessService(ABC):
         Args:
             employee_id: Employee id
             manager_id: Manager id
-            interview_id: Interview id
-            dossier_id: Dossier id
 
         Returns:
             Process object
