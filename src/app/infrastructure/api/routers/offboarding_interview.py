@@ -5,7 +5,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingInterviewFacade
+from app.application.service_interfaces.offboarding_facade_interface import (
+    IOffboardingInterviewFacade,
+)
 from app.domain import InterviewTurn, OffboardingProcessId
 from app.infrastructure.api.dependencies import offboarding_interview_facade_dependency
 from app.infrastructure.api.schemas.common import ErrorResponse
@@ -18,9 +20,27 @@ from app.infrastructure.api.schemas.interview import (
 
 router = APIRouter(tags=["interview"])
 
-_404 = {404: {"model": ErrorResponse, "description": "Process or interview not found"}}
-_409 = {409: {"model": ErrorResponse, "description": "Invalid state transition"}}
-_422 = {422: {"model": ErrorResponse, "description": "Validation error or invalid turn"}}
+_404 = {
+    404:
+        {
+            "model": ErrorResponse,
+            "description": "Process or interview not found"
+        }
+}
+_409 = {
+    409:
+        {
+            "model": ErrorResponse,
+            "description": "Invalid state transition"
+        }
+}
+_422 = {
+    422:
+        {
+            "model": ErrorResponse,
+            "description": "Validation error or invalid turn"
+        }
+}
 
 
 @router.put(
@@ -32,7 +52,10 @@ _422 = {422: {"model": ErrorResponse, "description": "Validation error or invali
 async def upsert_interview(
         process_id: UUID,
         body: UpsertInterviewRequest,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
         response: Response,
 ) -> InterviewResponse:
     """Create or replace the interview for an offboarding process."""
@@ -55,7 +78,10 @@ async def upsert_interview(
 )
 async def get_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
 ) -> InterviewResponse:
     """Retrieve the interview associated with an offboarding process."""
     interview = await facade.get_interview(OffboardingProcessId(process_id))
@@ -70,7 +96,10 @@ async def get_interview(
 )
 async def start_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
 ) -> InterviewResponse:
     """Transition the interview from SCHEDULED to IN_PROGRESS."""
     interview = await facade.start_interview(OffboardingProcessId(process_id))
@@ -85,7 +114,10 @@ async def start_interview(
 )
 async def complete_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
 ) -> InterviewResponse:
     """Transition the interview from IN_PROGRESS to COMPLETED."""
     interview = await facade.complete_interview(OffboardingProcessId(process_id))
@@ -100,7 +132,10 @@ async def complete_interview(
 )
 async def cancel_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
 ) -> InterviewResponse:
     """Cancel the interview associated with an offboarding process."""
     interview = await facade.cancel_interview(OffboardingProcessId(process_id))
@@ -117,7 +152,10 @@ async def cancel_interview(
 async def add_turns(
         process_id: UUID,
         body: AddTurnsRequest,
-        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
+        facade: Annotated[
+            IOffboardingInterviewFacade,
+            Depends(offboarding_interview_facade_dependency)
+        ],
 ) -> InterviewResponse:
     """Append turns to the in-progress interview."""
     pid = OffboardingProcessId(process_id)

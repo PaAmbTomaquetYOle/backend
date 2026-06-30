@@ -5,7 +5,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingDossierFacade
+from app.application.service_interfaces.offboarding_facade_interface import (
+    IOffboardingDossierFacade,
+)
 from app.domain import DossierSection, OffboardingProcessId
 from app.infrastructure.api.dependencies import offboarding_dossier_facade_dependency
 from app.infrastructure.api.schemas.common import ErrorResponse
@@ -17,9 +19,27 @@ from app.infrastructure.api.schemas.dossier import (
 
 router = APIRouter(tags=["dossier"])
 
-_404 = {404: {"model": ErrorResponse, "description": "Process or dossier not found"}}
-_409 = {409: {"model": ErrorResponse, "description": "Dossier already exists or constraint violation"}}
-_422 = {422: {"model": ErrorResponse, "description": "Interview not completed"}}
+_404 = {
+    404:
+        {
+            "model": ErrorResponse,
+            "description": "Process or dossier not found"
+        }
+}
+_409 = {
+    409:
+        {
+            "model": ErrorResponse,
+            "description": "Dossier already exists or constraint violation"
+        }
+}
+_422 = {
+    422:
+        {
+            "model": ErrorResponse,
+            "description": "Interview not completed"
+        }
+}
 
 
 @router.post(
@@ -32,7 +52,10 @@ _422 = {422: {"model": ErrorResponse, "description": "Interview not completed"}}
 async def create_dossier(
         process_id: UUID,
         body: CreateDossierRequest,
-        facade: Annotated[IOffboardingDossierFacade, Depends(offboarding_dossier_facade_dependency)],
+        facade: Annotated[
+            IOffboardingDossierFacade,
+            Depends(offboarding_dossier_facade_dependency)
+        ],
 ) -> DossierResponse:
     """Create a dossier for an offboarding process."""
     pid = OffboardingProcessId(process_id)
@@ -54,7 +77,10 @@ async def create_dossier(
 )
 async def get_dossier(
         process_id: UUID,
-        facade: Annotated[IOffboardingDossierFacade, Depends(offboarding_dossier_facade_dependency)],
+        facade: Annotated[
+            IOffboardingDossierFacade,
+            Depends(offboarding_dossier_facade_dependency)
+        ],
 ) -> DossierResponse:
     """Retrieve the dossier for an offboarding process."""
     dossier = await facade.get_dossier(OffboardingProcessId(process_id))
