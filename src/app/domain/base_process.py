@@ -35,6 +35,16 @@ class Process(ABC):
             interview_id: InterviewId | None = None,
             dossier_id: DossierId | None = None,
     ) -> None:
+        """Initialize the process with its identifying attributes.
+
+        Args:
+            process_id: Unique identifier for this process.
+            employee_id: ID of the employee the process belongs to.
+            manager_id: ID of the manager responsible for the process.
+            created_at: Timestamp when the process was created.
+            interview_id: ID of the associated interview, if any. Defaults to None.
+            dossier_id: ID of the associated dossier, if any. Defaults to None.
+        """
         self.__id = process_id
         self.__employee_id = employee_id
         self.__manager_id = manager_id
@@ -44,53 +54,66 @@ class Process(ABC):
 
     @property
     def process_id(self) -> ProcessId:
+        """The unique identifier of this process."""
         return self.__id
 
     @process_id.setter
     def process_id(self, process_id: ProcessId) -> None:
+        """Set the process identifier."""
         self.__id = process_id
 
     @property
     def employee_id(self) -> EmployeeId:
+        """The ID of the employee this process belongs to."""
         return self.__employee_id
 
     @employee_id.setter
     def employee_id(self, employee_id: EmployeeId):
+        """Set the employee identifier."""
         self.__employee_id = employee_id
 
     @property
     def manager_id(self) -> ManagerId:
+        """The ID of the manager responsible for this process."""
         return self.__manager_id
 
     @manager_id.setter
     def manager_id(self, manager_id: ManagerId):
+        """Set the manager identifier."""
         self.__manager_id = manager_id
 
     @property
     def created_at(self) -> datetime:
+        """Timestamp when the process was created."""
         return self.__created_at
 
     @created_at.setter
     def created_at(self, created_at: datetime):
+        """Set the creation timestamp."""
         self.__created_at = created_at
 
     @property
     def interview_id(self) -> InterviewId | None:
+        """The ID of the associated interview, or None if not yet created."""
         return self.__interview_id
 
     @interview_id.setter
     def interview_id(self, interview_id: InterviewId | None):
+        """Set the associated interview ID."""
         self.__interview_id = interview_id
 
     @property
     def dossier_id(self) -> DossierId | None:
+        """The ID of the associated dossier, or None if not yet created."""
         return self.__dossier_id
 
     @dossier_id.setter
     def dossier_id(self, dossier_id: DossierId | None):
+        """Set the associated dossier ID."""
         self.__dossier_id = dossier_id
 
     @property
     @abstractmethod
     def state_value(self) -> ProcessStateEnum:
+        """The current state of this process as an enum value."""
         pass

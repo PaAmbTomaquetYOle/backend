@@ -1,3 +1,5 @@
+"""OffboardingProcess aggregate root."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,6 +20,11 @@ if TYPE_CHECKING:
 
 
 class OffboardingProcess(Process):
+    """Aggregate root representing an employee offboarding process.
+
+    Owns the lifecycle state machine and references to its Interview and Dossier by ID.
+    """
+
     __id: OffboardingProcessId
     __state: OffboardingProcessState
 
@@ -31,24 +38,39 @@ class OffboardingProcess(Process):
             interview_id: InterviewId | None = None,
             dossier_id: DossierId | None = None,
     ) -> None:
+        """Initialize the offboarding process with all its attributes.
+
+        Args:
+            process_id: Unique identifier for this offboarding process.
+            state: Initial state of the process (typically NotStartedState).
+            employee_id: ID of the employee being offboarded.
+            manager_id: ID of the manager overseeing the offboarding.
+            created_at: Timestamp when the process was created.
+            interview_id: ID of the associated interview, if any. Defaults to None.
+            dossier_id: ID of the associated dossier, if any. Defaults to None.
+        """
         super().__init__(process_id, employee_id, manager_id, created_at, interview_id, dossier_id)
         self.__id = process_id
         self.__state = state
 
     @property
     def process_id(self) -> OffboardingProcessId:
+        """The unique identifier of this offboarding process."""
         return self.__id
 
     @process_id.setter
     def process_id(self, process_id: OffboardingProcessId):
+        """Set the process identifier."""
         self.__id = process_id
 
     @property
     def state(self) -> OffboardingProcessState:
+        """The current state object of this offboarding process."""
         return self.__state
 
     @property
     def state_value(self) -> OffboardingProcessStateEnum:
+        """The current state as an enum value."""
         return self.__state.get_state()
 
     def start(self) -> OffboardingProcessState:

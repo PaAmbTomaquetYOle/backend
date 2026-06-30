@@ -1,3 +1,5 @@
+"""Enum of valid offboarding process states."""
+
 from app.domain.enums.process_state import ProcessStateEnum
 
 

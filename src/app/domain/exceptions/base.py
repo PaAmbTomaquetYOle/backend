@@ -1,3 +1,5 @@
+"""Base exception for all domain-layer errors."""
+
 from abc import ABC
 
 

@@ -26,6 +26,11 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
+        """Assemble the async PostgreSQL connection URL from individual components.
+
+        Returns:
+            str: A psycopg-compatible async database URL.
+        """
         return f"postgresql+psycopg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 

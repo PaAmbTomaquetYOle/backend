@@ -32,6 +32,8 @@ _DOSSIER_STATE_FACTORIES: dict[str, type[DossierState]] = {
 
 
 class DossierModel(SQLModel, table=True):
+    """SQLModel persistence model for dossiers."""
+
     __tablename__ = "dossiers"
     __table_args__ = (
         CheckConstraint(
@@ -63,6 +65,14 @@ class DossierModel(SQLModel, table=True):
 
     @classmethod
     def from_domain(cls, dossier: Dossier) -> DossierModel:
+        """Create a DossierModel from a domain Dossier aggregate.
+
+        Args:
+            dossier: The domain Dossier to persist.
+
+        Returns:
+            DossierModel: The corresponding persistence model.
+        """
         return cls(
             id=dossier.dossier_id.get_id(),
             process_id=dossier.process_id.get_id(),
@@ -73,6 +83,14 @@ class DossierModel(SQLModel, table=True):
         )
 
     def to_domain(self, sections: list[DossierSection] | None = None) -> Dossier:
+        """Reconstruct a domain Dossier from this model and its associated section models.
+
+        Args:
+            sections: List of domain DossierSection objects. Defaults to None (empty list).
+
+        Returns:
+            Dossier: The reconstructed domain aggregate.
+        """
         state = _DOSSIER_STATE_FACTORIES[self.state]()
         return Dossier(
             dossier_id=DossierId(self.id),

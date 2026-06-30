@@ -13,11 +13,18 @@ from app.infrastructure.persistence.models.interview import (
 
 
 class InterviewRepository(IInterviewRepository):
+    """SQLModel-backed implementation of IInterviewRepository."""
 
     def __init__(self, session: Session) -> None:
+        """Initialize the repository with a database session.
+
+        Args:
+            session: The active SQLModel session to use for all queries.
+        """
         self._session = session
 
     def save(self, interview: Interview) -> None:
+        """Persist an interview and all its turns (insert or update)."""
         model = InterviewModel.from_domain(interview)
         self._session.merge(model)
         self._session.flush()
@@ -38,6 +45,7 @@ class InterviewRepository(IInterviewRepository):
         self._session.commit()
 
     def find_by_id(self, interview_id: InterviewId) -> Interview | None:
+        """Return the interview with the given ID, or None if not found."""
         model = self._session.get(InterviewModel, interview_id.get_id())
         if not model:
             return None
@@ -50,6 +58,7 @@ class InterviewRepository(IInterviewRepository):
         return model.to_domain(list(turns))
 
     def find_by_process_id(self, process_id: OffboardingProcessId) -> Interview | None:
+        """Return the interview for the given process, or None if not found."""
         model: InterviewModel | None = self._session.exec(
             select(InterviewModel).where(
                 col(InterviewModel.process_id) == process_id.get_id()
@@ -65,6 +74,7 @@ class InterviewRepository(IInterviewRepository):
         return model.to_domain(list(turns))
 
     def find_all(self) -> list[Interview]:
+        """Return all stored interviews."""
         models = self._session.exec(select(InterviewModel)).all()
         result: list[Interview] = []
         for model in models:
@@ -77,6 +87,7 @@ class InterviewRepository(IInterviewRepository):
         return result
 
     def delete(self, interview_id: InterviewId) -> None:
+        """Remove the interview with the given ID (no-op if not found)."""
         model = self._session.get(InterviewModel, interview_id.get_id())
         if model:
             self._session.delete(model)

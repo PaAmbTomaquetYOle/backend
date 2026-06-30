@@ -24,11 +24,18 @@ from app.infrastructure.persistence.models.process import ProcessModel
 
 
 class OffboardingProcessRepository(IOffboardingProcessRepository):
+    """SQLModel-backed implementation of IOffboardingProcessRepository."""
 
     def __init__(self, session: Session) -> None:
+        """Initialize the repository with a database session.
+
+        Args:
+            session: The active SQLModel session to use for all queries.
+        """
         self._session = session
 
     def save(self, process: OffboardingProcess) -> None:
+        """Persist an offboarding process (insert or update)."""
         base = ProcessModel(
             id=process.process_id.get_id(),
             type="offboarding",
@@ -45,6 +52,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
         self._session.commit()
 
     def find_by_id(self, process_id: OffboardingProcessId) -> OffboardingProcess | None:
+        """Return the process with the given ID, or None if not found."""
         pid = process_id.get_id()
         # noinspection PyTypeChecker
         base: ProcessModel | None = self._session.get(ProcessModel, pid)
@@ -57,6 +65,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
         return self._to_domain(base, child)
 
     def find_by_employee_id(self, employee_id: EmployeeId) -> list[OffboardingProcess]:
+        """Return all processes for the given employee."""
         stmt = (
             select(ProcessModel, OffboardingProcessModel)
             .join(
@@ -69,6 +78,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
         return [self._to_domain(base, child) for base, child in rows]
 
     def find_all(self) -> list[OffboardingProcess]:
+        """Return all stored offboarding processes."""
         stmt = select(ProcessModel, OffboardingProcessModel).join(
             OffboardingProcessModel,
             col(ProcessModel.id) == col(OffboardingProcessModel.id),
@@ -77,6 +87,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
         return [self._to_domain(base, child) for base, child in rows]
 
     def delete(self, process_id: OffboardingProcessId) -> None:
+        """Remove the process with the given ID (no-op if not found)."""
         base = self._session.get(ProcessModel, process_id.get_id())
         if base:
             self._session.delete(base)
@@ -85,6 +96,7 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
     def _to_domain(
         self, base: ProcessModel, child: OffboardingProcessModel
     ) -> OffboardingProcess:
+        """Reconstruct a domain OffboardingProcess from its base and child persistence models."""
         interview_id, dossier_id = self._resolve_related_ids(base.id)
         state = child.get_state_factory()
         return OffboardingProcess(
@@ -100,6 +112,15 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
     def _resolve_related_ids(
         self, process_id: uuid.UUID
     ) -> tuple[uuid.UUID | None, uuid.UUID | None]:
+        """Resolve the interview and dossier IDs associated with this process.
+
+        Args:
+            process_id: The UUID of the process to look up.
+
+        Returns:
+            tuple[uuid.UUID | None, uuid.UUID | None]: A (interview_id, dossier_id) pair,
+                each None if not yet assigned.
+        """
         interview_row = self._session.exec(
             select(InterviewModel.id).where(
                 col(InterviewModel.process_id) == process_id

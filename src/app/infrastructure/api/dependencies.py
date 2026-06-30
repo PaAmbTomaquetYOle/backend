@@ -43,34 +43,47 @@ def offboarding_repository_dependency(
 def interview_repository_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> InterviewRepository:
+    """Provide a SQLModel-backed interview repository."""
     return InterviewRepository(session)
 
 
 def dossier_repository_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> DossierRepository:
+    """Provide a SQLModel-backed dossier repository."""
     return DossierRepository(session)
 
 
 def offboarding_process_service_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> OffboardingProcessService:
+    """Provide an offboarding process service wired with its repository."""
     return OffboardingProcessService(OffboardingProcessRepository(session))
 
 
 def interview_service_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> InterviewService:
+    """Provide an interview service wired with its repository."""
     return InterviewService(InterviewRepository(session))
 
 
 def dossier_service_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> DossierService:
+    """Provide a dossier service wired with its repository."""
     return DossierService(DossierRepository(session))
 
 
 def _build_facade(session: Session) -> OffboardingFacadeService:
+    """Assemble the full OffboardingFacadeService from session-scoped services.
+
+    Args:
+        session: The active SQLModel session shared across all composed services.
+
+    Returns:
+        OffboardingFacadeService: A fully wired facade instance.
+    """
     return OffboardingFacadeService(
         process_service=OffboardingProcessService(OffboardingProcessRepository(session)),
         interview_service=InterviewService(InterviewRepository(session)),
@@ -81,16 +94,19 @@ def _build_facade(session: Session) -> OffboardingFacadeService:
 def offboarding_process_facade_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> IOffboardingProcessFacade:
+    """Provide the facade narrowed to IOffboardingProcessFacade for the process router."""
     return _build_facade(session)
 
 
 def offboarding_interview_facade_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> IOffboardingInterviewFacade:
+    """Provide the facade narrowed to IOffboardingInterviewFacade for the interview router."""
     return _build_facade(session)
 
 
 def offboarding_dossier_facade_dependency(
     session: Annotated[Session, Depends(get_session)],
 ) -> IOffboardingDossierFacade:
+    """Provide the facade narrowed to IOffboardingDossierFacade for the dossier router."""
     return _build_facade(session)

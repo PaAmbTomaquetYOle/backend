@@ -1,3 +1,5 @@
+"""CANCELLED state: interview has been cancelled. Terminal state."""
+
 from __future__ import annotations
 
 from app.domain.enums import InterviewStateEnum
@@ -8,4 +10,5 @@ class CancelledInterviewState(InterviewState):
     """Represents the "Cancelled" state of an interview. Terminal state."""
 
     def get_state(self) -> InterviewStateEnum:
+        """Returns the CANCELLED state enum value."""
         return InterviewStateEnum.CANCELLED

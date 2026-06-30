@@ -1,3 +1,5 @@
+"""SQLModel ORM models for persistence. Re-exports all model classes used by the repositories."""
+
 from .dossier import DossierModel as DossierModel
 from .dossier_section import (
     DossierSectionModel as DossierSectionModel,

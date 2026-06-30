@@ -15,6 +15,11 @@ from app.infrastructure.persistence.database import create_db_and_tables, init_e
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage application lifespan: initialize the database on startup.
+
+    Yields:
+        None: Control is yielded to the application while it is running.
+    """
     settings = get_settings()
     init_engine(settings.database_url)
     create_db_and_tables()

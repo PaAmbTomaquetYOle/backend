@@ -26,6 +26,11 @@ _STATE_FACTORIES: dict[str, type[OffboardingProcessState]] = {
 
 
 class OffboardingProcessModel(SQLModel, table=True):
+    """SQLModel persistence model for offboarding processes.
+
+    Maps the OffboardingProcess aggregate to the database via class-table inheritance.
+    """
+
     __tablename__ = "offboarding_processes"
     __table_args__ = (
         CheckConstraint(
@@ -44,4 +49,12 @@ class OffboardingProcessModel(SQLModel, table=True):
     state: str = Field(nullable=False)
 
     def get_state_factory(self) -> OffboardingProcessState:
+        """Return the domain state object corresponding to the persisted state string.
+
+        Returns:
+            OffboardingProcessState: The matching concrete state instance.
+
+        Raises:
+            ValueError: If the stored state value is unrecognized.
+        """
         return _STATE_FACTORIES[self.state]()

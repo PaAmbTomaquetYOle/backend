@@ -12,10 +12,21 @@ class NotGeneratedDossierState(DossierState):
     """Dossier has not yet been generated. Initial state."""
 
     def get_state(self) -> DossierStateEnum:
+        """Returns the NOT_GENERATED state enum value."""
         return DossierStateEnum.NOT_GENERATED
 
     def start_generating(self) -> DossierState:
+        """Transition to GENERATING.
+
+        Returns:
+            DossierState: The new GeneratingDossierState instance.
+        """
         return GeneratingDossierState()
 
     def cancel(self) -> DossierState:
+        """Transition to CANCELLED.
+
+        Returns:
+            DossierState: The new CancelledDossierState instance.
+        """
         return CancelledDossierState()

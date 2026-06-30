@@ -1,3 +1,5 @@
+"""Request/response schemas for dossier endpoints."""
+
 from datetime import datetime
 from typing import Literal, Self
 from uuid import UUID
@@ -18,6 +20,8 @@ from app.domain import (
 
 
 class ContactSchema(BaseModel):
+    """Request/response schema for a key contact in the dossier."""
+
     name: str
     role: str
     email: EmailStr
@@ -25,18 +29,24 @@ class ContactSchema(BaseModel):
 
 
 class PendingTaskSchema(BaseModel):
+    """Request/response schema for a pending task in the dossier."""
+
     description: str
     priority: str
     deadline: str | None = None
 
 
 class KnowledgeAreaSchema(BaseModel):
+    """Request/response schema for a knowledge area in the dossier."""
+
     topic: str
     description: str
     expertise_level: str
 
 
 class DossierSectionRequest(BaseModel):
+    """Request body for a dossier section. Uses a discriminated union on section_type."""
+
     title: str
     section_type: Literal["responsibilities", "contacts", "pending_tasks", "knowledge_areas"]
     responsibilities: list[str] | None = None
@@ -46,6 +56,7 @@ class DossierSectionRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_section_data(self) -> Self:
+        """Validate that the section data matches the declared section_type."""
         expected = {
             "responsibilities": "responsibilities",
             "contacts": "contacts",
@@ -64,6 +75,11 @@ class DossierSectionRequest(BaseModel):
         return self
 
     def to_domain(self) -> DossierSection:
+        """Convert the request schema to a domain DossierSection value object.
+
+        Returns:
+            DossierSection: The corresponding domain value object.
+        """
         if self.section_type == "responsibilities":
             return ResponsibilitiesSection(title=self.title, responsibilities=self.responsibilities)
         if self.section_type == "contacts":
@@ -83,11 +99,15 @@ class DossierSectionRequest(BaseModel):
 
 
 class CreateDossierRequest(BaseModel):
+    """Request body for creating a new dossier."""
+
     summary: str | None = None
     sections: list[DossierSectionRequest] = []
 
 
 class DossierSectionResponse(BaseModel):
+    """Response body for a single dossier section."""
+
     title: str
     section_type: str
     responsibilities: list[str] | None = None
@@ -97,6 +117,8 @@ class DossierSectionResponse(BaseModel):
 
 
 class DossierResponse(BaseModel):
+    """Response body representing a dossier."""
+
     id: UUID
     process_id: UUID
     interview_id: UUID
@@ -107,6 +129,14 @@ class DossierResponse(BaseModel):
 
 
 def _section_to_response(section: DossierSection) -> DossierSectionResponse:
+    """Convert a domain DossierSection to its API response schema.
+
+    Args:
+        section: The domain section value object to serialize.
+
+    Returns:
+        DossierSectionResponse: The corresponding response schema.
+    """
     responsibilities = None
     contacts = None
     tasks = None
@@ -139,6 +169,14 @@ def _section_to_response(section: DossierSection) -> DossierSectionResponse:
 
 
 def dossier_to_response(dossier: Dossier) -> DossierResponse:
+    """Convert a domain Dossier to its API response schema.
+
+    Args:
+        dossier: The domain aggregate to serialize.
+
+    Returns:
+        DossierResponse: The corresponding response schema.
+    """
     return DossierResponse(
         id=dossier.dossier_id.get_id(),
         process_id=dossier.process_id.get_id(),

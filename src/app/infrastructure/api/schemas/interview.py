@@ -1,3 +1,5 @@
+"""Request/response schemas for interview endpoints."""
+
 from datetime import datetime
 from typing import Literal, Self
 from uuid import UUID
@@ -14,6 +16,11 @@ from app.domain import (
 
 
 class InterviewTurnRequest(BaseModel):
+    """Request body for a single interview turn.
+
+    Validates that answer_text is absent on note turns.
+    """
+
     turn_type: Literal["question", "note"]
     speaker_role: Literal["interviewer", "interviewee"]
     timestamp: datetime
@@ -25,11 +32,17 @@ class InterviewTurnRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_answer_text(self) -> Self:
+        """Validate that note turns do not include answer_text."""
         if self.turn_type == "note" and self.answer_text is not None:
             raise ValueError("answer_text is only valid for turn_type 'question'")
         return self
 
     def to_domain(self) -> InterviewTurn:
+        """Convert the request schema to a domain InterviewTurn value object.
+
+        Returns:
+            InterviewTurn: The corresponding domain value object.
+        """
         role = SpeakerRoleEnum(self.speaker_role)
         if self.turn_type == "question":
             return InterviewQuestion(
@@ -52,15 +65,21 @@ class InterviewTurnRequest(BaseModel):
 
 
 class UpsertInterviewRequest(BaseModel):
+    """Request body for creating or replacing an interview."""
+
     scheduled_at: datetime
     turns: list[InterviewTurnRequest] = []
 
 
 class AddTurnsRequest(BaseModel):
+    """Request body for appending turns to an existing interview."""
+
     turns: list[InterviewTurnRequest]
 
 
 class InterviewTurnResponse(BaseModel):
+    """Response body representing a single interview turn."""
+
     turn_type: str
     speaker_role: str
     timestamp: datetime
@@ -72,6 +91,8 @@ class InterviewTurnResponse(BaseModel):
 
 
 class InterviewResponse(BaseModel):
+    """Response body representing an interview."""
+
     id: UUID
     process_id: UUID
     state: str
@@ -81,6 +102,14 @@ class InterviewResponse(BaseModel):
 
 
 def _turn_to_response(turn: InterviewTurn) -> InterviewTurnResponse:
+    """Convert a domain InterviewTurn to its API response schema.
+
+    Args:
+        turn: The domain turn value object to serialize.
+
+    Returns:
+        InterviewTurnResponse: The corresponding response schema.
+    """
     answer_text = turn.answer_text if isinstance(turn, InterviewQuestion) else None
     return InterviewTurnResponse(
         turn_type=turn.get_turn_type(),
@@ -95,6 +124,14 @@ def _turn_to_response(turn: InterviewTurn) -> InterviewTurnResponse:
 
 
 def interview_to_response(interview: Interview) -> InterviewResponse:
+    """Convert a domain Interview to its API response schema.
+
+    Args:
+        interview: The domain aggregate to serialize.
+
+    Returns:
+        InterviewResponse: The corresponding response schema.
+    """
     return InterviewResponse(
         id=interview.interview_id.get_id(),
         process_id=interview.process_id.get_id(),

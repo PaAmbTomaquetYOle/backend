@@ -21,6 +21,8 @@ from app.domain.dossier.section import (
 
 
 class DossierSectionModel(SQLModel, table=True):
+    """SQLModel persistence model for a dossier section."""
+
     __tablename__ = "dossier_sections"
     __table_args__ = (
         sa.UniqueConstraint(
@@ -50,6 +52,8 @@ class DossierSectionModel(SQLModel, table=True):
 
 
 class SectionResponsibilityModel(SQLModel, table=True):
+    """SQLModel persistence model for a responsibility item within a responsibilities section."""
+
     __tablename__ = "section_responsibilities"
     __table_args__ = (
         CheckConstraint(
@@ -72,6 +76,8 @@ class SectionResponsibilityModel(SQLModel, table=True):
 
 
 class SectionContactModel(SQLModel, table=True):
+    """SQLModel persistence model for a contact item within a contacts section."""
+
     __tablename__ = "section_contacts"
     __table_args__ = (
         CheckConstraint(
@@ -101,6 +107,8 @@ class SectionContactModel(SQLModel, table=True):
 
 
 class SectionPendingTaskModel(SQLModel, table=True):
+    """SQLModel persistence model for a pending task item within a tasks section."""
+
     __tablename__ = "section_pending_tasks"
     __table_args__ = (
         CheckConstraint(
@@ -125,6 +133,8 @@ class SectionPendingTaskModel(SQLModel, table=True):
 
 
 class SectionKnowledgeAreaModel(SQLModel, table=True):
+    """SQLModel persistence model for a knowledge area item within a knowledge areas section."""
+
     __tablename__ = "section_knowledge_areas"
     __table_args__ = (
         CheckConstraint(

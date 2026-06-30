@@ -33,6 +33,8 @@ _TURN_FACTORIES: dict[str, type] = {
 
 
 class InterviewModel(SQLModel, table=True):
+    """SQLModel persistence model for interviews."""
+
     __tablename__ = "interviews"
     __table_args__ = (
         CheckConstraint(
@@ -56,6 +58,14 @@ class InterviewModel(SQLModel, table=True):
 
     @classmethod
     def from_domain(cls, interview: Interview) -> InterviewModel:
+        """Create an InterviewModel from a domain Interview aggregate.
+
+        Args:
+            interview: The domain Interview to persist.
+
+        Returns:
+            InterviewModel: The corresponding persistence model.
+        """
         return cls(
             id=interview.interview_id.get_id(),
             process_id=interview.process_id.get_id(),
@@ -65,6 +75,15 @@ class InterviewModel(SQLModel, table=True):
         )
 
     def to_domain(self, turns: list[InterviewTurnModel] | None = None) -> Interview:
+        """Reconstruct a domain Interview from this model and its associated turn models.
+
+        Args:
+            turns: Sequence of InterviewTurnModel instances belonging to this interview.
+                Defaults to None (empty turns list).
+
+        Returns:
+            Interview: The reconstructed domain aggregate.
+        """
         state = _INTERVIEW_STATE_FACTORIES[self.state]()
         domain_turns: list[InterviewTurn] = []
         if turns:
@@ -81,6 +100,8 @@ class InterviewModel(SQLModel, table=True):
 
 
 class InterviewTurnModel(SQLModel, table=True):
+    """SQLModel persistence model for individual interview turns."""
+
     __tablename__ = "interview_turns"
     __table_args__ = (
         sa.UniqueConstraint(
@@ -118,6 +139,15 @@ class InterviewTurnModel(SQLModel, table=True):
     def from_domain(
         cls, turn: InterviewTurn, interview_id: uuid.UUID
     ) -> InterviewTurnModel:
+        """Create an InterviewTurnModel from a domain InterviewTurn.
+
+        Args:
+            turn: The domain turn value object.
+            interview_id: UUID of the owning interview.
+
+        Returns:
+            InterviewTurnModel: The corresponding persistence model.
+        """
         return cls(
             interview_id=interview_id,
             turn_type=turn.get_turn_type(),
@@ -131,6 +161,11 @@ class InterviewTurnModel(SQLModel, table=True):
         )
 
     def to_domain(self) -> InterviewTurn:
+        """Reconstruct a domain InterviewTurn from this model.
+
+        Returns:
+            InterviewTurn: The corresponding domain value object.
+        """
         role = SpeakerRoleEnum(self.speaker_role)
         if self.turn_type == "question":
             return InterviewQuestion(

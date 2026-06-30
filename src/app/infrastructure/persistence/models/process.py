@@ -10,6 +10,11 @@ from sqlmodel import Field, SQLModel
 
 
 class ProcessModel(SQLModel, table=True):
+    """SQLModel base for the process class-table inheritance hierarchy.
+
+    Not persisted directly; subclassed by OffboardingProcessModel.
+    """
+
     __tablename__ = "processes"
     __table_args__ = (
         CheckConstraint(

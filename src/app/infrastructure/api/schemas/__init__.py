@@ -1,3 +1,5 @@
+"""Pydantic request/response schemas for the HTTP API layer."""
+
 from .common import ErrorResponse
 from .dossier import (
     CreateDossierRequest,

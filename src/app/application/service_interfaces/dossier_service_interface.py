@@ -1,3 +1,5 @@
+"""Abstract contract for the dossier service."""
+
 from abc import ABC, abstractmethod
 
 from app.domain import Dossier, DossierId, DossierSection, InterviewId, ProcessId

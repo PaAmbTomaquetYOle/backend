@@ -1,3 +1,5 @@
+"""Abstract contract for process services."""
+
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 

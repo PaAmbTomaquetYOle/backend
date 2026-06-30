@@ -1,3 +1,5 @@
+"""Value objects representing typed identifiers used across the offboarding bounded context."""
+
 from __future__ import annotations
 
 from abc import ABC
@@ -27,7 +29,7 @@ class Id(ABC):
         Returns the ID
 
         Returns:
-            UUID: the new ID
+            UUID: the current ID value.
         """
         return self.__value
     

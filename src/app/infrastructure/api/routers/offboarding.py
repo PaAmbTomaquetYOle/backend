@@ -1,3 +1,5 @@
+"""HTTP endpoints for offboarding process management."""
+
 from typing import Annotated
 from uuid import UUID
 
@@ -35,6 +37,7 @@ async def create_offboarding(
         body: CreateOffboardingRequest,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Create a new offboarding process for an employee."""
     process = await facade.create_offboarding(
         employee_id=EmployeeId(body.employee_id),
         manager_id=ManagerId(body.manager_id),
@@ -53,6 +56,7 @@ async def list_offboardings(
         manager_id: Annotated[UUID | None, Query(description="Filter by manager UUID")] = None,
         state: Annotated[str | None, Query(description="Filter by state value (e.g. not_started)")] = None,
 ) -> OffboardingListResponse:
+    """List offboarding processes, optionally filtered by employee, manager, or state."""
     state_enum: OffboardingProcessStateEnum | None = None
     if state is not None:
         try:
@@ -79,6 +83,7 @@ async def get_offboarding(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Retrieve a specific offboarding process by its ID."""
     process = await facade.get_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
 
@@ -93,6 +98,7 @@ async def delete_offboarding(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> None:
+    """Delete an offboarding process by its ID."""
     await facade.delete_offboarding(OffboardingProcessId(process_id))
 
 
@@ -106,6 +112,7 @@ async def start_offboarding(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Transition an offboarding process from NOT_STARTED to IN_PROGRESS."""
     process = await facade.start_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
 
@@ -120,6 +127,7 @@ async def submit_for_review(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Transition an offboarding process from IN_PROGRESS to PENDING_REVISION."""
     process = await facade.submit_offboarding_for_review(OffboardingProcessId(process_id))
     return process_to_response(process)
 
@@ -134,6 +142,7 @@ async def complete_offboarding(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Transition an offboarding process from PENDING_REVISION to FINISHED."""
     process = await facade.complete_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
 
@@ -148,5 +157,6 @@ async def cancel_offboarding(
         process_id: UUID,
         facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
+    """Cancel an offboarding process."""
     process = await facade.cancel_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)

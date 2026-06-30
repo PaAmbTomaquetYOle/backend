@@ -1,3 +1,5 @@
+"""Request/response schemas for offboarding process endpoints."""
+
 from datetime import datetime
 from uuid import UUID
 
@@ -7,11 +9,15 @@ from app.domain import OffboardingProcess
 
 
 class CreateOffboardingRequest(BaseModel):
+    """Request body for creating a new offboarding process."""
+
     employee_id: UUID
     manager_id: UUID
 
 
 class OffboardingProcessResponse(BaseModel):
+    """Response body representing an offboarding process."""
+
     id: UUID
     employee_id: UUID
     manager_id: UUID
@@ -22,6 +28,14 @@ class OffboardingProcessResponse(BaseModel):
 
 
 def process_to_response(process: OffboardingProcess) -> OffboardingProcessResponse:
+    """Convert a domain OffboardingProcess to its API response schema.
+
+    Args:
+        process: The domain aggregate to serialize.
+
+    Returns:
+        OffboardingProcessResponse: The corresponding response schema.
+    """
     return OffboardingProcessResponse(
         id=process.process_id.get_id(),
         employee_id=process.employee_id.get_id(),
@@ -34,5 +48,7 @@ def process_to_response(process: OffboardingProcess) -> OffboardingProcessRespon
 
 
 class OffboardingListResponse(BaseModel):
+    """Paginated list response for offboarding processes."""
+
     items: list[OffboardingProcessResponse]
     count: int

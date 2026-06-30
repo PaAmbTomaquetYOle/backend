@@ -23,11 +23,18 @@ from app.infrastructure.persistence.models.dossier_section import (
 
 
 class DossierRepository(IDossierRepository):
+    """SQLModel-backed implementation of IDossierRepository."""
 
     def __init__(self, session: Session) -> None:
+        """Initialize the repository with a database session.
+
+        Args:
+            session: The active SQLModel session to use for all queries.
+        """
         self._session = session
 
     def save(self, dossier: Dossier) -> None:
+        """Persist a dossier and all its sections (insert or update)."""
         model = DossierModel.from_domain(dossier)
         self._session.merge(model)
         self._session.flush()
@@ -46,6 +53,7 @@ class DossierRepository(IDossierRepository):
         self._session.commit()
 
     def find_by_id(self, dossier_id: DossierId) -> Dossier | None:
+        """Return the dossier with the given ID, or None if not found."""
         # noinspection PyTypeChecker
         model: DossierModel | None = self._session.get(DossierModel, dossier_id.get_id())
         if not model:
@@ -53,6 +61,7 @@ class DossierRepository(IDossierRepository):
         return self._load_with_sections(model)
 
     def find_by_process_id(self, process_id: OffboardingProcessId) -> Dossier | None:
+        """Return the dossier for the given process, or None if not found."""
         model: DossierModel | None = self._session.exec(
             select(DossierModel).where(
                 col(DossierModel.process_id) == process_id.get_id()
@@ -63,6 +72,7 @@ class DossierRepository(IDossierRepository):
         return self._load_with_sections(model)
 
     def find_by_interview_id(self, interview_id: InterviewId) -> Dossier | None:
+        """Return the dossier for the given interview, or None if not found."""
         model: DossierModel | None = self._session.exec(
             select(DossierModel).where(
                 col(DossierModel.interview_id) == interview_id.get_id()
@@ -73,16 +83,26 @@ class DossierRepository(IDossierRepository):
         return self._load_with_sections(model)
 
     def find_all(self) -> list[Dossier]:
+        """Return all stored dossiers."""
         models = self._session.exec(select(DossierModel)).all()
         return [self._load_with_sections(m) for m in models]
 
     def delete(self, dossier_id: DossierId) -> None:
+        """Remove the dossier with the given ID (no-op if not found)."""
         model = self._session.get(DossierModel, dossier_id.get_id())
         if model:
             self._session.delete(model)
             self._session.commit()
 
     def _load_with_sections(self, model: DossierModel) -> Dossier:
+        """Reconstruct a domain Dossier from a DossierModel by loading all its sections from the DB.
+
+        Args:
+            model: The DossierModel whose sections should be loaded.
+
+        Returns:
+            Dossier: The fully reconstructed domain aggregate with all sections.
+        """
         section_models = list(
             self._session.exec(
                 select(DossierSectionModel).where(
@@ -112,6 +132,15 @@ class DossierRepository(IDossierRepository):
     def _group_by_section(
         self, model_cls: type, section_ids: list[uuid.UUID]
     ) -> dict[uuid.UUID, list]:
+        """Query child item models grouped by their parent section ID.
+
+        Args:
+            model_cls: The SQLModel class for the child item table.
+            section_ids: List of section UUIDs to fetch children for.
+
+        Returns:
+            dict[uuid.UUID, list]: Mapping from section_id to list of child model instances.
+        """
         rows = self._session.exec(
             select(model_cls).where(model_cls.section_id.in_(section_ids))  # type: ignore[attr-defined]
         ).all()
@@ -121,6 +150,11 @@ class DossierRepository(IDossierRepository):
         return grouped
 
     def _delete_sections(self, dossier_id: uuid.UUID) -> None:
+        """Delete all section and child item rows belonging to the given dossier.
+
+        Args:
+            dossier_id: The UUID of the dossier whose sections should be removed.
+        """
         existing = self._session.exec(
             select(DossierSectionModel).where(
                 col(DossierSectionModel.dossier_id) == dossier_id

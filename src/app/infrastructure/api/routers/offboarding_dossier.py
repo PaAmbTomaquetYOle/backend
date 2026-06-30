@@ -1,3 +1,5 @@
+"""HTTP endpoints for dossier management within an offboarding process."""
+
 from typing import Annotated
 from uuid import UUID
 
@@ -32,6 +34,7 @@ async def create_dossier(
         body: CreateDossierRequest,
         facade: Annotated[IOffboardingDossierFacade, Depends(offboarding_dossier_facade_dependency)],
 ) -> DossierResponse:
+    """Create a dossier for an offboarding process."""
     pid = OffboardingProcessId(process_id)
     sections: list[DossierSection] = [s.to_domain() for s in body.sections]
     dossier = await facade.create_dossier(
@@ -53,5 +56,6 @@ async def get_dossier(
         process_id: UUID,
         facade: Annotated[IOffboardingDossierFacade, Depends(offboarding_dossier_facade_dependency)],
 ) -> DossierResponse:
+    """Retrieve the dossier for an offboarding process."""
     dossier = await facade.get_dossier(OffboardingProcessId(process_id))
     return dossier_to_response(dossier)
