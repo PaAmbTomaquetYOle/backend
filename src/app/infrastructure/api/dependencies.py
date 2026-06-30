@@ -11,7 +11,9 @@ from fastapi import Depends
 from sqlmodel import Session
 
 from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingFacadeService,
+    IOffboardingDossierFacade,
+    IOffboardingInterviewFacade,
+    IOffboardingProcessFacade,
 )
 from app.application.services.dossier_service import DossierService
 from app.application.services.interview_service import InterviewService
@@ -68,11 +70,27 @@ def dossier_service_dependency(
     return DossierService(DossierRepository(session))
 
 
-def offboarding_facade_dependency(
-    session: Annotated[Session, Depends(get_session)],
-) -> IOffboardingFacadeService:
+def _build_facade(session: Session) -> OffboardingFacadeService:
     return OffboardingFacadeService(
         process_service=OffboardingProcessService(OffboardingProcessRepository(session)),
         interview_service=InterviewService(InterviewRepository(session)),
         dossier_service=DossierService(DossierRepository(session)),
     )
+
+
+def offboarding_process_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingProcessFacade:
+    return _build_facade(session)
+
+
+def offboarding_interview_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingInterviewFacade:
+    return _build_facade(session)
+
+
+def offboarding_dossier_facade_dependency(
+    session: Annotated[Session, Depends(get_session)],
+) -> IOffboardingDossierFacade:
+    return _build_facade(session)
