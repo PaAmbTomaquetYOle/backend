@@ -23,3 +23,8 @@ class InterviewNotInProgressError(InterviewDomainError):
     """Raised when trying to add turns to an interview that is not in progress."""
     def __init__(self):
         super().__init__("Cannot add turns: interview is not in progress")
+
+
+class InterviewNotFoundError(InterviewDomainError):
+    def __init__(self, detail: str = "Interview not found"):
+        super().__init__(detail)

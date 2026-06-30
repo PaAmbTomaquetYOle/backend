@@ -23,3 +23,8 @@ class DossierSectionError(DossierDomainError):
     """Raised for section-related validation errors."""
     def __init__(self, message: str):
         super().__init__(message)
+
+
+class DossierNotFoundError(DossierDomainError):
+    def __init__(self, detail: str = "Dossier not found"):
+        super().__init__(detail)
