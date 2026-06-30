@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock ./
 # --frozen:   respect uv.lock exactly (no resolution)
 # --no-dev:   skip development dependencies
 # --no-cache: keep the image lean
-RUN uv sync --frozen --no-dev --no-cache
+RUN uv sync --frozen --no-dev --no-cache --no-install-project
 
 # ── Stage 2: runtime ────────────────────────────────────────────────────────
 # Clean image with only the virtualenv and application source code.
