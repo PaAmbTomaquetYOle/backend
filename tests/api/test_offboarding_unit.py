@@ -78,7 +78,7 @@ class TestCreateOffboarding:
         process = _make_process()
         mock_facade.create_offboarding.return_value = process
 
-        r = client.post("/offboarding", json={
+        r = client.post("/api/v1/offboarding", json={
             "employee_id": str(uuid4()),
             "manager_id": str(uuid4()),
         })
@@ -89,11 +89,11 @@ class TestCreateOffboarding:
         assert body["state"] == OffboardingProcessStateEnum.NOT_STARTED.value
 
     def test_422_missing_employee_id(self, client: TestClient) -> None:
-        r = client.post("/offboarding", json={"manager_id": str(uuid4())})
+        r = client.post("/api/v1/offboarding", json={"manager_id": str(uuid4())})
         assert r.status_code == 422
 
     def test_422_invalid_uuid(self, client: TestClient) -> None:
-        r = client.post("/offboarding", json={"employee_id": "not-a-uuid", "manager_id": str(uuid4())})
+        r = client.post("/api/v1/offboarding", json={"employee_id": "not-a-uuid", "manager_id": str(uuid4())})
         assert r.status_code == 422
 
 
@@ -106,7 +106,7 @@ class TestListOffboardings:
         processes = [_make_process(), _make_process()]
         mock_facade.list_offboardings.return_value = processes
 
-        r = client.get("/offboarding")
+        r = client.get("/api/v1/offboarding")
 
         assert r.status_code == 200
         body = r.json()
@@ -116,7 +116,7 @@ class TestListOffboardings:
     def test_200_empty_list(self, client: TestClient, mock_facade: AsyncMock) -> None:
         mock_facade.list_offboardings.return_value = []
 
-        r = client.get("/offboarding")
+        r = client.get("/api/v1/offboarding")
 
         assert r.status_code == 200
         assert r.json()["count"] == 0
@@ -124,12 +124,12 @@ class TestListOffboardings:
     def test_200_with_state_filter(self, client: TestClient, mock_facade: AsyncMock) -> None:
         mock_facade.list_offboardings.return_value = []
 
-        r = client.get("/offboarding?state=not_started")
+        r = client.get("/api/v1/offboarding?state=not_started")
 
         assert r.status_code == 200
 
     def test_422_invalid_state_filter(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        r = client.get("/offboarding?state=bad_state_value")
+        r = client.get("/api/v1/offboarding?state=bad_state_value")
 
         assert r.status_code == 422
 
@@ -143,7 +143,7 @@ class TestGetOffboarding:
         process = _make_process()
         mock_facade.get_offboarding.return_value = process
 
-        r = client.get(f"/offboarding/{process.process_id.get_id()}")
+        r = client.get(f"/api/v1/offboarding/{process.process_id.get_id()}")
 
         assert r.status_code == 200
         assert r.json()["id"] == str(process.process_id.get_id())
@@ -152,13 +152,13 @@ class TestGetOffboarding:
         pid = uuid4()
         mock_facade.get_offboarding.side_effect = ProcessNotFoundError(str(pid))
 
-        r = client.get(f"/offboarding/{pid}")
+        r = client.get(f"/api/v1/offboarding/{pid}")
 
         assert r.status_code == 404
         assert "not found" in r.json()["detail"].lower()
 
     def test_422_invalid_uuid(self, client: TestClient) -> None:
-        r = client.get("/offboarding/not-a-uuid")
+        r = client.get("/api/v1/offboarding/not-a-uuid")
         assert r.status_code == 422
 
 
@@ -170,7 +170,7 @@ class TestDeleteOffboarding:
     def test_204_on_success(self, client: TestClient, mock_facade: AsyncMock) -> None:
         mock_facade.delete_offboarding.return_value = None
 
-        r = client.delete(f"/offboarding/{uuid4()}")
+        r = client.delete(f"/api/v1/offboarding/{uuid4()}")
 
         assert r.status_code == 204
 
@@ -178,7 +178,7 @@ class TestDeleteOffboarding:
         pid = uuid4()
         mock_facade.delete_offboarding.side_effect = ProcessNotFoundError(str(pid))
 
-        r = client.delete(f"/offboarding/{pid}")
+        r = client.delete(f"/api/v1/offboarding/{pid}")
 
         assert r.status_code == 404
 
@@ -192,7 +192,7 @@ class TestStartOffboarding:
         process = _make_process()
         mock_facade.start_offboarding.return_value = process
 
-        r = client.patch(f"/offboarding/{uuid4()}/start")
+        r = client.patch(f"/api/v1/offboarding/{uuid4()}/start")
 
         assert r.status_code == 200
 
@@ -200,7 +200,7 @@ class TestStartOffboarding:
         pid = uuid4()
         mock_facade.start_offboarding.side_effect = ProcessNotFoundError(str(pid))
 
-        r = client.patch(f"/offboarding/{pid}/start")
+        r = client.patch(f"/api/v1/offboarding/{pid}/start")
 
         assert r.status_code == 404
 
@@ -211,7 +211,7 @@ class TestStartOffboarding:
             OffboardingProcessStateEnum.IN_PROGRESS,
         )
 
-        r = client.patch(f"/offboarding/{uuid4()}/start")
+        r = client.patch(f"/api/v1/offboarding/{uuid4()}/start")
 
         assert r.status_code == 409
 
@@ -225,7 +225,7 @@ class TestUpsertInterview:
         interview = _make_interview()
         mock_facade.upsert_interview.return_value = (interview, True)
 
-        r = client.put(f"/offboarding/{uuid4()}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [],
         })
@@ -237,7 +237,7 @@ class TestUpsertInterview:
         interview = _make_interview()
         mock_facade.upsert_interview.return_value = (interview, False)
 
-        r = client.put(f"/offboarding/{uuid4()}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [],
         })
@@ -248,14 +248,14 @@ class TestUpsertInterview:
         pid = uuid4()
         mock_facade.upsert_interview.side_effect = ProcessNotFoundError(str(pid))
 
-        r = client.put(f"/offboarding/{pid}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{pid}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
         })
 
         assert r.status_code == 404
 
     def test_422_answer_text_on_note_type(self, client: TestClient) -> None:
-        r = client.put(f"/offboarding/{uuid4()}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [{
                 "turn_type": "note",
@@ -278,7 +278,7 @@ class TestGetInterview:
         interview = _make_interview()
         mock_facade.get_interview.return_value = interview
 
-        r = client.get(f"/offboarding/{uuid4()}/interview")
+        r = client.get(f"/api/v1/offboarding/{uuid4()}/interview")
 
         assert r.status_code == 200
         assert "id" in r.json()
@@ -286,7 +286,7 @@ class TestGetInterview:
     def test_404_not_found(self, client: TestClient, mock_facade: AsyncMock) -> None:
         mock_facade.get_interview.side_effect = InterviewNotFoundError()
 
-        r = client.get(f"/offboarding/{uuid4()}/interview")
+        r = client.get(f"/api/v1/offboarding/{uuid4()}/interview")
 
         assert r.status_code == 404
 
@@ -309,7 +309,7 @@ class TestCreateDossier:
         )
         mock_facade.create_dossier.return_value = dossier
 
-        r = client.post(f"/offboarding/{process_id}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{process_id}/dossier", json={"sections": []})
 
         assert r.status_code == 201
         assert "id" in r.json()
@@ -318,7 +318,7 @@ class TestCreateDossier:
         pid = uuid4()
         mock_facade.create_dossier.side_effect = DossierAlreadyExistsForProcessError(str(pid))
 
-        r = client.post(f"/offboarding/{pid}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{pid}/dossier", json={"sections": []})
 
         assert r.status_code == 409
 
@@ -326,7 +326,7 @@ class TestCreateDossier:
         pid = uuid4()
         mock_facade.create_dossier.side_effect = ProcessNotFoundError(str(pid))
 
-        r = client.post(f"/offboarding/{pid}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{pid}/dossier", json={"sections": []})
 
         assert r.status_code == 404
 
@@ -349,7 +349,7 @@ class TestGetDossier:
         )
         mock_facade.get_dossier.return_value = dossier
 
-        r = client.get(f"/offboarding/{process_id}/dossier")
+        r = client.get(f"/api/v1/offboarding/{process_id}/dossier")
 
         assert r.status_code == 200
 
@@ -357,6 +357,6 @@ class TestGetDossier:
         from app.domain.exceptions.dossier import DossierNotFoundError
         mock_facade.get_dossier.side_effect = DossierNotFoundError()
 
-        r = client.get(f"/offboarding/{uuid4()}/dossier")
+        r = client.get(f"/api/v1/offboarding/{uuid4()}/dossier")
 
         assert r.status_code == 404
