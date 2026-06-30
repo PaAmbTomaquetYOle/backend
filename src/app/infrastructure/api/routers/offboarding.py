@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingProcessFacade,
 )
@@ -21,7 +22,11 @@ from app.infrastructure.api.schemas.offboarding import (
     process_to_response,
 )
 
-router = APIRouter(prefix="/offboarding", tags=["offboarding"])
+router = APIRouter(
+    prefix="/offboarding",
+    tags=["offboarding"],
+    dependencies=[Depends(get_current_service)],
+)
 router.include_router(interview_router)
 router.include_router(dossier_router)
 

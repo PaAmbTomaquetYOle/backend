@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     db_user: str = "postgres"
     db_password: str = "postgres"
 
+    # JWT
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_audience: str = "braintrust-backend"
+
+    # Kafka
+    kafka_bootstrap_servers: str = "localhost:9092"
+    kafka_client_id: str = "braintrust-backend"
+
     @property
     def database_url(self) -> str:
         """Assemble the async PostgreSQL connection URL from individual components.

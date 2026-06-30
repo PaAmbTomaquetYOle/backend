@@ -25,6 +25,7 @@ Empty for now. As domain types are added, export them here and list them in
 """
 
 from .base_process import Process
+from .events import DomainEvent, DossierGenerated, InterviewCompleted, OffboardingStateChanged
 from .dossier import (
     ApprovedDossierState,
     CancelledDossierState,
@@ -100,6 +101,11 @@ from .offboarding import (
 __all__: list[str] = [
     # Base process domain
     "Process",
+    # Domain events
+    "DomainEvent",
+    "DossierGenerated",
+    "InterviewCompleted",
+    "OffboardingStateChanged",
     # Dossier domain
     "ApprovedDossierState",
     "CancelledDossierState",
