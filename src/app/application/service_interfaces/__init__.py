@@ -29,10 +29,12 @@ Empty for now. As contracts are added, export them here and list them in
 
 from .dossier_service_interface import IDossierService
 from .interview_service_interface import IInterviewService
+from .offboarding_process_service_interface import IOffboardingProcessService
 from .process_service_interface import IProcessService
 
 __all__: list[str] = [
     "IDossierService",
     "IInterviewService",
+    "IOffboardingProcessService",
     "IProcessService",
 ]
