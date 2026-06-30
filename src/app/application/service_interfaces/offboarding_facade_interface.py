@@ -14,7 +14,8 @@ from app.domain import (
 from app.domain.enums import OffboardingProcessStateEnum
 
 
-class IOffboardingFacadeService(ABC):
+class IOffboardingProcessFacade(ABC):
+    """Process CRUD and lifecycle transitions. Used by the offboarding router."""
 
     @abstractmethod
     async def create_offboarding(
@@ -41,19 +42,17 @@ class IOffboardingFacadeService(ABC):
     async def start_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess: ...
 
     @abstractmethod
-    async def submit_offboarding_for_review(
-            self,
-            process_id: OffboardingProcessId
-    ) -> OffboardingProcess: ...
+    async def submit_offboarding_for_review(self, process_id: OffboardingProcessId) -> OffboardingProcess: ...
 
     @abstractmethod
-    async def complete_offboarding(
-            self,
-            process_id: OffboardingProcessId
-    ) -> OffboardingProcess: ...
+    async def complete_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess: ...
 
     @abstractmethod
     async def cancel_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess: ...
+
+
+class IOffboardingInterviewFacade(ABC):
+    """Interview operations scoped to an offboarding process. Used by the interview sub-router."""
 
     @abstractmethod
     async def upsert_interview(
@@ -82,6 +81,10 @@ class IOffboardingFacadeService(ABC):
             turns: list[InterviewTurn],
     ) -> Interview: ...
 
+
+class IOffboardingDossierFacade(ABC):
+    """Dossier operations scoped to an offboarding process. Used by the dossier sub-router."""
+
     @abstractmethod
     async def create_dossier(
             self,
@@ -92,3 +95,11 @@ class IOffboardingFacadeService(ABC):
 
     @abstractmethod
     async def get_dossier(self, process_id: OffboardingProcessId) -> Dossier: ...
+
+class IOffboardingServiceFacade(
+    IOffboardingProcessFacade,
+    IOffboardingInterviewFacade,
+    IOffboardingDossierFacade,
+    ABC
+):
+    """Facade interface for offboarding process, interview, and dossier operations."""

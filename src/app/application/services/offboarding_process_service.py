@@ -15,7 +15,7 @@ from app.domain import (
     OffboardingProcessId,
     ProcessId,
 )
-from app.domain.enums import OffboardingProcessStateEnum, ProcessStateEnum
+from app.domain.enums import ProcessStateEnum
 from app.domain.exceptions.offboarding import ProcessNotFoundError
 
 

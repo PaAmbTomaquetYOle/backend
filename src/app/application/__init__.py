@@ -26,7 +26,11 @@ from app.application.ports.offboarding_process import IOffboardingProcessReposit
 from app.application.service_interfaces import (
     IDossierService,
     IInterviewService,
+    IOffboardingDossierFacade,
+    IOffboardingInterviewFacade,
+    IOffboardingProcessFacade,
     IOffboardingProcessService,
+    IOffboardingServiceFacade,
     IProcessService,
 )
 
@@ -36,6 +40,10 @@ __all__: list[str] = [
     "IOffboardingProcessRepository",
     "IDossierService",
     "IInterviewService",
+    "IOffboardingDossierFacade",
+    "IOffboardingInterviewFacade",
+    "IOffboardingProcessFacade",
     "IOffboardingProcessService",
+    "IOffboardingServiceFacade",
     "IProcessService",
 ]

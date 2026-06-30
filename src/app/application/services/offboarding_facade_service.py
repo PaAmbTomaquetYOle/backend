@@ -2,7 +2,9 @@ from datetime import datetime
 
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.application.service_interfaces.interview_service_interface import IInterviewService
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingFacadeService
+from app.application.service_interfaces.offboarding_facade_interface import (
+    IOffboardingServiceFacade,
+)
 from app.application.service_interfaces.offboarding_process_service_interface import (
     IOffboardingProcessService,
 )
@@ -20,7 +22,7 @@ from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
 
 
-class OffboardingFacadeService(IOffboardingFacadeService):
+class OffboardingFacadeService(IOffboardingServiceFacade):
 
     def __init__(
             self,
@@ -61,7 +63,10 @@ class OffboardingFacadeService(IOffboardingFacadeService):
     async def start_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
         return await self._process_service.start_offboarding(process_id)
 
-    async def submit_offboarding_for_review(self, process_id: OffboardingProcessId) -> OffboardingProcess:
+    async def submit_offboarding_for_review(
+            self,
+            process_id: OffboardingProcessId
+    ) -> OffboardingProcess:
         return await self._process_service.submit_for_review(process_id)
 
     async def complete_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
