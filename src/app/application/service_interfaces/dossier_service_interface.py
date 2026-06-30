@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.domain import Dossier, DossierId, DossierSection, ProcessId
+from app.domain import Dossier, DossierId, DossierSection, InterviewId, ProcessId
 
 
 class IDossierService(ABC):
@@ -12,6 +12,7 @@ class IDossierService(ABC):
     async def create_dossier(
             self,
             process_id: ProcessId,
+            interview_id: InterviewId,
             summary: str | None = None,
             sections: list[DossierSection] | None = None
     ) -> Dossier:
@@ -20,6 +21,7 @@ class IDossierService(ABC):
         
         Args:
             process_id (ProcessId): The ProcessId to be associated with the dossier
+            interview_id (InterviewId): The InterviewId to be associated with the dossier
             summary (str | None): The summary of the dossier
             sections (list[DossierSection]): The sections of the dossier
             
