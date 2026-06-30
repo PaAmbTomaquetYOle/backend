@@ -30,8 +30,8 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
-    app.include_router(health.router)
-    app.include_router(offboarding.router)
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(offboarding.router, prefix="/api/v1")
     register_error_handlers(app)
     return app
 
