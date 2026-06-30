@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_name: str = "BrainTrust"
     db_user: str = "postgres"
-    db_password: str = "postgres"
+    db_password: str  # No default — must be set in .env
 
     # JWT
     jwt_secret: str = ""
@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # Kafka
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_client_id: str = "braintrust-backend"
+
+    # Neo4j
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str  # No default — must be set in .env
+    neo4j_database: str = "neo4j"
 
     @property
     def database_url(self) -> str:
