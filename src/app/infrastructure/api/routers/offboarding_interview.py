@@ -3,9 +3,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingFacadeService
+from app.application.service_interfaces.offboarding_facade_interface import IOffboardingInterviewFacade
 from app.domain import InterviewTurn, OffboardingProcessId
-from app.infrastructure.api.dependencies import offboarding_facade_dependency
+from app.infrastructure.api.dependencies import offboarding_interview_facade_dependency
 from app.infrastructure.api.schemas.common import ErrorResponse
 from app.infrastructure.api.schemas.interview import (
     AddTurnsRequest,
@@ -30,7 +30,7 @@ _422 = {422: {"model": ErrorResponse, "description": "Validation error or invali
 async def upsert_interview(
         process_id: UUID,
         body: UpsertInterviewRequest,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
         response: Response,
 ) -> InterviewResponse:
     pid = OffboardingProcessId(process_id)
@@ -52,7 +52,7 @@ async def upsert_interview(
 )
 async def get_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
 ) -> InterviewResponse:
     interview = await facade.get_interview(OffboardingProcessId(process_id))
     return interview_to_response(interview)
@@ -66,7 +66,7 @@ async def get_interview(
 )
 async def start_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
 ) -> InterviewResponse:
     interview = await facade.start_interview(OffboardingProcessId(process_id))
     return interview_to_response(interview)
@@ -80,7 +80,7 @@ async def start_interview(
 )
 async def complete_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
 ) -> InterviewResponse:
     interview = await facade.complete_interview(OffboardingProcessId(process_id))
     return interview_to_response(interview)
@@ -94,7 +94,7 @@ async def complete_interview(
 )
 async def cancel_interview(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
 ) -> InterviewResponse:
     interview = await facade.cancel_interview(OffboardingProcessId(process_id))
     return interview_to_response(interview)
@@ -110,7 +110,7 @@ async def cancel_interview(
 async def add_turns(
         process_id: UUID,
         body: AddTurnsRequest,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingInterviewFacade, Depends(offboarding_interview_facade_dependency)],
 ) -> InterviewResponse:
     pid = OffboardingProcessId(process_id)
     turns: list[InterviewTurn] = [t.to_domain() for t in body.turns]

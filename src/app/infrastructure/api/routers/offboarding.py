@@ -3,9 +3,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingFacadeService
+from app.application.service_interfaces.offboarding_facade_interface import IOffboardingProcessFacade
 from app.domain import EmployeeId, ManagerId, OffboardingProcessId
-from app.infrastructure.api.dependencies import offboarding_facade_dependency
+from app.infrastructure.api.dependencies import offboarding_process_facade_dependency
 from app.domain.enums import OffboardingProcessStateEnum
 from app.infrastructure.api.routers.offboarding_dossier import router as dossier_router
 from app.infrastructure.api.routers.offboarding_interview import router as interview_router
@@ -33,7 +33,7 @@ _409 = {409: {"model": ErrorResponse, "description": "Invalid state transition o
 )
 async def create_offboarding(
         body: CreateOffboardingRequest,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.create_offboarding(
         employee_id=EmployeeId(body.employee_id),
@@ -48,7 +48,7 @@ async def create_offboarding(
     summary="List offboarding processes with optional filters",
 )
 async def list_offboardings(
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
         employee_id: Annotated[UUID | None, Query(description="Filter by employee UUID")] = None,
         manager_id: Annotated[UUID | None, Query(description="Filter by manager UUID")] = None,
         state: Annotated[str | None, Query(description="Filter by state value (e.g. not_started)")] = None,
@@ -77,7 +77,7 @@ async def list_offboardings(
 )
 async def get_offboarding(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.get_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
@@ -91,7 +91,7 @@ async def get_offboarding(
 )
 async def delete_offboarding(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> None:
     await facade.delete_offboarding(OffboardingProcessId(process_id))
 
@@ -104,7 +104,7 @@ async def delete_offboarding(
 )
 async def start_offboarding(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.start_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
@@ -118,7 +118,7 @@ async def start_offboarding(
 )
 async def submit_for_review(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.submit_offboarding_for_review(OffboardingProcessId(process_id))
     return process_to_response(process)
@@ -132,7 +132,7 @@ async def submit_for_review(
 )
 async def complete_offboarding(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.complete_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
@@ -146,7 +146,7 @@ async def complete_offboarding(
 )
 async def cancel_offboarding(
         process_id: UUID,
-        facade: Annotated[IOffboardingFacadeService, Depends(offboarding_facade_dependency)],
+        facade: Annotated[IOffboardingProcessFacade, Depends(offboarding_process_facade_dependency)],
 ) -> OffboardingProcessResponse:
     process = await facade.cancel_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)
