@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from app.application.service_interfaces.offboarding_facade_interface import IOffboardingFacadeService
+from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.domain import (
     Interview,
     OffboardingProcess,
@@ -21,7 +21,11 @@ from app.domain.exceptions.invalid_state_transition import InvalidOffboardingPro
 from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.offboarding.id import EmployeeId, InterviewId, ManagerId
 from app.domain.offboarding.state.not_started import NotStartedState
-from app.infrastructure.api.dependencies import offboarding_facade_dependency
+from app.infrastructure.api.dependencies import (
+    offboarding_dossier_facade_dependency,
+    offboarding_interview_facade_dependency,
+    offboarding_process_facade_dependency,
+)
 from app.main import create_app
 
 
@@ -53,13 +57,15 @@ def _make_interview(process_id: UUID | None = None) -> Interview:
 
 @pytest.fixture
 def mock_facade() -> AsyncMock:
-    return AsyncMock(spec=IOffboardingFacadeService)
+    return AsyncMock(spec=OffboardingFacadeService)
 
 
 @pytest.fixture
 def client(mock_facade: AsyncMock) -> TestClient:
     app = create_app()
-    app.dependency_overrides[offboarding_facade_dependency] = lambda: mock_facade
+    app.dependency_overrides[offboarding_process_facade_dependency] = lambda: mock_facade
+    app.dependency_overrides[offboarding_interview_facade_dependency] = lambda: mock_facade
+    app.dependency_overrides[offboarding_dossier_facade_dependency] = lambda: mock_facade
     return TestClient(app)
 
 
