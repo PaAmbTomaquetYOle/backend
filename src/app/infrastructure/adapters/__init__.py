@@ -22,8 +22,11 @@ Empty for now. As adapters are added, export them here and list them in
 ``__all__``.
 """
 
+from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
+from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
 
-__all__: list[str] = ["OffboardingProcessRepository"]
+__all__: list[str] = ["Neo4jAdapter", "NoOpGraphAdapter", "OffboardingProcessRepository"]
+
