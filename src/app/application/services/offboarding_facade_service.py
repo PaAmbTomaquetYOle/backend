@@ -48,11 +48,12 @@ class OffboardingFacadeService(IOffboardingFacadeService):
             manager_id: ManagerId | None = None,
             state: OffboardingProcessStateEnum | None = None,
     ) -> list[OffboardingProcess]:
-        return await self._process_service.get_filtered_processes_by_state(
+        results = await self._process_service.get_filtered_processes(
             employee_id=employee_id,
             manager_id=manager_id,
             state=state,
         )
+        return list(results)
 
     async def delete_offboarding(self, process_id: OffboardingProcessId) -> None:
         await self._process_service.delete_process(process_id)

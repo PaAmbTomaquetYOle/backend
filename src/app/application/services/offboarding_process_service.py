@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from datetime import UTC, datetime
 
 from app.application.ports.offboarding_process import IOffboardingProcessRepository
@@ -5,14 +6,16 @@ from app.application.service_interfaces.offboarding_process_service_interface im
     IOffboardingProcessService,
 )
 from app.domain import (
+    DossierId,
     EmployeeId,
+    InterviewId,
     ManagerId,
     NotStartedState,
     OffboardingProcess,
     OffboardingProcessId,
     ProcessId,
 )
-from app.domain.enums import OffboardingProcessStateEnum
+from app.domain.enums import OffboardingProcessStateEnum, ProcessStateEnum
 from app.domain.exceptions.offboarding import ProcessNotFoundError
 
 
@@ -46,23 +49,16 @@ class OffboardingProcessService(IOffboardingProcessService):
             self,
             employee_id: EmployeeId | None = None,
             manager_id: ManagerId | None = None,
-            **_kwargs,
-    ) -> list[OffboardingProcess]:
+            interview_id: InterviewId | None = None,
+            dossier_id: DossierId | None = None,
+            state: ProcessStateEnum | None = None,
+    ) -> Iterable[OffboardingProcess]:
         if employee_id is not None:
             processes = self._repo.find_by_employee_id(employee_id)
         else:
             processes = self._repo.find_all()
         if manager_id is not None:
             processes = [p for p in processes if p.manager_id.get_id() == manager_id.get_id()]
-        return processes
-
-    async def get_filtered_processes_by_state(
-            self,
-            employee_id: EmployeeId | None = None,
-            manager_id: ManagerId | None = None,
-            state: OffboardingProcessStateEnum | None = None,
-    ) -> list[OffboardingProcess]:
-        processes = await self.get_filtered_processes(employee_id=employee_id, manager_id=manager_id)
         if state is not None:
             processes = [p for p in processes if p.state_value == state]
         return processes
