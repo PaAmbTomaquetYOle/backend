@@ -1,7 +1,9 @@
 """Facade service composing the three domain services for use by HTTP routers."""
 
-from datetime import datetime
+import logging
+from datetime import datetime, timezone
 
+from app.application.ports.event_publisher import IEventPublisher
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.application.service_interfaces.interview_service_interface import IInterviewService
 from app.application.service_interfaces.offboarding_facade_interface import (
@@ -21,7 +23,14 @@ from app.domain import (
     OffboardingProcessId,
 )
 from app.domain.enums import OffboardingProcessStateEnum
+from app.domain.events.offboarding_events import (
+    DossierGenerated,
+    InterviewCompleted,
+    OffboardingStateChanged,
+)
 from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
+
+logger = logging.getLogger(__name__)
 
 
 class OffboardingFacadeService(IOffboardingServiceFacade):
@@ -39,6 +48,7 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             process_service: IOffboardingProcessService,
             interview_service: IInterviewService,
             dossier_service: IDossierService,
+            event_publisher: IEventPublisher | None = None,
     ) -> None:
         """Set up the facade with the three domain services.
 
@@ -46,10 +56,24 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             process_service: Service handling offboarding process lifecycle operations.
             interview_service: Service handling interview lifecycle operations.
             dossier_service: Service handling dossier lifecycle operations.
+            event_publisher: Optional publisher for domain events. If None, events are not published.
         """
         self._process_service = process_service
         self._interview_service = interview_service
         self._dossier_service = dossier_service
+        self._event_publisher = event_publisher
+
+    async def _publish(self, event) -> None:
+        """Publish a domain event, logging a warning if publishing fails.
+
+        Args:
+            event: The domain event to publish.
+        """
+        if self._event_publisher is not None:
+            try:
+                await self._event_publisher.publish(event)
+            except Exception:
+                logger.warning("Failed to publish event %s", event.event_type, exc_info=True)
 
     async def create_offboarding(
             self,
@@ -130,7 +154,15 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             ProcessNotFoundError: If no process with the given ID exists.
             InvalidOffboardingProcessStateTransitionError: If the process is not in NOT_STARTED state.
         """
-        return await self._process_service.start_offboarding(process_id)
+        process = await self._process_service.start_offboarding(process_id)
+        await self._publish(OffboardingStateChanged(
+            process_id=process.process_id.get_id(),
+            previous_state="not_started",
+            new_state="in_progress",
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+        ))
+        return process
 
     async def submit_offboarding_for_review(
             self,
@@ -148,7 +180,15 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             ProcessNotFoundError: If no process with the given ID exists.
             InvalidOffboardingProcessStateTransitionError: If the process is not in IN_PROGRESS state.
         """
-        return await self._process_service.submit_for_review(process_id)
+        process = await self._process_service.submit_for_review(process_id)
+        await self._publish(OffboardingStateChanged(
+            process_id=process.process_id.get_id(),
+            previous_state="in_progress",
+            new_state="pending_revision",
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+        ))
+        return process
 
     async def complete_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
         """Transition the process from PENDING_REVISION to FINISHED.
@@ -163,7 +203,15 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             ProcessNotFoundError: If no process with the given ID exists.
             InvalidOffboardingProcessStateTransitionError: If the process is not in PENDING_REVISION state.
         """
-        return await self._process_service.complete_offboarding(process_id)
+        process = await self._process_service.complete_offboarding(process_id)
+        await self._publish(OffboardingStateChanged(
+            process_id=process.process_id.get_id(),
+            previous_state="pending_revision",
+            new_state="finished",
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+        ))
+        return process
 
     async def cancel_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
         """Cancel the offboarding process.
@@ -178,7 +226,15 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             ProcessNotFoundError: If no process with the given ID exists.
             InvalidOffboardingProcessStateTransitionError: If the process is already in a terminal state.
         """
-        return await self._process_service.cancel_offboarding(process_id)
+        process = await self._process_service.cancel_offboarding(process_id)
+        await self._publish(OffboardingStateChanged(
+            process_id=process.process_id.get_id(),
+            previous_state="in_progress",
+            new_state="cancelled",
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+        ))
+        return process
 
     async def upsert_interview(
             self,
@@ -259,7 +315,13 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             InvalidInterviewStateTransitionError: If the interview is not in IN_PROGRESS state.
         """
         interview = await self.get_interview(process_id)
-        return await self._interview_service.complete_interview(interview.interview_id)
+        result = await self._interview_service.complete_interview(interview.interview_id)
+        await self._publish(InterviewCompleted(
+            interview_id=result.interview_id.get_id(),
+            process_id=process_id.get_id(),
+            completed_at=datetime.now(timezone.utc).isoformat(),
+        ))
+        return result
 
     async def cancel_interview(self, process_id: OffboardingProcessId) -> Interview:
         """Cancel the process's interview.
@@ -339,12 +401,18 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             pass
         if existing is not None:
             raise DossierAlreadyExistsForProcessError(str(process_id.get_id()))
-        return await self._dossier_service.create_dossier(
+        dossier = await self._dossier_service.create_dossier(
             process_id=process_id,
             interview_id=interview.interview_id,
             summary=summary,
             sections=sections,
         )
+        await self._publish(DossierGenerated(
+            dossier_id=dossier.dossier_id.get_id(),
+            process_id=process_id.get_id(),
+            interview_id=interview.interview_id.get_id(),
+        ))
+        return dossier
 
     async def get_dossier(self, process_id: OffboardingProcessId) -> Dossier:
         """Retrieve the dossier for the given offboarding process.

@@ -21,6 +21,7 @@ from app.domain.exceptions.invalid_state_transition import InvalidOffboardingPro
 from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.offboarding.id import EmployeeId, InterviewId, ManagerId
 from app.domain.offboarding.state.not_started import NotStartedState
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import (
     offboarding_dossier_facade_dependency,
     offboarding_interview_facade_dependency,
@@ -66,6 +67,7 @@ def client(mock_facade: AsyncMock) -> TestClient:
     app.dependency_overrides[offboarding_process_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_interview_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_dossier_facade_dependency] = lambda: mock_facade
+    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "braintrust-backend"}
     return TestClient(app)
 
 
