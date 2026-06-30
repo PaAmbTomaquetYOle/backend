@@ -1,6 +1,6 @@
-# BrainTrust Backend
+# OffBoardMe Backend
 
-Backend API for the BrainTrust Slack Agent, built with FastAPI and hexagonal architecture.
+Backend API for the OffBoardMe Slack Agent, built with FastAPI and hexagonal architecture.
 
 ## 🏗 Infrastructure
 

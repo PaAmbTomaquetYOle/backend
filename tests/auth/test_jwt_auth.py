@@ -14,7 +14,7 @@ from app.infrastructure.api.dependencies import (
 from app.main import create_app
 
 TEST_SECRET = "test-secret-for-jwt-testing-32chars!!"
-TEST_AUDIENCE = "braintrust-backend"
+TEST_AUDIENCE = "offboardme-backend"
 TEST_ALGORITHM = "HS256"
 
 

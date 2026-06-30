@@ -20,18 +20,18 @@ class Settings(BaseSettings):
 
     db_host: str = "localhost"
     db_port: int = 5432
-    db_name: str = "BrainTrust"
+    db_name: str = "OffBoardMe"
     db_user: str = "postgres"
     db_password: str  # No default — must be set in .env
 
     # JWT
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
-    jwt_audience: str = "braintrust-backend"
+    jwt_audience: str = "offboardme-backend"
 
     # Kafka
     kafka_bootstrap_servers: str = "localhost:9092"
-    kafka_client_id: str = "braintrust-backend"
+    kafka_client_id: str = "offboardme-backend"
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
