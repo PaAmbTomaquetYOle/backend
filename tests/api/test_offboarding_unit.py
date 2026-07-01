@@ -67,7 +67,7 @@ def client(mock_facade: AsyncMock) -> TestClient:
     app.dependency_overrides[offboarding_process_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_interview_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_dossier_facade_dependency] = lambda: mock_facade
-    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "braintrust-backend"}
+    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "offboardme-backend"}
     return TestClient(app)
 
 
