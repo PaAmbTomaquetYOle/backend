@@ -12,6 +12,7 @@ from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.persistence import models as _models  # noqa: F401
 from app.infrastructure.persistence.database import get_session
 from app.main import create_app
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 
 
 @pytest.fixture
@@ -29,7 +30,7 @@ def client() -> TestClient:
             yield session
 
     app.dependency_overrides[get_session] = override_session
-    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "braintrust-backend"}
+    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "offboardme-backend"}
     yield TestClient(app, raise_server_exceptions=True)
     SQLModel.metadata.drop_all(eng)
 

@@ -25,6 +25,7 @@ from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.graph_database import IGraphDatabasePort
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
@@ -32,6 +33,11 @@ from app.infrastructure.persistence.database import get_session
 def settings_dependency() -> Settings:
     """Expose application settings as a FastAPI dependency."""
     return get_settings()
+
+
+def graph_database_dependency(request: Request) -> IGraphDatabasePort:
+    """Retrieve the graph database port from application state."""
+    return request.app.state.graph_db
 
 
 def offboarding_repository_dependency(

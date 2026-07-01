@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import create_app
 
 TEST_JWT_SECRET = "test-secret-for-testing-only-32chars!!"
-TEST_JWT_AUDIENCE = "braintrust-backend"
+TEST_JWT_AUDIENCE = "offboardme-backend"
 TEST_JWT_ALGORITHM = "HS256"
 
 
