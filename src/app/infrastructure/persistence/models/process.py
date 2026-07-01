@@ -25,6 +25,8 @@ class ProcessModel(SQLModel, table=True):
 
     id: uuid.UUID = Field(primary_key=True)
     type: str = Field(nullable=False)
-    employee_id: uuid.UUID = Field(index=True, nullable=False)
-    manager_id: uuid.UUID = Field(nullable=False)
+    employee_id: str = Field(index=True, nullable=False, max_length=64)
+    manager_id: str = Field(nullable=False, max_length=64)
+    employee_name: str | None = Field(default=None, max_length=255)
+    manager_name: str | None = Field(default=None, max_length=255)
     created_at: datetime = Field(nullable=False)

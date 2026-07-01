@@ -63,6 +63,8 @@ async def create_offboarding(
     process = await facade.create_offboarding(
         employee_id=EmployeeId(body.employee_id),
         manager_id=ManagerId(body.manager_id),
+        employee_name=body.employee_name,
+        manager_name=body.manager_name,
     )
     return process_to_response(process)
 
@@ -77,8 +79,8 @@ async def list_offboardings(
             IOffboardingProcessFacade,
             Depends(offboarding_process_facade_dependency)
         ],
-        employee_id: Annotated[UUID | None, Query(description="Filter by employee UUID")] = None,
-        manager_id: Annotated[UUID | None, Query(description="Filter by manager UUID")] = None,
+        employee_id: Annotated[str | None, Query(description="Filter by employee ID (Slack user ID)")] = None,
+        manager_id: Annotated[str | None, Query(description="Filter by manager ID (Slack user ID)")] = None,
         state: Annotated[
             str | None,
             Query(description="Filter by state value (e.g. not_started)")

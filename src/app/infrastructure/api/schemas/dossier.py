@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, model_validator
 
+from app.application.ports.dossier import DossierSearchResult
 from app.domain import (
     Contact,
     ContactsSection,
@@ -185,4 +186,52 @@ def dossier_to_response(dossier: Dossier) -> DossierResponse:
         created_at=dossier.created_at,
         summary=dossier.summary,
         sections=[_section_to_response(s) for s in dossier.sections],
+    )
+
+
+class DossierSearchResultResponse(BaseModel):
+    """Response body for a single dossier search result, with process display context."""
+
+    id: UUID
+    process_id: UUID
+    interview_id: UUID
+    state: str
+    created_at: datetime
+    summary: str | None
+    sections: list[DossierSectionResponse]
+    employee_id: str
+    manager_id: str
+    employee_name: str | None
+    manager_name: str | None
+
+
+class DossierSearchListResponse(BaseModel):
+    """Response body for a dossier search."""
+
+    items: list[DossierSearchResultResponse]
+    count: int
+
+
+def dossier_search_result_to_response(result: DossierSearchResult) -> DossierSearchResultResponse:
+    """Convert a DossierSearchResult to its API response schema.
+
+    Args:
+        result: The search result to serialize.
+
+    Returns:
+        DossierSearchResultResponse: The corresponding response schema.
+    """
+    dossier = result.dossier
+    return DossierSearchResultResponse(
+        id=dossier.dossier_id.get_id(),
+        process_id=dossier.process_id.get_id(),
+        interview_id=dossier.interview_id.get_id(),
+        state=dossier.state.get_state().value,
+        created_at=dossier.created_at,
+        summary=dossier.summary,
+        sections=[_section_to_response(s) for s in dossier.sections],
+        employee_id=result.employee_id,
+        manager_id=result.manager_id,
+        employee_name=result.employee_name,
+        manager_name=result.manager_name,
     )

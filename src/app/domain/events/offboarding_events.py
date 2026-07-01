@@ -6,8 +6,8 @@ def OffboardingStateChanged(
     process_id: UUID,
     previous_state: str,
     new_state: str,
-    employee_id: UUID,
-    manager_id: UUID,
+    employee_id: str,
+    manager_id: str,
 ) -> DomainEvent:
     return DomainEvent(
         event_type="offboarding.state_changed",

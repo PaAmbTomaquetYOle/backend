@@ -25,6 +25,8 @@ class Process(ABC):
     __created_at: datetime
     __interview_id: InterviewId | None
     __dossier_id: DossierId | None
+    __employee_name: str | None
+    __manager_name: str | None
 
     def __init__(
             self,
@@ -34,6 +36,8 @@ class Process(ABC):
             created_at: datetime,
             interview_id: InterviewId | None = None,
             dossier_id: DossierId | None = None,
+            employee_name: str | None = None,
+            manager_name: str | None = None,
     ) -> None:
         """Initialize the process with its identifying attributes.
 
@@ -44,6 +48,8 @@ class Process(ABC):
             created_at: Timestamp when the process was created.
             interview_id: ID of the associated interview, if any. Defaults to None.
             dossier_id: ID of the associated dossier, if any. Defaults to None.
+            employee_name: Display name of the employee, if known. Defaults to None.
+            manager_name: Display name of the manager, if known. Defaults to None.
         """
         self.__id = process_id
         self.__employee_id = employee_id
@@ -51,6 +57,8 @@ class Process(ABC):
         self.__created_at = created_at
         self.__interview_id = interview_id
         self.__dossier_id = dossier_id
+        self.__employee_name = employee_name
+        self.__manager_name = manager_name
 
     @property
     def process_id(self) -> ProcessId:
@@ -111,6 +119,26 @@ class Process(ABC):
     def dossier_id(self, dossier_id: DossierId | None):
         """Set the associated dossier ID."""
         self.__dossier_id = dossier_id
+
+    @property
+    def employee_name(self) -> str | None:
+        """The display name of the employee, or None if unknown."""
+        return self.__employee_name
+
+    @employee_name.setter
+    def employee_name(self, employee_name: str | None):
+        """Set the employee display name."""
+        self.__employee_name = employee_name
+
+    @property
+    def manager_name(self) -> str | None:
+        """The display name of the manager, or None if unknown."""
+        return self.__manager_name
+
+    @manager_name.setter
+    def manager_name(self, manager_name: str | None):
+        """Set the manager display name."""
+        self.__manager_name = manager_name
 
     @property
     @abstractmethod

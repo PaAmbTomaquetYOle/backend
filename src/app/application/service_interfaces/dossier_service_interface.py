@@ -1,7 +1,9 @@
 """Abstract contract for the dossier service."""
 
 from abc import ABC, abstractmethod
+from uuid import UUID
 
+from app.application.ports.dossier import DossierSearchResult
 from app.domain import Dossier, DossierId, DossierSection, InterviewId, ProcessId
 
 
@@ -41,6 +43,23 @@ class IDossierService(ABC):
 
         Returns:
             dossier (Dossier): The dossier
+        """
+
+    @abstractmethod
+    async def search_dossiers(
+            self,
+            employee_name: str | None = None,
+            process_id: UUID | None = None,
+    ) -> list[DossierSearchResult]:
+        """
+        Search dossiers by employee display name and/or process ID.
+
+        Args:
+            employee_name (str | None): Partial, case-insensitive employee name to match.
+            process_id (UUID | None): Exact process ID to match.
+
+        Returns:
+            list[DossierSearchResult]: The matching dossiers with process display context.
         """
 
     @abstractmethod

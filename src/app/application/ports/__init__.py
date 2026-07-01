@@ -23,13 +23,14 @@ What does NOT go here:
 Empty for now. As ports are added, export them here and list them in ``__all__``.
 """
 
-from .dossier import IDossierRepository
+from .dossier import DossierSearchResult, IDossierRepository
 from .event_publisher import IEventPublisher
 from .graph_database import IGraphDatabasePort
 from .interview import IInterviewRepository
 from .offboarding_process import IOffboardingProcessRepository
 
 __all__: list[str] = [
+    "DossierSearchResult",
     "IDossierRepository",
     "IEventPublisher",
     "IGraphDatabasePort",

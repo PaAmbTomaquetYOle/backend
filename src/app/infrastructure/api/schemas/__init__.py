@@ -4,7 +4,10 @@ from .common import ErrorResponse
 from .dossier import (
     CreateDossierRequest,
     DossierResponse,
+    DossierSearchListResponse,
+    DossierSearchResultResponse,
     DossierSectionResponse,
+    dossier_search_result_to_response,
     dossier_to_response,
 )
 from .interview import (
@@ -25,12 +28,15 @@ __all__ = [
     "CreateDossierRequest",
     "CreateOffboardingRequest",
     "DossierResponse",
+    "DossierSearchListResponse",
+    "DossierSearchResultResponse",
     "DossierSectionResponse",
     "ErrorResponse",
     "InterviewResponse",
     "OffboardingListResponse",
     "OffboardingProcessResponse",
     "UpsertInterviewRequest",
+    "dossier_search_result_to_response",
     "dossier_to_response",
     "interview_to_response",
     "process_to_response",

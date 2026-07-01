@@ -37,6 +37,8 @@ class OffboardingProcess(Process):
             created_at: datetime,
             interview_id: InterviewId | None = None,
             dossier_id: DossierId | None = None,
+            employee_name: str | None = None,
+            manager_name: str | None = None,
     ) -> None:
         """Initialize the offboarding process with all its attributes.
 
@@ -48,8 +50,13 @@ class OffboardingProcess(Process):
             created_at: Timestamp when the process was created.
             interview_id: ID of the associated interview, if any. Defaults to None.
             dossier_id: ID of the associated dossier, if any. Defaults to None.
+            employee_name: Display name of the employee, if known. Defaults to None.
+            manager_name: Display name of the manager, if known. Defaults to None.
         """
-        super().__init__(process_id, employee_id, manager_id, created_at, interview_id, dossier_id)
+        super().__init__(
+            process_id, employee_id, manager_id, created_at, interview_id, dossier_id,
+            employee_name, manager_name,
+        )
         self.__id = process_id
         self.__state = state
 

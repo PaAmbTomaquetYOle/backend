@@ -41,6 +41,8 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
             type="offboarding",
             employee_id=process.employee_id.get_id(),
             manager_id=process.manager_id.get_id(),
+            employee_name=process.employee_name,
+            manager_name=process.manager_name,
             created_at=process.created_at,
         )
         child = OffboardingProcessModel(
@@ -107,6 +109,8 @@ class OffboardingProcessRepository(IOffboardingProcessRepository):
             created_at=base.created_at,
             interview_id=InterviewId(interview_id) if interview_id else None,
             dossier_id=DossierId(dossier_id) if dossier_id else None,
+            employee_name=base.employee_name,
+            manager_name=base.manager_name,
         )
 
     def _resolve_related_ids(

@@ -1,8 +1,9 @@
 """Concrete implementation of the dossier service."""
 
 from datetime import UTC, datetime
+from uuid import UUID
 
-from app.application.ports.dossier import IDossierRepository
+from app.application.ports.dossier import DossierSearchResult, IDossierRepository
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.domain import (
     Dossier,
@@ -72,6 +73,22 @@ class DossierService(IDossierService):
         if dossier is None:
             raise DossierNotFoundError(f"Dossier {dossier_id.get_id()} not found")
         return dossier
+
+    async def search_dossiers(
+            self,
+            employee_name: str | None = None,
+            process_id: UUID | None = None,
+    ) -> list[DossierSearchResult]:
+        """Search dossiers by employee display name and/or process ID.
+
+        Args:
+            employee_name: Partial, case-insensitive employee name to match. Defaults to None.
+            process_id: Exact process ID to match. Defaults to None.
+
+        Returns:
+            The matching dossiers with process display context.
+        """
+        return self._repo.search(employee_name=employee_name, process_id=process_id)
 
     async def get_process_dossier(self, process_id: ProcessId) -> Dossier:
         """Retrieve the dossier associated with the given offboarding process.

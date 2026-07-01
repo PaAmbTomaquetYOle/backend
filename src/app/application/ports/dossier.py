@@ -1,9 +1,28 @@
 """Repository port interface for Dossier."""
 
 from abc import ABC, abstractmethod
+from uuid import UUID
 
 from app.domain.dossier.dossier import Dossier
 from app.domain.offboarding.id import DossierId, InterviewId, ProcessId
+
+
+class DossierSearchResult:
+    """A dossier paired with the display context of the process it belongs to."""
+
+    def __init__(
+        self,
+        dossier: Dossier,
+        employee_id: str,
+        manager_id: str,
+        employee_name: str | None,
+        manager_name: str | None,
+    ) -> None:
+        self.dossier = dossier
+        self.employee_id = employee_id
+        self.manager_id = manager_id
+        self.employee_name = employee_name
+        self.manager_name = manager_name
 
 
 class IDossierRepository(ABC):
@@ -28,6 +47,18 @@ class IDossierRepository(ABC):
     @abstractmethod
     def find_all(self) -> list[Dossier]:
         """Return all stored dossiers."""
+
+    @abstractmethod
+    def search(
+        self,
+        employee_name: str | None = None,
+        process_id: UUID | None = None,
+    ) -> list[DossierSearchResult]:
+        """Search dossiers by employee display name (case-insensitive, partial match)
+        and/or by their associated process ID.
+
+        At least one of the two filters is expected to be provided by the caller.
+        """
 
     @abstractmethod
     def delete(self, dossier_id: DossierId) -> None:

@@ -11,16 +11,20 @@ from app.domain import OffboardingProcess
 class CreateOffboardingRequest(BaseModel):
     """Request body for creating a new offboarding process."""
 
-    employee_id: UUID
-    manager_id: UUID
+    employee_id: str
+    manager_id: str
+    employee_name: str | None = None
+    manager_name: str | None = None
 
 
 class OffboardingProcessResponse(BaseModel):
     """Response body representing an offboarding process."""
 
     id: UUID
-    employee_id: UUID
-    manager_id: UUID
+    employee_id: str
+    manager_id: str
+    employee_name: str | None
+    manager_name: str | None
     state: str
     interview_id: UUID | None
     dossier_id: UUID | None
@@ -40,6 +44,8 @@ def process_to_response(process: OffboardingProcess) -> OffboardingProcessRespon
         id=process.process_id.get_id(),
         employee_id=process.employee_id.get_id(),
         manager_id=process.manager_id.get_id(),
+        employee_name=process.employee_name,
+        manager_name=process.manager_name,
         state=process.state_value.value,
         interview_id=process.interview_id.get_id() if process.interview_id else None,
         dossier_id=process.dossier_id.get_id() if process.dossier_id else None,

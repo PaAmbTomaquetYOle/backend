@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.persistence import models as _models  # noqa: F401
 from app.infrastructure.persistence.database import get_session
 from app.main import create_app

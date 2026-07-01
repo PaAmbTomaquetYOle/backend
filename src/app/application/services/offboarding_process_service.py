@@ -40,12 +40,16 @@ class OffboardingProcessService(IOffboardingProcessService):
             self,
             employee_id: EmployeeId,
             manager_id: ManagerId,
+            employee_name: str | None = None,
+            manager_name: str | None = None,
     ) -> OffboardingProcess:
         """Create and persist a new offboarding process in NOT_STARTED state.
 
         Args:
             employee_id: Identifier of the employee being offboarded.
             manager_id: Identifier of the manager responsible for the process.
+            employee_name: Display name of the employee, if known. Defaults to None.
+            manager_name: Display name of the manager, if known. Defaults to None.
 
         Returns:
             The newly created and persisted OffboardingProcess.
@@ -56,6 +60,8 @@ class OffboardingProcessService(IOffboardingProcessService):
             employee_id=employee_id,
             manager_id=manager_id,
             created_at=datetime.now(UTC),
+            employee_name=employee_name,
+            manager_name=manager_name,
         )
         self._repo.save(process)
         return process
