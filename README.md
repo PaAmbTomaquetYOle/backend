@@ -8,7 +8,7 @@ The backend relies on several core services, orchestrated via Docker Compose:
 
 - **PostgreSQL 18**: Relational persistence for standard entities (SQLModel).
 - **Neo4j 5**: Graph persistence for complex relationships and dossier context.
-- **Apache Kafka 3.9.0**: Event streaming using KRaft mode (no Zookeeper).
+- **Apache Kafka (Confluent 7.8.0)**: Event streaming using KRaft mode (no Zookeeper).
 - **Kafka UI**: Web interface for inspecting topics and messages.
 
 ## 🚀 Getting Started
@@ -45,6 +45,9 @@ The script will build the Docker images and wait until all healthchecks pass. On
 - 🌐 **API Documentation**: [http://localhost:8888/docs](http://localhost:8888/docs)
 - 📊 **Kafka UI**: [http://localhost:8080](http://localhost:8080)
 - 🔵 **Neo4j Browser**: [http://localhost:7474](http://localhost:7474)
+
+> [!TIP]
+> The ports above are defaults. You can change them by modifying `API_PORT`, `KAFKA_UI_PORT`, `NEO4J_BROWSER_PORT`, and `DB_PORT` in your `.env` file. The start scripts will automatically adapt to your configured ports.
 
 ## 🧪 Testing
 
