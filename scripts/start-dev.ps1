@@ -14,6 +14,20 @@ if (!(Test-Path ".env")) {
     exit 1
 }
 
+# Source .env file to load variables
+if (Test-Path ".env") {
+    Get-Content .env | Where-Object { $_ -match "^[^#]" -and $_ -match "=" } | ForEach-Object {
+        $name, $value = $_ -split '=', 2
+        Set-Item -Path "env:$name" -Value $value.Trim()
+    }
+}
+
+$API_PORT = if ($env:API_PORT) { $env:API_PORT } else { "8888" }
+$KAFKA_UI_PORT = if ($env:KAFKA_UI_PORT) { $env:KAFKA_UI_PORT } else { "8080" }
+$NEO4J_BROWSER_PORT = if ($env:NEO4J_BROWSER_PORT) { $env:NEO4J_BROWSER_PORT } else { "7474" }
+$DB_PORT = if ($env:DB_PORT) { $env:DB_PORT } else { "5432" }
+
+
 # 2. Check if Docker daemon is running
 try {
     $null = docker info 2>&1
@@ -59,11 +73,10 @@ while ($true) {
 # 5. Print summary
 Write-Host ""
 Write-Host "All services are up and healthy!" -ForegroundColor Green
-Write-Host ""
-Write-Host "FastAPI Backend:       http://localhost:8888"
-Write-Host "Kafka UI:              http://localhost:8080"
-Write-Host "Neo4j Browser:         http://localhost:7474"
-Write-Host "PostgreSQL:            localhost:5432"
-Write-Host "API Documentation:     http://localhost:8888/docs"
+Write-Host "FastAPI Backend:       http://localhost:$API_PORT"
+Write-Host "Kafka UI:              http://localhost:$KAFKA_UI_PORT"
+Write-Host "Neo4j Browser:         http://localhost:$NEO4J_BROWSER_PORT"
+Write-Host "PostgreSQL:            localhost:$DB_PORT"
+Write-Host "API Documentation:     http://localhost:$API_PORT/docs"
 Write-Host ""
 Write-Host "Use 'docker compose logs -f backend' to view the API logs." -ForegroundColor DarkGray

@@ -14,6 +14,16 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
+# Source .env file to load variables
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
+API_PORT=${API_PORT:-8888}
+KAFKA_UI_PORT=${KAFKA_UI_PORT:-8080}
+NEO4J_BROWSER_PORT=${NEO4J_BROWSER_PORT:-7474}
+DB_PORT=${DB_PORT:-5432}
+
 # 2. Check if Docker daemon is running
 if ! docker info >/dev/null 2>&1; then
   echo "Error: Docker daemon is not running."
@@ -57,11 +67,10 @@ done
 # 5. Print summary
 echo ""
 echo "All services are up and healthy!"
-echo ""
-echo "FastAPI Backend:       http://localhost:8888"
-echo "Kafka UI:              http://localhost:8080"
-echo "Neo4j Browser:         http://localhost:7474"
-echo "PostgreSQL:            localhost:5432"
-echo "API Documentation:     http://localhost:8888/docs"
+echo "FastAPI Backend:       http://localhost:${API_PORT}"
+echo "Kafka UI:              http://localhost:${KAFKA_UI_PORT}"
+echo "Neo4j Browser:         http://localhost:${NEO4J_BROWSER_PORT}"
+echo "PostgreSQL:            localhost:${DB_PORT}"
+echo "API Documentation:     http://localhost:${API_PORT}/docs"
 echo ""
 echo "Use 'docker compose logs -f backend' to view the API logs."
