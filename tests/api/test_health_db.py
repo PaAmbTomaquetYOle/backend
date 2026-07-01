@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
 from app.infrastructure.api.dependencies import get_session, graph_database_dependency
 
 
@@ -25,8 +26,14 @@ def mock_graph_db() -> AsyncMock:
 def client_with_mocks(client: TestClient, mock_session: Mock, mock_graph_db: AsyncMock) -> TestClient:
     client.app.dependency_overrides[get_session] = lambda: mock_session
     client.app.dependency_overrides[graph_database_dependency] = lambda: mock_graph_db
+    
+    original_publisher = getattr(client.app.state, "event_publisher", None)
+    client.app.state.event_publisher = Mock(spec=KafkaEventPublisher)
+    
     yield client
+    
     client.app.dependency_overrides.clear()
+    client.app.state.event_publisher = original_publisher
 
 
 def test_health_db_returns_ok_when_both_dbs_are_up(
@@ -39,7 +46,7 @@ def test_health_db_returns_ok_when_both_dbs_are_up(
     response = client_with_mocks.get("/api/v1/health/db")
 
     assert response.status_code == 200
-    assert response.json() == {"postgres": "ok", "neo4j": "ok"}
+    assert response.json() == {"postgres": "ok", "neo4j": "ok", "kafka": "ok"}
     mock_session.execute.assert_called_once()
     mock_graph_db.verify_connectivity.assert_awaited_once()
 
@@ -54,7 +61,7 @@ def test_health_db_returns_503_when_postgres_fails(
     response = client_with_mocks.get("/api/v1/health/db")
 
     assert response.status_code == 503
-    assert response.json() == {"postgres": "error", "neo4j": "ok"}
+    assert response.json() == {"postgres": "error", "neo4j": "ok", "kafka": "ok"}
 
 
 def test_health_db_returns_503_when_neo4j_fails(
@@ -67,4 +74,16 @@ def test_health_db_returns_503_when_neo4j_fails(
     response = client_with_mocks.get("/api/v1/health/db")
 
     assert response.status_code == 503
-    assert response.json() == {"postgres": "ok", "neo4j": "error"}
+    assert response.json() == {"postgres": "ok", "neo4j": "error", "kafka": "ok"}
+
+def test_health_db_returns_503_when_kafka_fails(
+    client_with_mocks: TestClient,
+    mock_session: Mock,
+    mock_graph_db: AsyncMock,
+) -> None:
+    client_with_mocks.app.state.event_publisher = Mock()  # Not a KafkaEventPublisher
+
+    response = client_with_mocks.get("/api/v1/health/db")
+
+    assert response.status_code == 503
+    assert response.json() == {"postgres": "ok", "neo4j": "ok", "kafka": "error"}
