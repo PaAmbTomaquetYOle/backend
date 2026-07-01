@@ -26,13 +26,17 @@ class IOffboardingProcessService(IProcessService, ABC):
     async def create_process(
             self,
             employee_id: EmployeeId,
-            manager_id: ManagerId
+            manager_id: ManagerId,
+            employee_name: str | None = None,
+            manager_name: str | None = None,
     ) -> OffboardingProcess:
         """Create a new offboarding process in NOT_STARTED state.
 
         Args:
             employee_id: Identifier of the employee being offboarded.
             manager_id: Identifier of the manager responsible for the process.
+            employee_name: Display name of the employee, if known. Defaults to None.
+            manager_name: Display name of the manager, if known. Defaults to None.
 
         Returns:
             The newly created OffboardingProcess.

@@ -79,6 +79,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             self,
             employee_id: EmployeeId,
             manager_id: ManagerId,
+            employee_name: str | None = None,
+            manager_name: str | None = None,
     ) -> OffboardingProcess:
         """Create a new offboarding process in NOT_STARTED state.
 
@@ -87,11 +89,15 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
         Args:
             employee_id: Identifier of the employee being offboarded.
             manager_id: Identifier of the manager responsible for the process.
+            employee_name: Display name of the employee, if known. Defaults to None.
+            manager_name: Display name of the manager, if known. Defaults to None.
 
         Returns:
             The newly created OffboardingProcess.
         """
-        return await self._process_service.create_process(employee_id, manager_id)
+        return await self._process_service.create_process(
+            employee_id, manager_id, employee_name, manager_name
+        )
 
     async def get_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
         """Retrieve an offboarding process by ID.
