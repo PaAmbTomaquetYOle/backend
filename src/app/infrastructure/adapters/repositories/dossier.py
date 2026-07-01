@@ -7,10 +7,11 @@ from collections import defaultdict
 
 from sqlmodel import Session, col, select
 
-from app.application.ports.dossier import IDossierRepository
+from app.application.ports.dossier import DossierSearchResult, IDossierRepository
 from app.domain.dossier.dossier import Dossier
 from app.domain.offboarding.id import DossierId, InterviewId, OffboardingProcessId
 from app.infrastructure.persistence.models.dossier import DossierModel
+from app.infrastructure.persistence.models.process import ProcessModel
 from app.infrastructure.persistence.models.dossier_section import (
     DossierSectionModel,
     SectionContactModel,
@@ -86,6 +87,31 @@ class DossierRepository(IDossierRepository):
         """Return all stored dossiers."""
         models = self._session.exec(select(DossierModel)).all()
         return [self._load_with_sections(m) for m in models]
+
+    def search(
+        self,
+        employee_name: str | None = None,
+        process_id: uuid.UUID | None = None,
+    ) -> list[DossierSearchResult]:
+        """Search dossiers by employee display name and/or process ID."""
+        stmt = select(DossierModel, ProcessModel).join(
+            ProcessModel, col(DossierModel.process_id) == col(ProcessModel.id)
+        )
+        if employee_name is not None:
+            stmt = stmt.where(col(ProcessModel.employee_name).ilike(f"%{employee_name}%"))
+        if process_id is not None:
+            stmt = stmt.where(col(DossierModel.process_id) == process_id)
+        rows = self._session.exec(stmt).all()
+        return [
+            DossierSearchResult(
+                dossier=self._load_with_sections(dossier_model),
+                employee_id=process_model.employee_id,
+                manager_id=process_model.manager_id,
+                employee_name=process_model.employee_name,
+                manager_name=process_model.manager_name,
+            )
+            for dossier_model, process_model in rows
+        ]
 
     def delete(self, dossier_id: DossierId) -> None:
         """Remove the dossier with the given ID (no-op if not found)."""
