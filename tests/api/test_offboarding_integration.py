@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.persistence import models as _models  # noqa: F401
 from app.infrastructure.persistence.database import get_session
 from app.main import create_app
@@ -28,6 +29,7 @@ def client() -> TestClient:
             yield session
 
     app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "braintrust-backend"}
     yield TestClient(app, raise_server_exceptions=True)
     SQLModel.metadata.drop_all(eng)
 
@@ -37,7 +39,7 @@ def client() -> TestClient:
 # ---------------------------------------------------------------------------
 
 def _create_process(client: TestClient) -> dict:
-    r = client.post("/offboarding", json={
+    r = client.post("/api/v1/offboarding", json={
         "employee_id": str(uuid4()),
         "manager_id": str(uuid4()),
     })
@@ -46,7 +48,7 @@ def _create_process(client: TestClient) -> dict:
 
 
 def _upsert_interview(client: TestClient, process_id: str) -> dict:
-    r = client.put(f"/offboarding/{process_id}/interview", json={
+    r = client.put(f"/api/v1/offboarding/{process_id}/interview", json={
         "scheduled_at": datetime.now(UTC).isoformat(),
         "turns": [],
     })
@@ -60,7 +62,7 @@ def _upsert_interview(client: TestClient, process_id: str) -> dict:
 
 class TestProcessCRUD:
     def test_create_returns_201(self, client: TestClient) -> None:
-        r = client.post("/offboarding", json={
+        r = client.post("/api/v1/offboarding", json={
             "employee_id": str(uuid4()),
             "manager_id": str(uuid4()),
         })
@@ -73,20 +75,20 @@ class TestProcessCRUD:
     def test_get_returns_200(self, client: TestClient) -> None:
         process = _create_process(client)
 
-        r = client.get(f"/offboarding/{process['id']}")
+        r = client.get(f"/api/v1/offboarding/{process['id']}")
 
         assert r.status_code == 200
         assert r.json()["id"] == process["id"]
 
     def test_get_404_unknown_id(self, client: TestClient) -> None:
-        r = client.get(f"/offboarding/{uuid4()}")
+        r = client.get(f"/api/v1/offboarding/{uuid4()}")
         assert r.status_code == 404
 
     def test_list_returns_all(self, client: TestClient) -> None:
         _create_process(client)
         _create_process(client)
 
-        r = client.get("/offboarding")
+        r = client.get("/api/v1/offboarding")
 
         assert r.status_code == 200
         assert r.json()["count"] >= 2
@@ -94,7 +96,7 @@ class TestProcessCRUD:
     def test_list_filter_by_state(self, client: TestClient) -> None:
         _create_process(client)
 
-        r = client.get("/offboarding?state=not_started")
+        r = client.get("/api/v1/offboarding?state=not_started")
 
         assert r.status_code == 200
         for item in r.json()["items"]:
@@ -103,15 +105,15 @@ class TestProcessCRUD:
     def test_delete_returns_204(self, client: TestClient) -> None:
         process = _create_process(client)
 
-        r = client.delete(f"/offboarding/{process['id']}")
+        r = client.delete(f"/api/v1/offboarding/{process['id']}")
 
         assert r.status_code == 204
 
-        r2 = client.get(f"/offboarding/{process['id']}")
+        r2 = client.get(f"/api/v1/offboarding/{process['id']}")
         assert r2.status_code == 404
 
     def test_delete_404_unknown_id(self, client: TestClient) -> None:
-        r = client.delete(f"/offboarding/{uuid4()}")
+        r = client.delete(f"/api/v1/offboarding/{uuid4()}")
         assert r.status_code == 404
 
 
@@ -124,22 +126,22 @@ class TestProcessTransitions:
         p = _create_process(client)
         pid = p["id"]
 
-        r = client.patch(f"/offboarding/{pid}/start")
+        r = client.patch(f"/api/v1/offboarding/{pid}/start")
         assert r.status_code == 200
         assert r.json()["state"] == "in_progress"
 
-        r = client.patch(f"/offboarding/{pid}/submit-for-review")
+        r = client.patch(f"/api/v1/offboarding/{pid}/submit-for-review")
         assert r.status_code == 200
         assert r.json()["state"] == "pending_revision"
 
-        r = client.patch(f"/offboarding/{pid}/complete")
+        r = client.patch(f"/api/v1/offboarding/{pid}/complete")
         assert r.status_code == 200
         assert r.json()["state"] == "finished"
 
     def test_cancel_from_not_started(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.patch(f"/offboarding/{p['id']}/cancel")
+        r = client.patch(f"/api/v1/offboarding/{p['id']}/cancel")
 
         assert r.status_code == 200
         assert r.json()["state"] == "cancelled"
@@ -147,12 +149,12 @@ class TestProcessTransitions:
     def test_invalid_transition_returns_409(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.patch(f"/offboarding/{p['id']}/submit-for-review")
+        r = client.patch(f"/api/v1/offboarding/{p['id']}/submit-for-review")
 
         assert r.status_code == 409
 
     def test_transition_404_unknown_id(self, client: TestClient) -> None:
-        r = client.patch(f"/offboarding/{uuid4()}/start")
+        r = client.patch(f"/api/v1/offboarding/{uuid4()}/start")
         assert r.status_code == 404
 
 
@@ -164,7 +166,7 @@ class TestInterviewUpsert:
     def test_creates_interview_returns_201(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.put(f"/offboarding/{p['id']}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{p['id']}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [],
         })
@@ -178,7 +180,7 @@ class TestInterviewUpsert:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
 
-        r = client.put(f"/offboarding/{p['id']}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{p['id']}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [],
         })
@@ -189,7 +191,7 @@ class TestInterviewUpsert:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
 
-        r = client.get(f"/offboarding/{p['id']}/interview")
+        r = client.get(f"/api/v1/offboarding/{p['id']}/interview")
 
         assert r.status_code == 200
         assert r.json()["process_id"] == p["id"]
@@ -197,7 +199,7 @@ class TestInterviewUpsert:
     def test_get_interview_404_when_not_created(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.get(f"/offboarding/{p['id']}/interview")
+        r = client.get(f"/api/v1/offboarding/{p['id']}/interview")
 
         assert r.status_code == 404
 
@@ -205,16 +207,16 @@ class TestInterviewUpsert:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
 
-        r = client.patch(f"/offboarding/{p['id']}/interview/start")
+        r = client.patch(f"/api/v1/offboarding/{p['id']}/interview/start")
         assert r.status_code == 200
         assert r.json()["state"] == "in_progress"
 
-        r = client.patch(f"/offboarding/{p['id']}/interview/complete")
+        r = client.patch(f"/api/v1/offboarding/{p['id']}/interview/complete")
         assert r.status_code == 200
         assert r.json()["state"] == "completed"
 
     def test_interview_404_process_not_found(self, client: TestClient) -> None:
-        r = client.put(f"/offboarding/{uuid4()}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
         })
         assert r.status_code == 404
@@ -229,7 +231,7 @@ class TestDossier:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
 
-        r = client.post(f"/offboarding/{p['id']}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{p['id']}/dossier", json={"sections": []})
 
         assert r.status_code == 201
         body = r.json()
@@ -239,9 +241,9 @@ class TestDossier:
     def test_get_dossier_returns_200(self, client: TestClient) -> None:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
-        client.post(f"/offboarding/{p['id']}/dossier", json={"sections": []})
+        client.post(f"/api/v1/offboarding/{p['id']}/dossier", json={"sections": []})
 
-        r = client.get(f"/offboarding/{p['id']}/dossier")
+        r = client.get(f"/api/v1/offboarding/{p['id']}/dossier")
 
         assert r.status_code == 200
         assert r.json()["process_id"] == p["id"]
@@ -249,23 +251,23 @@ class TestDossier:
     def test_create_dossier_409_already_exists(self, client: TestClient) -> None:
         p = _create_process(client)
         _upsert_interview(client, p["id"])
-        client.post(f"/offboarding/{p['id']}/dossier", json={"sections": []})
+        client.post(f"/api/v1/offboarding/{p['id']}/dossier", json={"sections": []})
 
-        r = client.post(f"/offboarding/{p['id']}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{p['id']}/dossier", json={"sections": []})
 
         assert r.status_code == 409
 
     def test_create_dossier_404_no_interview(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.post(f"/offboarding/{p['id']}/dossier", json={"sections": []})
+        r = client.post(f"/api/v1/offboarding/{p['id']}/dossier", json={"sections": []})
 
         assert r.status_code == 404
 
     def test_get_dossier_404_not_created(self, client: TestClient) -> None:
         p = _create_process(client)
 
-        r = client.get(f"/offboarding/{p['id']}/dossier")
+        r = client.get(f"/api/v1/offboarding/{p['id']}/dossier")
 
         assert r.status_code == 404
 
@@ -274,9 +276,9 @@ class TestDossier:
         p = _create_process(client)
         pid = p["id"]
 
-        client.patch(f"/offboarding/{pid}/start")
+        client.patch(f"/api/v1/offboarding/{pid}/start")
 
-        r = client.put(f"/offboarding/{pid}/interview", json={
+        r = client.put(f"/api/v1/offboarding/{pid}/interview", json={
             "scheduled_at": datetime.now(UTC).isoformat(),
             "turns": [{
                 "turn_type": "question",
@@ -288,7 +290,7 @@ class TestDossier:
         })
         assert r.status_code == 201
 
-        r = client.post(f"/offboarding/{pid}/dossier", json={
+        r = client.post(f"/api/v1/offboarding/{pid}/dossier", json={
             "summary": "Offboarding summary",
             "sections": [{
                 "title": "Responsibilities",
@@ -302,5 +304,5 @@ class TestDossier:
         assert len(body["sections"]) == 1
         assert body["sections"][0]["section_type"] == "responsibilities"
 
-        r = client.get(f"/offboarding/{pid}/dossier")
+        r = client.get(f"/api/v1/offboarding/{pid}/dossier")
         assert r.status_code == 200
