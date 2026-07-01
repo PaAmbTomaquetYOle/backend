@@ -39,8 +39,8 @@ def _make_process(
     return OffboardingProcess(
         process_id=OffboardingProcessId(pid),
         state=state or NotStartedState(),
-        employee_id=EmployeeId(uuid4()),
-        manager_id=ManagerId(uuid4()),
+        employee_id=EmployeeId(str(uuid4())),
+        manager_id=ManagerId(str(uuid4())),
         created_at=datetime.now(UTC),
         interview_id=InterviewId(interview_id) if interview_id else None,
     )
@@ -94,9 +94,16 @@ class TestCreateOffboarding:
         r = client.post("/api/v1/offboarding", json={"manager_id": str(uuid4())})
         assert r.status_code == 422
 
-    def test_422_invalid_uuid(self, client: TestClient) -> None:
-        r = client.post("/api/v1/offboarding", json={"employee_id": "not-a-uuid", "manager_id": str(uuid4())})
-        assert r.status_code == 422
+    def test_201_accepts_slack_user_id(self, client: TestClient, mock_facade: AsyncMock) -> None:
+        process = _make_process()
+        mock_facade.create_offboarding.return_value = process
+
+        r = client.post("/api/v1/offboarding", json={
+            "employee_id": "U12345ABCDE",
+            "manager_id": "U67890FGHIJ",
+        })
+
+        assert r.status_code == 201
 
 
 # ---------------------------------------------------------------------------
