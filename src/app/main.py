@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
 from app.infrastructure.adapters.events.noop_event_publisher import NoOpEventPublisher
 from app.infrastructure.api.error_handlers import register_error_handlers
-from app.infrastructure.api.routers import health, offboarding
+from app.infrastructure.api.routers import dossier, health, offboarding
 from app.infrastructure.config.settings import get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(offboarding.router, prefix="/api/v1")
+    app.include_router(dossier.router, prefix="/api/v1")
     register_error_handlers(app)
     return app
 
