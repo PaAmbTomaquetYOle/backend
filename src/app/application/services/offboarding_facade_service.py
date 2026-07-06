@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime, timezone
 
+from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.application.service_interfaces.interview_service_interface import IInterviewService
@@ -26,6 +27,7 @@ from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.events.offboarding_events import (
     DossierGenerated,
     InterviewCompleted,
+    OffboardingCompleted,
     OffboardingStateChanged,
 )
 from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
@@ -49,6 +51,7 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             interview_service: IInterviewService,
             dossier_service: IDossierService,
             event_publisher: IEventPublisher | None = None,
+            dossier_generator: IDossierGenerator | None = None,
     ) -> None:
         """Set up the facade with the three domain services.
 
@@ -56,12 +59,17 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             process_service: Service handling offboarding process lifecycle operations.
             interview_service: Service handling interview lifecycle operations.
             dossier_service: Service handling dossier lifecycle operations.
-            event_publisher: Optional publisher for domain events. If None, events are not published.
+            event_publisher: Optional publisher for domain events. If None, events are
+                not published.
+            dossier_generator: Optional generator used by generate_dossier to produce
+                dossier content from the interview. If None, generate_dossier creates
+                an empty dossier (no summary/sections).
         """
         self._process_service = process_service
         self._interview_service = interview_service
         self._dossier_service = dossier_service
         self._event_publisher = event_publisher
+        self._dossier_generator = dossier_generator
 
     async def _publish(self, event) -> None:
         """Publish a domain event, logging a warning if publishing fails.
@@ -158,7 +166,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in NOT_STARTED state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                NOT_STARTED state.
         """
         process = await self._process_service.start_offboarding(process_id)
         await self._publish(OffboardingStateChanged(
@@ -184,7 +193,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in IN_PROGRESS state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                IN_PROGRESS state.
         """
         process = await self._process_service.submit_for_review(process_id)
         await self._publish(OffboardingStateChanged(
@@ -207,7 +217,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in PENDING_REVISION state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
         """
         process = await self._process_service.complete_offboarding(process_id)
         await self._publish(OffboardingStateChanged(
@@ -230,7 +241,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is already in a terminal state.
+            InvalidOffboardingProcessStateTransitionError: If the process is already in
+                a terminal state.
         """
         process = await self._process_service.cancel_offboarding(process_id)
         await self._publish(OffboardingStateChanged(
@@ -270,7 +282,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
     async def get_interview(self, process_id: OffboardingProcessId) -> Interview:
         """Retrieve the interview associated with the given offboarding process.
 
-        First verifies the process exists, then delegates to interview_service.get_process_interview.
+        First verifies the process exists, then delegates to
+        interview_service.get_process_interview.
 
         Args:
             process_id: Identifier of the offboarding process.
@@ -437,3 +450,44 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
         """
         await self._process_service.get_process(process_id)
         return await self._dossier_service.get_process_dossier(process_id)
+
+    async def generate_dossier(self, process_id: OffboardingProcessId) -> Dossier:
+        """Generate and persist the dossier for a process, then close it out.
+
+        Reads the process's completed interview, delegates content generation to
+        the configured IDossierGenerator (if any), persists the dossier via
+        create_dossier (which publishes DossierGenerated), advances it through
+        its generation lifecycle to DRAFT, then completes the offboarding
+        process and publishes OffboardingCompleted.
+
+        Args:
+            process_id: Identifier of the offboarding process.
+
+        Returns:
+            The generated Dossier in DRAFT state.
+
+        Raises:
+            ProcessNotFoundError: If no process with the given ID exists.
+            InterviewNotFoundError: If no interview exists for the given process.
+            DossierAlreadyExistsForProcessError: If a dossier already exists for the process.
+            DossierInterviewNotCompletedError: If the interview is not COMPLETED.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
+        """
+        interview = await self._interview_service.get_process_interview(process_id)
+        if self._dossier_generator is not None:
+            summary, sections = await self._dossier_generator.generate(interview)
+        else:
+            summary, sections = None, []
+        dossier = await self.create_dossier(process_id, summary=summary, sections=sections)
+        dossier = await self._dossier_service.advance_generation(
+            dossier.dossier_id, interview.state.get_state()
+        )
+        process = await self.complete_offboarding(process_id)
+        await self._publish(OffboardingCompleted(
+            process_id=process.process_id.get_id(),
+            employee_id=process.employee_id.get_id(),
+            manager_id=process.manager_id.get_id(),
+            dossier_id=dossier.dossier_id.get_id(),
+        ))
+        return dossier

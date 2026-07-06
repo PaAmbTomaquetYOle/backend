@@ -100,12 +100,15 @@ class IOffboardingProcessFacade(ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in NOT_STARTED state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                NOT_STARTED state.
         """
         ...
 
     @abstractmethod
-    async def submit_offboarding_for_review(self, process_id: OffboardingProcessId) -> OffboardingProcess:
+    async def submit_offboarding_for_review(
+            self, process_id: OffboardingProcessId
+    ) -> OffboardingProcess:
         """Transition the process from IN_PROGRESS to PENDING_REVISION.
 
         Args:
@@ -116,7 +119,8 @@ class IOffboardingProcessFacade(ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in IN_PROGRESS state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                IN_PROGRESS state.
         """
         ...
 
@@ -132,7 +136,8 @@ class IOffboardingProcessFacade(ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in PENDING_REVISION state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
         """
         ...
 
@@ -148,7 +153,8 @@ class IOffboardingProcessFacade(ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is already in a terminal state.
+            InvalidOffboardingProcessStateTransitionError: If the process is already in
+                a terminal state.
         """
         ...
 
@@ -317,6 +323,31 @@ class IOffboardingDossierFacade(ABC):
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
             DossierNotFoundError: If no dossier exists for the given process.
+        """
+        ...
+
+    @abstractmethod
+    async def generate_dossier(self, process_id: OffboardingProcessId) -> Dossier:
+        """Generate and persist the dossier for a process, then complete it.
+
+        Reads the process's completed interview, generates dossier content,
+        persists the dossier (publishing DossierGenerated), advances it to
+        DRAFT, completes the offboarding process, and publishes
+        OffboardingCompleted.
+
+        Args:
+            process_id: Identifier of the offboarding process.
+
+        Returns:
+            The generated Dossier in DRAFT state.
+
+        Raises:
+            ProcessNotFoundError: If no process with the given ID exists.
+            InterviewNotFoundError: If no interview exists for the given process.
+            DossierAlreadyExistsForProcessError: If a dossier already exists for the process.
+            DossierInterviewNotCompletedError: If the interview is not COMPLETED.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
         """
         ...
 
