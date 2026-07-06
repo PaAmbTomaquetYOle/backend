@@ -11,6 +11,7 @@ from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
     OffboardingTriggeredHandler,
+    SopCreationRequestedHandler,
 )
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.domain.events.inbound_events import INBOUND_EVENT_TYPES
@@ -23,7 +24,7 @@ from app.infrastructure.adapters.events.topics import topic_name
 from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.api.error_handlers import register_error_handlers
-from app.infrastructure.api.routers import dossier, health, offboarding
+from app.infrastructure.api.routers import dossier, health, offboarding, sops
 from app.infrastructure.config.settings import get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
@@ -85,6 +86,7 @@ async def lifespan(app: FastAPI):
                 OffboardingTriggeredHandler(),
                 InterviewCompletedHandler(),
                 DossierGenerationRequestedHandler(),
+                SopCreationRequestedHandler(),
             ])
             event_consumer = KafkaEventConsumer(
                 consumer=kafka_consumer,
@@ -136,6 +138,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(offboarding.router, prefix="/api/v1")
     app.include_router(dossier.router, prefix="/api/v1")
+    app.include_router(sops.router, prefix="/api/v1")
     register_error_handlers(app)
     return app
 

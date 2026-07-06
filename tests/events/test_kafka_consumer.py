@@ -31,7 +31,7 @@ class TestKafkaEventConsumer:
         consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
         event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
 
-        with patch(f"{_PATCH_TARGET}.build_offboarding_facade"), \
+        with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
                 patch(f"{_PATCH_TARGET}.Session"):
             await event_consumer._process(_message(_valid_envelope()))
@@ -60,7 +60,7 @@ class TestKafkaEventConsumer:
         dispatcher.dispatch.side_effect = RuntimeError("boom")
         event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
 
-        with patch(f"{_PATCH_TARGET}.build_offboarding_facade"), \
+        with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
                 patch(f"{_PATCH_TARGET}.Session"):
             await event_consumer._process(_message(_valid_envelope()))

@@ -5,6 +5,7 @@ from .offboarding_events import (
     OffboardingCompleted,
     OffboardingStateChanged,
 )
+from .sop_events import SOPCreated
 
 __all__ = [
     "DomainEvent",
@@ -12,4 +13,5 @@ __all__ = [
     "InterviewCompleted",
     "OffboardingCompleted",
     "OffboardingStateChanged",
+    "SOPCreated",
 ]

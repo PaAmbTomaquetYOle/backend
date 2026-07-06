@@ -20,6 +20,7 @@ from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
     OffboardingTriggeredHandler,
+    SopCreationRequestedHandler,
 )
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.domain import EmployeeId, OffboardingProcessStateEnum
@@ -28,9 +29,10 @@ from app.domain.events.inbound_events import (
     DOSSIER_GENERATION_REQUESTED,
     INTERVIEW_COMPLETED,
     OFFBOARDING_TRIGGERED,
+    SOP_CREATION_REQUESTED,
 )
 from app.infrastructure.adapters.ai.fake_dossier_generator import FakeDossierGenerator
-from app.infrastructure.composition import build_offboarding_facade
+from app.infrastructure.composition import build_inbound_context, build_offboarding_facade
 from app.infrastructure.persistence import models as _models  # noqa: F401 — registers tables
 
 
@@ -65,12 +67,13 @@ class TestConsumerIntegration:
             OffboardingTriggeredHandler(),
             InterviewCompletedHandler(),
             DossierGenerationRequestedHandler(),
+            SopCreationRequestedHandler(),
         ])
 
         async def dispatch(event: DomainEvent) -> None:
             with Session(engine) as session:
-                facade = build_offboarding_facade(session, publisher, generator)
-                await dispatcher.dispatch(event, facade)
+                context = build_inbound_context(session, publisher, generator)
+                await dispatcher.dispatch(event, context)
 
         # 1. offboarding.triggered -> process created and started
         await dispatch(DomainEvent(
@@ -127,11 +130,30 @@ class TestConsumerIntegration:
         assert len(dossier.sections) == 1
         assert process.state_value == OffboardingProcessStateEnum.FINISHED
 
+        # 4. sop.creation_requested -> SOP created and persisted
+        await dispatch(DomainEvent(
+            event_type=SOP_CREATION_REQUESTED,
+            payload={
+                "content": "How to rotate secrets",
+                "author": "U1",
+                "origin_channel": "C1",
+                "tags": ["security"],
+            },
+            event_id=uuid4(),
+        ))
+
+        with Session(engine) as session:
+            sops_service = build_inbound_context(session, publisher, generator).sops
+            sops, total = await sops_service.search_sops()
+        assert total == 1
+        assert sops[0].content == "How to rotate secrets"
+
         # Response events were published for each step
         published_types = [e.event_type for e in publisher.events]
         assert "offboarding.state_changed" in published_types
         assert "interview.completed" in published_types
         assert "dossier.generated" in published_types
         assert "offboarding.completed" in published_types
+        assert "sop.created" in published_types
 
         SQLModel.metadata.drop_all(engine)

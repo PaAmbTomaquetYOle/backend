@@ -56,6 +56,7 @@ from .events import (
     InterviewCompleted,
     OffboardingCompleted,
     OffboardingStateChanged,
+    SOPCreated,
 )
 from .exceptions import (
     DomainException,
@@ -75,6 +76,8 @@ from .exceptions import (
     InvalidStateTransitionError,
     OffboardingDomainError,
     ProcessNotFoundError,
+    SopDomainError,
+    SopNotFoundError,
 )
 from .interview import (
     CancelledInterviewState,
@@ -103,6 +106,12 @@ from .offboarding import (
     PendingRevisionState,
     ProcessId,
 )
+from .sops import (
+    AuthorId,
+    ChannelId,
+    Sop,
+    SopId,
+)
 
 __all__: list[str] = [
     # Base process domain
@@ -113,6 +122,7 @@ __all__: list[str] = [
     "InterviewCompleted",
     "OffboardingCompleted",
     "OffboardingStateChanged",
+    "SOPCreated",
     # Dossier domain
     "ApprovedDossierState",
     "CancelledDossierState",
@@ -154,6 +164,8 @@ __all__: list[str] = [
     "InvalidStateTransitionError",
     "OffboardingDomainError",
     "ProcessNotFoundError",
+    "SopDomainError",
+    "SopNotFoundError",
     # Interview domain
     "CancelledInterviewState",
     "CompletedInterviewState",
@@ -179,4 +191,9 @@ __all__: list[str] = [
     "OffboardingProcessState",
     "PendingRevisionState",
     "ProcessId",
+    # SOP domain
+    "AuthorId",
+    "ChannelId",
+    "Sop",
+    "SopId",
 ]

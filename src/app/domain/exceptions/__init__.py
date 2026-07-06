@@ -29,6 +29,10 @@ from .offboarding import (
     OffboardingDomainError,
     ProcessNotFoundError,
 )
+from .sops import (
+    SopDomainError,
+    SopNotFoundError,
+)
 
 __all__ = [
     "DomainException",
@@ -48,4 +52,6 @@ __all__ = [
     "InvalidStateTransitionError",
     "OffboardingDomainError",
     "ProcessNotFoundError",
+    "SopDomainError",
+    "SopNotFoundError",
 ]

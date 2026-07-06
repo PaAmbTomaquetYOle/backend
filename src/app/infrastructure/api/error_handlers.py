@@ -16,6 +16,7 @@ from app.domain.exceptions import (
     InterviewTurnOrderError,
     InvalidStateTransitionError,
     ProcessNotFoundError,
+    SopNotFoundError,
 )
 
 
@@ -48,6 +49,11 @@ def register_error_handlers(app: FastAPI) -> None:
             request: Request, exc: DossierNotFoundError
     ) -> JSONResponse:
         """Return 404 when a DossierNotFoundError is raised."""
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    @app.exception_handler(SopNotFoundError)
+    async def sop_not_found_handler(request: Request, exc: SopNotFoundError) -> JSONResponse:
+        """Return 404 when a SopNotFoundError is raised."""
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(InvalidStateTransitionError)

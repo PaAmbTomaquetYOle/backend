@@ -9,9 +9,13 @@ from app.application.services.handlers.interview_completed_handler import (
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
+from app.application.services.handlers.sop_creation_requested_handler import (
+    SopCreationRequestedHandler,
+)
 
 __all__ = [
     "DossierGenerationRequestedHandler",
     "InterviewCompletedHandler",
     "OffboardingTriggeredHandler",
+    "SopCreationRequestedHandler",
 ]

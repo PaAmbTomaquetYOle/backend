@@ -1,9 +1,7 @@
 """Dispatches inbound domain events to their registered handler."""
 
 from app.application.ports.inbound_event_handler import IInboundEventHandler
-from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingServiceFacade,
-)
+from app.application.services.inbound_context import InboundContext
 from app.domain.events.base import DomainEvent
 
 
@@ -33,12 +31,12 @@ class InboundEventDispatcher:
                 raise ValueError(f"Duplicate handler for event_type '{handler.event_type}'")
             self._handlers[handler.event_type] = handler
 
-    async def dispatch(self, event: DomainEvent, facade: IOffboardingServiceFacade) -> None:
+    async def dispatch(self, event: DomainEvent, context: InboundContext) -> None:
         """Route the event to its registered handler.
 
         Args:
             event: The inbound domain event to process.
-            facade: The offboarding facade passed through to the handler.
+            context: The per-message context passed through to the handler.
 
         Raises:
             UnknownEventTypeError: If no handler is registered for event.event_type.
@@ -48,4 +46,4 @@ class InboundEventDispatcher:
             raise UnknownEventTypeError(
                 f"No handler registered for event_type '{event.event_type}'"
             )
-        await handler.handle(event, facade)
+        await handler.handle(event, context)

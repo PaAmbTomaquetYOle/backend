@@ -4,9 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from app.application.ports.inbound_event_handler import IInboundEventHandler
-from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingServiceFacade,
-)
+from app.application.services.inbound_context import InboundContext
 from app.domain import (
     InterviewNote,
     InterviewQuestion,
@@ -56,13 +54,14 @@ class InterviewCompletedHandler(IInboundEventHandler):
         """The event_type this handler is responsible for."""
         return INTERVIEW_COMPLETED
 
-    async def handle(self, event: DomainEvent, facade: IOffboardingServiceFacade) -> None:
+    async def handle(self, event: DomainEvent, context: InboundContext) -> None:
         """Save the collected answers and transition interview/process forward.
 
         Args:
             event: The inbound 'interview.completed' event.
-            facade: The offboarding facade used to run the use cases.
+            context: Per-message context providing the offboarding facade.
         """
+        facade = context.offboarding
         payload = event.payload
         process_id = OffboardingProcessId(UUID(payload["process_id"]))
         turns = [_turn_from_payload(raw) for raw in payload.get("turns", [])]
