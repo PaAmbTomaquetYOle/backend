@@ -17,7 +17,7 @@ from app.infrastructure.adapters.events.event_deserializer import (
     EventDeserializationError,
     deserialize_event,
 )
-from app.infrastructure.composition import build_offboarding_facade
+from app.infrastructure.composition import build_inbound_context
 from app.infrastructure.persistence.database import get_engine
 
 logger = logging.getLogger(__name__)
@@ -86,10 +86,10 @@ class KafkaEventConsumer(IEventConsumer):
 
         try:
             with Session(get_engine()) as session:
-                facade = build_offboarding_facade(
+                context = build_inbound_context(
                     session, self._event_publisher, self._dossier_generator
                 )
-                await self._dispatcher.dispatch(event, facade)
+                await self._dispatcher.dispatch(event, context)
         except Exception as exc:
             logger.warning(
                 "Failed to process event %s from topic %s, routing to DLQ",

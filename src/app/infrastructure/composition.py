@@ -14,14 +14,17 @@ from sqlmodel import Session
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.services.dossier_service import DossierService
+from app.application.services.inbound_context import InboundContext
 from app.application.services.interview_service import InterviewService
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
+from app.application.services.sop_service import SopService
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
+from app.infrastructure.adapters.repositories.sop import SopRepository
 
 
 def build_offboarding_facade(
@@ -45,4 +48,45 @@ def build_offboarding_facade(
         dossier_service=DossierService(DossierRepository(session)),
         event_publisher=event_publisher,
         dossier_generator=dossier_generator,
+    )
+
+
+def build_sop_service(
+    session: Session,
+    event_publisher: IEventPublisher | None = None,
+) -> SopService:
+    """Assemble a fully wired SopService from a session.
+
+    Args:
+        session: The active SQLModel session used by the SOP repository.
+        event_publisher: Optional event publisher used to publish SOPCreated.
+
+    Returns:
+        SopService: A fully wired SOP service instance.
+    """
+    return SopService(SopRepository(session), event_publisher=event_publisher)
+
+
+def build_inbound_context(
+    session: Session,
+    event_publisher: IEventPublisher | None = None,
+    dossier_generator: IDossierGenerator | None = None,
+) -> InboundContext:
+    """Assemble the per-message InboundContext used by the Kafka consumer.
+
+    Bundles every bounded-context service an inbound event handler might
+    need, built fresh per message from a single session (mirroring how
+    FastAPI's Depends builds a per-request facade).
+
+    Args:
+        session: The active SQLModel session shared across the composed services.
+        event_publisher: Optional event publisher for domain event dispatching.
+        dossier_generator: Optional generator used by generate_dossier.
+
+    Returns:
+        InboundContext: The composed per-message context.
+    """
+    return InboundContext(
+        offboarding=build_offboarding_facade(session, event_publisher, dossier_generator),
+        sops=build_sop_service(session, event_publisher),
     )

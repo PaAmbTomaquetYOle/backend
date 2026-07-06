@@ -2,9 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingServiceFacade,
-)
+from app.application.services.inbound_context import InboundContext
 from app.domain.events.base import DomainEvent
 
 
@@ -23,11 +21,12 @@ class IInboundEventHandler(ABC):
         """The event_type this handler is responsible for."""
 
     @abstractmethod
-    async def handle(self, event: DomainEvent, facade: IOffboardingServiceFacade) -> None:
+    async def handle(self, event: DomainEvent, context: InboundContext) -> None:
         """Execute the business logic for this event.
 
         Args:
             event: The deserialized inbound domain event.
-            facade: The offboarding facade, composed fresh per message, used to
-                invoke the relevant use case(s).
+            context: The per-message bounded-context services (offboarding
+                facade, SOP service, ...), composed fresh per message, used
+                to invoke the relevant use case(s).
         """

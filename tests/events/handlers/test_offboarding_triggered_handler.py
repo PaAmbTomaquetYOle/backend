@@ -12,6 +12,7 @@ from app.application.service_interfaces.offboarding_facade_interface import (
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
+from app.application.services.inbound_context import InboundContext
 from app.domain import EmployeeId, ManagerId, OffboardingProcess, OffboardingProcessId
 from app.domain.events.base import DomainEvent
 from app.domain.events.inbound_events import OFFBOARDING_TRIGGERED
@@ -44,7 +45,8 @@ class TestOffboardingTriggeredHandler:
             event_id=uuid4(),
         )
 
-        await OffboardingTriggeredHandler().handle(event, facade)
+        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        await OffboardingTriggeredHandler().handle(event, context)
 
         facade.create_offboarding.assert_awaited_once()
         _, kwargs = facade.create_offboarding.call_args

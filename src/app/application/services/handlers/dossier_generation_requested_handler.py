@@ -3,9 +3,7 @@
 from uuid import UUID
 
 from app.application.ports.inbound_event_handler import IInboundEventHandler
-from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingServiceFacade,
-)
+from app.application.services.inbound_context import InboundContext
 from app.domain import OffboardingProcessId
 from app.domain.events.base import DomainEvent
 from app.domain.events.inbound_events import DOSSIER_GENERATION_REQUESTED
@@ -23,12 +21,12 @@ class DossierGenerationRequestedHandler(IInboundEventHandler):
         """The event_type this handler is responsible for."""
         return DOSSIER_GENERATION_REQUESTED
 
-    async def handle(self, event: DomainEvent, facade: IOffboardingServiceFacade) -> None:
+    async def handle(self, event: DomainEvent, context: InboundContext) -> None:
         """Generate the dossier and close out the offboarding process.
 
         Args:
             event: The inbound 'dossier.generation_requested' event.
-            facade: The offboarding facade used to run the use case.
+            context: Per-message context providing the offboarding facade.
         """
         process_id = OffboardingProcessId(UUID(event.payload["process_id"]))
-        await facade.generate_dossier(process_id)
+        await context.offboarding.generate_dossier(process_id)

@@ -12,6 +12,7 @@ from app.application.service_interfaces.offboarding_facade_interface import (
 from app.application.services.handlers.interview_completed_handler import (
     InterviewCompletedHandler,
 )
+from app.application.services.inbound_context import InboundContext
 from app.domain.events.base import DomainEvent
 from app.domain.events.inbound_events import INTERVIEW_COMPLETED
 
@@ -49,7 +50,8 @@ class TestInterviewCompletedHandler:
             event_id=uuid4(),
         )
 
-        await InterviewCompletedHandler().handle(event, facade)
+        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        await InterviewCompletedHandler().handle(event, context)
 
         facade.upsert_interview.assert_awaited_once()
         _, kwargs = facade.upsert_interview.call_args

@@ -11,6 +11,7 @@ from app.application.service_interfaces.offboarding_facade_interface import (
 from app.application.services.handlers.dossier_generation_requested_handler import (
     DossierGenerationRequestedHandler,
 )
+from app.application.services.inbound_context import InboundContext
 from app.domain.events.base import DomainEvent
 from app.domain.events.inbound_events import DOSSIER_GENERATION_REQUESTED
 
@@ -29,7 +30,8 @@ class TestDossierGenerationRequestedHandler:
             event_id=uuid4(),
         )
 
-        await DossierGenerationRequestedHandler().handle(event, facade)
+        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        await DossierGenerationRequestedHandler().handle(event, context)
 
         facade.generate_dossier.assert_awaited_once()
         (pid,), _ = facade.generate_dossier.call_args
