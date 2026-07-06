@@ -49,6 +49,44 @@ The script will build the Docker images and wait until all healthchecks pass. On
 > [!TIP]
 > The ports above are defaults. You can change them by modifying `API_PORT`, `KAFKA_UI_PORT`, `NEO4J_BROWSER_PORT`, and `DB_PORT` in your `.env` file. The start scripts will automatically adapt to your configured ports.
 
+## 📨 Kafka topics
+
+All events use the same JSON envelope:
+
+```json
+{ "event_id": "<uuid>", "event_type": "<string>", "occurred_at": "<ISO-8601 UTC>", "payload": { ... } }
+```
+
+Topics are namespaced by direction so the backend never re-consumes what it just produced.
+
+### Inbound — consumed by backend (published by slack-agent)
+
+Prefix: `slack-agent` (`KAFKA_INBOUND_TOPIC_PREFIX`). Consumer group: `offboardme-backend-consumer` (`KAFKA_CONSUMER_GROUP_ID`).
+
+| Topic | event_type | payload | Effect |
+|---|---|---|---|
+| `slack-agent.offboarding.triggered` | `offboarding.triggered` | `employee_id, manager_id, employee_name?, manager_name?` | Creates the offboarding process and starts it |
+| `slack-agent.interview.completed` | `interview.completed` | `process_id, turns[]` (`turn_type, speaker_role, timestamp, content, order, topic?, sentiment?, answer_text?`) | Saves the collected answers, completes the interview, submits the process for review |
+| `slack-agent.dossier.generation_requested` | `dossier.generation_requested` | `process_id` | Generates and persists the dossier (interview is read from the DB), then completes the offboarding process |
+
+### Outbound — produced by backend (consumed by slack-agent)
+
+Prefix: `offboarding` (`KAFKA_TOPIC_PREFIX`).
+
+| Topic | event_type | payload |
+|---|---|---|
+| `offboarding.offboarding.state_changed` | `offboarding.state_changed` | `process_id, previous_state, new_state, employee_id, manager_id` |
+| `offboarding.interview.completed` | `interview.completed` | `interview_id, process_id, completed_at` |
+| `offboarding.dossier.generated` | `dossier.generated` | `dossier_id, process_id, interview_id` |
+| `offboarding.offboarding.completed` | `offboarding.completed` | `process_id, employee_id, manager_id, dossier_id` |
+
+### Dead-letter queue
+
+Malformed messages or handler failures are published to `offboarding.dlq` (`KAFKA_DLQ_TOPIC`) with `source_topic` and `error` headers, and the offset is committed — a bad message never blocks or crashes the consumer.
+
+> [!NOTE]
+> slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
+
 ## 🧪 Testing
 
 The backend includes a comprehensive test suite. To run tests locally using `uv`:
