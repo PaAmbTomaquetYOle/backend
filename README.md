@@ -95,3 +95,10 @@ The backend includes a comprehensive test suite. To run tests locally using `uv`
 # Ensure required variables are present (can be dummy values for tests)
 DB_PASSWORD=test NEO4J_PASSWORD=test KAFKA_CLUSTER_ID=test JWT_SECRET=test uv run pytest
 ```
+
+Coverage is measured automatically (`pytest-cov`) and printed as a terminal table. For an HTML report:
+
+```bash
+DB_PASSWORD=test NEO4J_PASSWORD=test KAFKA_CLUSTER_ID=test JWT_SECRET=test uv run pytest --cov-report=html
+# then open htmlcov/index.html
+```
