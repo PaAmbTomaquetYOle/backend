@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 from sqlmodel import Session, SQLModel, create_engine
 
 _engine: Engine | None = None
@@ -45,5 +45,17 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def create_db_and_tables() -> None:
-    """Create all SQLModel-registered tables in the database if they do not already exist."""
-    SQLModel.metadata.create_all(get_engine())
+    """Create all SQLModel-registered tables in the database if they do not already exist.
+
+    Also creates the Postgres GIN full-text search index on ``sops.content``
+    when running against Postgres — this index cannot be declared on the
+    SQLModel table directly because SQLite (used in tests) has no
+    to_tsvector/GIN support.
+    """
+    engine = get_engine()
+    SQLModel.metadata.create_all(engine)
+    if engine.dialect.name == "postgresql":
+        from app.infrastructure.persistence.models.sop import SOPS_CONTENT_FTS_INDEX_SQL
+
+        with engine.begin() as conn:
+            conn.execute(text(SOPS_CONTENT_FTS_INDEX_SQL))
