@@ -25,7 +25,6 @@ Empty for now. As domain types are added, export them here and list them in
 """
 
 from .base_process import Process
-from .events import DomainEvent, DossierGenerated, InterviewCompleted, OffboardingStateChanged
 from .dossier import (
     ApprovedDossierState,
     CancelledDossierState,
@@ -50,6 +49,13 @@ from .enums import (
     OffboardingProcessStateEnum,
     ProcessStateEnum,
     SpeakerRoleEnum,
+)
+from .events import (
+    DomainEvent,
+    DossierGenerated,
+    InterviewCompleted,
+    OffboardingCompleted,
+    OffboardingStateChanged,
 )
 from .exceptions import (
     DomainException,
@@ -105,6 +111,7 @@ __all__: list[str] = [
     "DomainEvent",
     "DossierGenerated",
     "InterviewCompleted",
+    "OffboardingCompleted",
     "OffboardingStateChanged",
     # Dossier domain
     "ApprovedDossierState",

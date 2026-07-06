@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from .base import DomainEvent
 
 
@@ -47,5 +48,22 @@ def DossierGenerated(
             "dossier_id": str(dossier_id),
             "process_id": str(process_id),
             "interview_id": str(interview_id),
+        },
+    )
+
+
+def OffboardingCompleted(
+    process_id: UUID,
+    employee_id: str,
+    manager_id: str,
+    dossier_id: UUID,
+) -> DomainEvent:
+    return DomainEvent(
+        event_type="offboarding.completed",
+        payload={
+            "process_id": str(process_id),
+            "employee_id": str(employee_id),
+            "manager_id": str(manager_id),
+            "dossier_id": str(dossier_id),
         },
     )
