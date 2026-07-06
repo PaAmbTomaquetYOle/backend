@@ -11,7 +11,6 @@ from app.application.ports.dossier import DossierSearchResult, IDossierRepositor
 from app.domain.dossier.dossier import Dossier
 from app.domain.offboarding.id import DossierId, InterviewId, OffboardingProcessId
 from app.infrastructure.persistence.models.dossier import DossierModel
-from app.infrastructure.persistence.models.process import ProcessModel
 from app.infrastructure.persistence.models.dossier_section import (
     DossierSectionModel,
     SectionContactModel,
@@ -21,6 +20,7 @@ from app.infrastructure.persistence.models.dossier_section import (
     sections_from_domain,
     sections_to_domain,
 )
+from app.infrastructure.persistence.models.process import ProcessModel
 
 
 class DossierRepository(IDossierRepository):

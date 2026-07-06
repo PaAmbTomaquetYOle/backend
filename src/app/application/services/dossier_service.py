@@ -13,6 +13,7 @@ from app.domain import (
     NotGeneratedDossierState,
     ProcessId,
 )
+from app.domain.enums import InterviewStateEnum
 from app.domain.exceptions.dossier import DossierNotFoundError
 
 
@@ -105,4 +106,29 @@ class DossierService(IDossierService):
         dossier = self._repo.find_by_process_id(process_id)
         if dossier is None:
             raise DossierNotFoundError(f"No dossier found for process {process_id.get_id()}")
+        return dossier
+
+    async def advance_generation(
+            self,
+            dossier_id: DossierId,
+            interview_state: InterviewStateEnum,
+    ) -> Dossier:
+        """Drive a freshly created dossier through NOT_GENERATED -> GENERATING -> DRAFT.
+
+        Args:
+            dossier_id: Identifier of the dossier to advance.
+            interview_state: Current state of the associated interview; generation
+                requires it to be COMPLETED.
+
+        Returns:
+            The updated Dossier in DRAFT state.
+
+        Raises:
+            DossierNotFoundError: If no dossier with the given ID exists.
+            DossierInterviewNotCompletedError: If interview_state is not COMPLETED.
+        """
+        dossier = await self.get_dossier(dossier_id)
+        dossier.start_generating(interview_state)
+        dossier.complete_generation()
+        self._repo.save(dossier)
         return dossier

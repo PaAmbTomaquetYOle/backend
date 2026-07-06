@@ -219,3 +219,6 @@ __marimo__/
 
 # Git worktrees
 .worktrees/
+
+# Codebase memory index
+.codebase-memory/

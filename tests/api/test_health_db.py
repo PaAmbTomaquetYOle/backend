@@ -23,7 +23,9 @@ def mock_graph_db() -> AsyncMock:
 
 
 @pytest.fixture
-def client_with_mocks(client: TestClient, mock_session: Mock, mock_graph_db: AsyncMock) -> TestClient:
+def client_with_mocks(
+    client: TestClient, mock_session: Mock, mock_graph_db: AsyncMock
+) -> TestClient:
     client.app.dependency_overrides[get_session] = lambda: mock_session
     client.app.dependency_overrides[graph_database_dependency] = lambda: mock_graph_db
     

@@ -30,7 +30,9 @@ async def search_dossiers(
         employee_name: Annotated[
             str | None, Query(description="Partial, case-insensitive employee name to search for")
         ] = None,
-        process_id: Annotated[UUID | None, Query(description="Exact process UUID to filter by")] = None,
+        process_id: Annotated[
+            UUID | None, Query(description="Exact process UUID to filter by")
+        ] = None,
 ) -> DossierSearchListResponse:
     """Search offboarding dossiers by employee display name and/or associated process ID.
 

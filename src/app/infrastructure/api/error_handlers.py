@@ -30,22 +30,30 @@ def register_error_handlers(app: FastAPI) -> None:
     """
 
     @app.exception_handler(ProcessNotFoundError)
-    async def process_not_found_handler(request: Request, exc: ProcessNotFoundError) -> JSONResponse:
+    async def process_not_found_handler(
+            request: Request, exc: ProcessNotFoundError
+    ) -> JSONResponse:
         """Return 404 when a ProcessNotFoundError is raised."""
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(InterviewNotFoundError)
-    async def interview_not_found_handler(request: Request, exc: InterviewNotFoundError) -> JSONResponse:
+    async def interview_not_found_handler(
+            request: Request, exc: InterviewNotFoundError
+    ) -> JSONResponse:
         """Return 404 when an InterviewNotFoundError is raised."""
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(DossierNotFoundError)
-    async def dossier_not_found_handler(request: Request, exc: DossierNotFoundError) -> JSONResponse:
+    async def dossier_not_found_handler(
+            request: Request, exc: DossierNotFoundError
+    ) -> JSONResponse:
         """Return 404 when a DossierNotFoundError is raised."""
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(InvalidStateTransitionError)
-    async def invalid_state_transition_handler(request: Request, exc: InvalidStateTransitionError) -> JSONResponse:
+    async def invalid_state_transition_handler(
+            request: Request, exc: InvalidStateTransitionError
+    ) -> JSONResponse:
         """Return 409 when an invalid state machine transition is attempted."""
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
@@ -78,7 +86,9 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=422, content={"detail": str(exc)})
 
     @app.exception_handler(InterviewTurnOrderError)
-    async def interview_turn_order_handler(request: Request, exc: InterviewTurnOrderError) -> JSONResponse:
+    async def interview_turn_order_handler(
+            request: Request, exc: InterviewTurnOrderError
+    ) -> JSONResponse:
         """Return 422 when turns are provided in an invalid order."""
         return JSONResponse(status_code=422, content={"detail": str(exc)})
 

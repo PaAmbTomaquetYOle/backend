@@ -127,7 +127,8 @@ class OffboardingProcessService(IOffboardingProcessService):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in NOT_STARTED state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                NOT_STARTED state.
         """
         process = await self.get_process(process_id)
         process.start()
@@ -145,7 +146,8 @@ class OffboardingProcessService(IOffboardingProcessService):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is already in a terminal state.
+            InvalidOffboardingProcessStateTransitionError: If the process is already in
+                a terminal state.
         """
         process = await self.get_process(process_id)
         process.cancel()
@@ -163,7 +165,8 @@ class OffboardingProcessService(IOffboardingProcessService):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in IN_PROGRESS state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                IN_PROGRESS state.
         """
         process = await self.get_process(process_id)
         process.submit_for_review()
@@ -181,7 +184,8 @@ class OffboardingProcessService(IOffboardingProcessService):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in PENDING_REVISION state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
         """
         process = await self.get_process(process_id)
         process.complete()

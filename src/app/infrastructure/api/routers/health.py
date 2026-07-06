@@ -7,9 +7,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlmodel import Session
 
-from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
-
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
 from app.infrastructure.api.dependencies import get_session, graph_database_dependency
 
 router = APIRouter(tags=["health"])

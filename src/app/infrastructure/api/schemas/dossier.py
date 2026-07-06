@@ -156,7 +156,9 @@ def _section_to_response(section: DossierSection) -> DossierSectionResponse:
         ]
     elif isinstance(section, KnowledgeAreasSection):
         areas = [
-            KnowledgeAreaSchema(topic=a.topic, description=a.description, expertise_level=a.expertise_level)
+            KnowledgeAreaSchema(
+                topic=a.topic, description=a.description, expertise_level=a.expertise_level
+            )
             for a in section.areas
         ]
     return DossierSectionResponse(

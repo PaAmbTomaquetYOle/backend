@@ -15,7 +15,10 @@ from app.domain.exceptions.interview import InterviewNotFoundError
 
 
 class InterviewService(IInterviewService):
-    """Orchestrates interview lifecycle operations. Delegates persistence to IInterviewRepository."""
+    """Orchestrates interview lifecycle operations.
+
+    Delegates persistence to IInterviewRepository.
+    """
 
     def __init__(self, repo: IInterviewRepository) -> None:
         """Set up the service with a repository.
