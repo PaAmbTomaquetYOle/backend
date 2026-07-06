@@ -10,6 +10,8 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlmodel import Session
 
+from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.graph_database import IGraphDatabasePort
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingDossierFacade,
     IOffboardingInterviewFacade,
@@ -17,15 +19,13 @@ from app.application.service_interfaces.offboarding_facade_interface import (
 )
 from app.application.services.dossier_service import DossierService
 from app.application.services.interview_service import InterviewService
-from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
-from app.application.ports.event_publisher import IEventPublisher
-from app.application.ports.graph_database import IGraphDatabasePort
+from app.infrastructure.composition import build_offboarding_facade
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
@@ -87,31 +87,13 @@ def event_publisher_dependency(request: Request) -> IEventPublisher:
     return request.app.state.event_publisher
 
 
-def _build_facade(session: Session, event_publisher: IEventPublisher | None = None) -> OffboardingFacadeService:
-    """Assemble the full OffboardingFacadeService from session-scoped services.
-
-    Args:
-        session: The active SQLModel session shared across all composed services.
-        event_publisher: Optional event publisher for domain event dispatching.
-
-    Returns:
-        OffboardingFacadeService: A fully wired facade instance.
-    """
-    return OffboardingFacadeService(
-        process_service=OffboardingProcessService(OffboardingProcessRepository(session)),
-        interview_service=InterviewService(InterviewRepository(session)),
-        dossier_service=DossierService(DossierRepository(session)),
-        event_publisher=event_publisher,
-    )
-
-
 def offboarding_process_facade_dependency(
     session: Annotated[Session, Depends(get_session)],
     request: Request,
 ) -> IOffboardingProcessFacade:
     """Provide the facade narrowed to IOffboardingProcessFacade for the process router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return _build_facade(session, publisher)
+    return build_offboarding_facade(session, publisher)
 
 
 def offboarding_interview_facade_dependency(
@@ -120,7 +102,7 @@ def offboarding_interview_facade_dependency(
 ) -> IOffboardingInterviewFacade:
     """Provide the facade narrowed to IOffboardingInterviewFacade for the interview router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return _build_facade(session, publisher)
+    return build_offboarding_facade(session, publisher)
 
 
 def offboarding_dossier_facade_dependency(
@@ -129,4 +111,5 @@ def offboarding_dossier_facade_dependency(
 ) -> IOffboardingDossierFacade:
     """Provide the facade narrowed to IOffboardingDossierFacade for the dossier router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return _build_facade(session, publisher)
+    generator = getattr(request.app.state, "dossier_generator", None)
+    return build_offboarding_facade(session, publisher, generator)
