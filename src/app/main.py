@@ -3,12 +3,23 @@
 import logging
 from contextlib import asynccontextmanager
 
-from aiokafka import AIOKafkaProducer
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
 
+from app.application.services.handlers import (
+    DossierGenerationRequestedHandler,
+    InterviewCompletedHandler,
+    OffboardingTriggeredHandler,
+)
+from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
+from app.domain.events.inbound_events import INBOUND_EVENT_TYPES
+from app.infrastructure.adapters.ai.fake_dossier_generator import FakeDossierGenerator
+from app.infrastructure.adapters.events.kafka_dead_letter_queue import KafkaDeadLetterQueue
+from app.infrastructure.adapters.events.kafka_event_consumer import KafkaEventConsumer
 from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
 from app.infrastructure.adapters.events.noop_event_publisher import NoOpEventPublisher
+from app.infrastructure.adapters.events.topics import topic_name
 from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.api.error_handlers import register_error_handlers
@@ -40,13 +51,54 @@ async def lifespan(app: FastAPI):
         )
         try:
             await producer.start()
-            app.state.event_publisher = KafkaEventPublisher(producer)
+            app.state.event_publisher = KafkaEventPublisher(
+                producer, topic_prefix=settings.kafka_topic_prefix
+            )
             logger.info("Kafka producer started")
         except Exception:
-            logger.warning("Failed to start Kafka producer, using NoOpEventPublisher", exc_info=True)
+            logger.warning(
+                "Failed to start Kafka producer, using NoOpEventPublisher", exc_info=True
+            )
             app.state.event_publisher = NoOpEventPublisher()
     else:
         app.state.event_publisher = NoOpEventPublisher()
+
+    app.state.dossier_generator = FakeDossierGenerator()
+    app.state.event_consumer = None
+    if isinstance(app.state.event_publisher, KafkaEventPublisher):
+        try:
+            inbound_topics = [
+                topic_name(settings.kafka_inbound_topic_prefix, event_type)
+                for event_type in INBOUND_EVENT_TYPES
+            ]
+            kafka_consumer = AIOKafkaConsumer(
+                *inbound_topics,
+                bootstrap_servers=settings.kafka_bootstrap_servers,
+                client_id=settings.kafka_client_id,
+                group_id=settings.kafka_consumer_group_id,
+                enable_auto_commit=False,
+            )
+            dead_letter_queue = KafkaDeadLetterQueue(
+                app.state.event_publisher._producer, settings.kafka_dlq_topic
+            )
+            dispatcher = InboundEventDispatcher([
+                OffboardingTriggeredHandler(),
+                InterviewCompletedHandler(),
+                DossierGenerationRequestedHandler(),
+            ])
+            event_consumer = KafkaEventConsumer(
+                consumer=kafka_consumer,
+                dispatcher=dispatcher,
+                dead_letter_queue=dead_letter_queue,
+                event_publisher=app.state.event_publisher,
+                dossier_generator=app.state.dossier_generator,
+            )
+            await event_consumer.start()
+            app.state.event_consumer = event_consumer
+            logger.info("Kafka consumer started, subscribed to %s", inbound_topics)
+        except Exception:
+            logger.warning("Failed to start Kafka consumer", exc_info=True)
+            app.state.event_consumer = None
 
     try:
         neo4j_driver = AsyncGraphDatabase.driver(
@@ -60,6 +112,11 @@ async def lifespan(app: FastAPI):
         app.state.graph_db = NoOpGraphAdapter()
 
     yield
+
+    event_consumer = getattr(app.state, "event_consumer", None)
+    if event_consumer is not None:
+        await event_consumer.stop()
+        logger.info("Kafka consumer stopped")
 
     publisher = getattr(app.state, "event_publisher", None)
     if isinstance(publisher, KafkaEventPublisher):
