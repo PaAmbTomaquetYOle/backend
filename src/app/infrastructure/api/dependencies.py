@@ -17,6 +17,7 @@ from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingInterviewFacade,
     IOffboardingProcessFacade,
 )
+from app.application.service_interfaces.sop_service_interface import ISopService
 from app.application.services.dossier_service import DossierService
 from app.application.services.interview_service import InterviewService
 from app.application.services.offboarding_process_service import OffboardingProcessService
@@ -25,7 +26,7 @@ from app.infrastructure.adapters.repositories.interview import InterviewReposito
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
-from app.infrastructure.composition import build_offboarding_facade
+from app.infrastructure.composition import build_offboarding_facade, build_sop_service
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
@@ -113,3 +114,12 @@ def offboarding_dossier_facade_dependency(
     publisher = getattr(request.app.state, "event_publisher", None)
     generator = getattr(request.app.state, "dossier_generator", None)
     return build_offboarding_facade(session, publisher, generator)
+
+
+def sop_service_dependency(
+    session: Annotated[Session, Depends(get_session)],
+    request: Request,
+) -> ISopService:
+    """Provide a SOP service wired with its repository and the event publisher."""
+    publisher = getattr(request.app.state, "event_publisher", None)
+    return build_sop_service(session, publisher)
