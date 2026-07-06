@@ -3,7 +3,6 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.events.base import DomainEvent
 from app.domain.events.offboarding_events import (
     DossierGenerated,
     InterviewCompleted,

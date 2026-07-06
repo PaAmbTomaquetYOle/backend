@@ -1,7 +1,7 @@
 """Unit tests for offboarding API endpoints — mock facade, test HTTP layer only."""
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
@@ -14,11 +14,13 @@ from app.domain import (
     OffboardingProcessId,
     ScheduledInterviewState,
 )
+from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
 from app.domain.exceptions.interview import InterviewNotFoundError
+from app.domain.exceptions.invalid_state_transition import (
+    InvalidOffboardingProcessStateTransitionError,
+)
 from app.domain.exceptions.offboarding import ProcessNotFoundError
-from app.domain.exceptions.invalid_state_transition import InvalidOffboardingProcessStateTransitionError
-from app.domain.enums import OffboardingProcessStateEnum
 from app.domain.offboarding.id import EmployeeId, InterviewId, ManagerId
 from app.domain.offboarding.state.not_started import NotStartedState
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
@@ -67,7 +69,9 @@ def client(mock_facade: AsyncMock) -> TestClient:
     app.dependency_overrides[offboarding_process_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_interview_facade_dependency] = lambda: mock_facade
     app.dependency_overrides[offboarding_dossier_facade_dependency] = lambda: mock_facade
-    app.dependency_overrides[get_current_service] = lambda: {"iss": "test-service", "aud": "offboardme-backend"}
+    app.dependency_overrides[get_current_service] = lambda: {
+        "iss": "test-service", "aud": "offboardme-backend"
+    }
     return TestClient(app)
 
 
@@ -242,7 +246,9 @@ class TestUpsertInterview:
         assert r.status_code == 201
         assert "id" in r.json()
 
-    def test_200_updates_existing_interview(self, client: TestClient, mock_facade: AsyncMock) -> None:
+    def test_200_updates_existing_interview(
+        self, client: TestClient, mock_facade: AsyncMock
+    ) -> None:
         interview = _make_interview()
         mock_facade.upsert_interview.return_value = (interview, False)
 

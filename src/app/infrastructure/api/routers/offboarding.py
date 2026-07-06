@@ -5,12 +5,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingProcessFacade,
 )
 from app.domain import EmployeeId, ManagerId, OffboardingProcessId
 from app.domain.enums import OffboardingProcessStateEnum
+from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import offboarding_process_facade_dependency
 from app.infrastructure.api.routers.offboarding_dossier import router as dossier_router
 from app.infrastructure.api.routers.offboarding_interview import router as interview_router
@@ -79,8 +79,12 @@ async def list_offboardings(
             IOffboardingProcessFacade,
             Depends(offboarding_process_facade_dependency)
         ],
-        employee_id: Annotated[str | None, Query(description="Filter by employee ID (Slack user ID)")] = None,
-        manager_id: Annotated[str | None, Query(description="Filter by manager ID (Slack user ID)")] = None,
+        employee_id: Annotated[
+            str | None, Query(description="Filter by employee ID (Slack user ID)")
+        ] = None,
+        manager_id: Annotated[
+            str | None, Query(description="Filter by manager ID (Slack user ID)")
+        ] = None,
         state: Annotated[
             str | None,
             Query(description="Filter by state value (e.g. not_started)")

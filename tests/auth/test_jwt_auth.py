@@ -7,10 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
-from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.api.dependencies import (
     offboarding_process_facade_dependency,
 )
+from app.infrastructure.config.settings import Settings, get_settings
 from app.main import create_app
 
 TEST_SECRET = "test-secret-for-jwt-testing-32chars!!"
@@ -74,7 +74,11 @@ class TestJWTAuthentication:
 
     def test_invalid_signature_returns_401(self, auth_client: TestClient) -> None:
         token = _make_token(
-            {"iss": "slack-agent", "aud": TEST_AUDIENCE, "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+            {
+                "iss": "slack-agent",
+                "aud": TEST_AUDIENCE,
+                "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+            },
             secret="wrong-secret-that-is-at-least-32-chars-long",
         )
         r = auth_client.get("/api/v1/offboarding", headers={"Authorization": f"Bearer {token}"})

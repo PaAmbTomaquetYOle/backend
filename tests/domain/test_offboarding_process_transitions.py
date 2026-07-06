@@ -1,4 +1,5 @@
-"""Unit tests for start(), submit_for_review(), and complete() on OffboardingProcess states and entity."""
+"""Unit tests for start(), submit_for_review(), and complete() on OffboardingProcess
+states and entity."""
 
 from __future__ import annotations
 

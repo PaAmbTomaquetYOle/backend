@@ -95,7 +95,8 @@ class IOffboardingProcessService(IProcessService, ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in NOT_STARTED state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                NOT_STARTED state.
         """
         ...
 
@@ -111,7 +112,8 @@ class IOffboardingProcessService(IProcessService, ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is already in a terminal state.
+            InvalidOffboardingProcessStateTransitionError: If the process is already in
+                a terminal state.
         """
         ...
 
@@ -127,7 +129,8 @@ class IOffboardingProcessService(IProcessService, ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in IN_PROGRESS state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                IN_PROGRESS state.
         """
         ...
 
@@ -146,7 +149,8 @@ class IOffboardingProcessService(IProcessService, ABC):
 
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
-            InvalidOffboardingProcessStateTransitionError: If the process is not in PENDING_REVISION state.
+            InvalidOffboardingProcessStateTransitionError: If the process is not in
+                PENDING_REVISION state.
         """
         ...
 

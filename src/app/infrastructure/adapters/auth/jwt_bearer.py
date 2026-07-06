@@ -1,9 +1,10 @@
 """JWT Bearer authentication dependency for FastAPI."""
 
+from typing import Annotated
+
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from typing import Annotated
 
 from app.infrastructure.config.settings import Settings, get_settings
 
