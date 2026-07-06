@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Kafka
     kafka_bootstrap_servers: str = "localhost:9092"
     kafka_client_id: str = "offboardme-backend"
+    kafka_topic_prefix: str = "offboarding"
+    kafka_inbound_topic_prefix: str = "slack-agent"
+    kafka_consumer_group_id: str = "offboardme-backend-consumer"
+    kafka_dlq_topic: str = "offboarding.dlq"
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
