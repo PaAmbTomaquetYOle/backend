@@ -1,0 +1,16 @@
+{
+  "name": "offboardme-asyncapi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tooling to validate, visualize, and generate types from the OffboardMe Kafka event contract (asyncapi.yml).",
+  "scripts": {
+    "validate": "asyncapi validate asyncapi.yml",
+    "html": "asyncapi generate fromTemplate asyncapi.yml @asyncapi/html-template -o ./html --use-new-generator --force-write",
+    "models:py": "asyncapi generate models python asyncapi.yml -o ./generated/python --packageName=offboardme_events",
+    "models:ts": "asyncapi generate models typescript asyncapi.yml -o ./generated/ts"
+  },
+  "devDependencies": {
+    "@asyncapi/cli": "^6.0.2",
+    "@asyncapi/html-template": "^3.0.0"
+  }
+}
