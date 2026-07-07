@@ -51,13 +51,19 @@ The script will build the Docker images and wait until all healthchecks pass. On
 
 ## 📨 Kafka topics
 
+> [!IMPORTANT]
+> This section is a human-readable summary. The **machine-readable source of
+> truth** is the [AsyncAPI contract](#-asyncapi-contract) at
+> `docs/asyncapi/asyncapi.yml` — if this table and the spec ever disagree,
+> the spec (and the code it was derived from) wins.
+
 All events use the same JSON envelope:
 
 ```json
 { "event_id": "<uuid>", "event_type": "<string>", "occurred_at": "<ISO-8601 UTC>", "payload": { ... } }
 ```
 
-Topics are namespaced by direction so the backend never re-consumes what it just produced.
+Topics are namespaced by direction so the backend never re-consumes what it just produced. The Kafka record key is `payload.process_id` when present, otherwise it falls back to `event_id`.
 
 ### Inbound — consumed by backend (published by slack-agent)
 
@@ -66,8 +72,10 @@ Prefix: `slack-agent` (`KAFKA_INBOUND_TOPIC_PREFIX`). Consumer group: `offboardm
 | Topic | event_type | payload | Effect |
 |---|---|---|---|
 | `slack-agent.offboarding.triggered` | `offboarding.triggered` | `employee_id, manager_id, employee_name?, manager_name?` | Creates the offboarding process and starts it |
+| `slack-agent.interview.started` | `interview.started` | `process_id` | Creates the interview if needed and marks it in progress (idempotent — skipped if already past `SCHEDULED`) |
 | `slack-agent.interview.completed` | `interview.completed` | `process_id, turns[]` (`turn_type, speaker_role, timestamp, content, order, topic?, sentiment?, answer_text?`) | Saves the collected answers, completes the interview, submits the process for review |
 | `slack-agent.dossier.generation_requested` | `dossier.generation_requested` | `process_id` | Generates and persists the dossier (interview is read from the DB), then completes the offboarding process |
+| `slack-agent.sop.creation_requested` | `sop.creation_requested` | `content, author, origin_channel, tags?` | Creates a SOP from a Slack-originated request |
 
 ### Outbound — produced by backend (consumed by slack-agent)
 
@@ -79,6 +87,10 @@ Prefix: `offboarding` (`KAFKA_TOPIC_PREFIX`).
 | `offboarding.interview.completed` | `interview.completed` | `interview_id, process_id, completed_at` |
 | `offboarding.dossier.generated` | `dossier.generated` | `dossier_id, process_id, interview_id` |
 | `offboarding.offboarding.completed` | `offboarding.completed` | `process_id, employee_id, manager_id, dossier_id` |
+| `offboarding.sop.created` | `sop.created` | `sop_id, author, origin_channel, tags[], version, created_at` |
+
+> [!NOTE]
+> `interview.completed` exists on **both** sides with different payloads: the inbound version carries the raw `turns[]` collected during the interview, while the outbound version is a lightweight notification (`interview_id, process_id, completed_at`) that the backend finished persisting it.
 
 ### Dead-letter queue
 
@@ -86,6 +98,31 @@ Malformed messages or handler failures are published to `offboarding.dlq` (`KAFK
 
 > [!NOTE]
 > slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
+
+## 📜 AsyncAPI contract
+
+The full, machine-readable event contract — all 10 topics above plus the DLQ, with envelopes, payload schemas and pub/sub direction — lives at [`docs/asyncapi/asyncapi.yml`](docs/asyncapi/asyncapi.yml) (AsyncAPI 3.0.0).
+
+```bash
+cd docs/asyncapi
+npm install
+```
+
+- **Visualize**: paste `asyncapi.yml` into [AsyncAPI Studio](https://studio.asyncapi.com/), or generate static HTML locally:
+  ```bash
+  npm run html   # writes ./html/index.html
+  ```
+- **Validate** (fails CI-style if the spec is malformed):
+  ```bash
+  npm run validate
+  ```
+- **Generate types** from the spec, for reference/adoption on either side of the contract:
+  ```bash
+  npm run models:py   # Pydantic-friendly Python models -> ./generated/python
+  npm run models:ts   # TypeScript interfaces        -> ./generated/ts
+  ```
+
+See [`docs/asyncapi/README.md`](docs/asyncapi/README.md) for why the spec lives in this repo and how to keep it in sync with the code.
 
 ## 🧪 Testing
 
