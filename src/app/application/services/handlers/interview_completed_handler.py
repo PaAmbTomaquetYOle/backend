@@ -8,6 +8,7 @@ from app.application.services.inbound_context import InboundContext
 from app.domain import (
     InterviewNote,
     InterviewQuestion,
+    InterviewStateEnum,
     InterviewTurn,
     OffboardingProcessId,
     SpeakerRoleEnum,
@@ -47,6 +48,9 @@ class InterviewCompletedHandler(IInboundEventHandler):
 
     Expected payload: process_id, turns[] (turn_type, speaker_role, timestamp,
     content, order, topic?, sentiment?, answer_text?).
+
+    The interview is only started here if it's still SCHEDULED — if
+    'interview.started' already moved it to IN_PROGRESS, that step is skipped.
     """
 
     @property
@@ -66,11 +70,12 @@ class InterviewCompletedHandler(IInboundEventHandler):
         process_id = OffboardingProcessId(UUID(payload["process_id"]))
         turns = [_turn_from_payload(raw) for raw in payload.get("turns", [])]
 
-        await facade.upsert_interview(
+        interview, _created = await facade.upsert_interview(
             process_id=process_id,
             scheduled_at=event.occurred_at,
             turns=turns,
         )
-        await facade.start_interview(process_id)
+        if interview.state.get_state() == InterviewStateEnum.SCHEDULED:
+            await facade.start_interview(process_id)
         await facade.complete_interview(process_id)
         await facade.submit_offboarding_for_review(process_id)
