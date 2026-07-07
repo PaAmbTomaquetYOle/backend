@@ -99,6 +99,23 @@ Malformed messages or handler failures are published to `offboarding.dlq` (`KAFK
 > [!NOTE]
 > slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
 
+## 🤖 AI dossier generation
+
+`IDossierGenerator` (`src/app/application/ports/dossier_generator.py`) decouples dossier content generation from the rest of the offboarding flow. Two implementations exist:
+
+- **`FakeDossierGenerator`** — deterministic placeholder, copies interview answers into a single `ResponsibilitiesSection`. Always available, used as the fallback.
+- **`LLMDossierGenerator`** (`src/app/infrastructure/adapters/ai/llm_dossier_generator.py`) — the real adapter. Rather than issuing a single isolated completion, it acts as an **MCP client of `mcp-server`** (the same tool surface `slack-agent` drives during the interview), so the model can pull extra context before writing the dossier:
+  - `get_dossier` — look up prior dossiers (e.g. earlier processes for the same employee, or how similar roles were documented).
+  - `test_search_query` — search the org's cached SOP index for knowledge related to topics raised in the interview.
+
+  Only these two read-only, tokenless tools are exposed; the Jira/Trello/Slack tools on mcp-server require a per-user OAuth session that has no meaning for a headless Kafka consumer.
+
+  **Prompt strategy**: the interview's turns (`InterviewQuestion.answer_text`, `InterviewNote.content`) are flattened into a plain Q/A transcript and sent as the user message; a system prompt instructs the model on when to use the tools and to end the conversation with a single JSON object shaped like `{"summary": ..., "sections": [...]}`, one entry per `DossierSection` subtype (`responsibilities`, `contacts`, `pending_tasks`, `knowledge_areas`). `dossier_response_parser.py` validates and maps that JSON into the typed domain objects — any shape mismatch raises and triggers the fallback.
+
+  **Error handling**: the whole call (mcp-server connection, tool round trips, completions) is wrapped in a timeout (`DOSSIER_LLM_TIMEOUT_SECONDS`) and a broad `except Exception`. A connection failure, a malformed JSON answer, or an exhausted tool-call budget (`DOSSIER_LLM_MAX_TOOL_ITERATIONS`) all fall back to `FakeDossierGenerator` — the Kafka consumer's flow never breaks.
+
+Wiring (`src/app/main.py`, lifespan) is feature-flagged: set `DOSSIER_LLM_ENABLED=true` and `ANTHROPIC_API_KEY` to use `LLMDossierGenerator`; otherwise (or if the key is missing) it falls back to `FakeDossierGenerator` at startup. See `.env.example` for the full list of `DOSSIER_LLM_*` / `ANTHROPIC_*` / `MCP_SERVER_URL` variables. Running mcp-server locally (`uv run mcp-server` in that repo) exposes its streamable-HTTP endpoint at `MCP_SERVER_URL` (default `/mcp` path).
+
 ## 📜 AsyncAPI contract
 
 The full, machine-readable event contract — all 10 topics above plus the DLQ, with envelopes, payload schemas and pub/sub direction — lives at [`docs/asyncapi/asyncapi.yml`](docs/asyncapi/asyncapi.yml) (AsyncAPI 3.0.0).
