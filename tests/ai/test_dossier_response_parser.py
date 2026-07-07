@@ -19,12 +19,12 @@ class TestParseLlmResponse:
             "summary": "Handover summary.",
             "sections": [
                 {
-                    "type": "responsibilities",
+                    "section_type": "responsibilities",
                     "title": "Responsibilities",
                     "responsibilities": ["Own the backend", "Run on-call"],
                 },
                 {
-                    "type": "contacts",
+                    "section_type": "contacts",
                     "title": "Contacts",
                     "contacts": [
                         {
@@ -36,7 +36,7 @@ class TestParseLlmResponse:
                     ],
                 },
                 {
-                    "type": "pending_tasks",
+                    "section_type": "pending_tasks",
                     "title": "Pending",
                     "tasks": [
                         {
@@ -47,7 +47,7 @@ class TestParseLlmResponse:
                     ],
                 },
                 {
-                    "type": "knowledge_areas",
+                    "section_type": "knowledge_areas",
                     "title": "Knowledge",
                     "areas": [
                         {
@@ -92,7 +92,7 @@ class TestParseLlmResponse:
             parse_llm_response(json.dumps(["not", "an", "object"]))
 
     def test_unknown_section_type_raises(self) -> None:
-        payload = {"summary": None, "sections": [{"type": "bogus", "title": "X"}]}
+        payload = {"summary": None, "sections": [{"section_type": "bogus", "title": "X"}]}
 
         with pytest.raises(ValueError, match="unknown section type"):
             parse_llm_response(json.dumps(payload))
@@ -100,7 +100,7 @@ class TestParseLlmResponse:
     def test_section_missing_title_raises(self) -> None:
         payload = {
             "summary": None,
-            "sections": [{"type": "responsibilities", "responsibilities": []}],
+            "sections": [{"section_type": "responsibilities", "responsibilities": []}],
         }
 
         with pytest.raises(ValueError, match="title"):
@@ -111,7 +111,7 @@ class TestParseLlmResponse:
             "summary": None,
             "sections": [
                 {
-                    "type": "contacts",
+                    "section_type": "contacts",
                     "title": "Contacts",
                     "contacts": [{"name": "Jane", "role": "Manager"}],
                 }

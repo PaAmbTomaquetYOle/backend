@@ -44,11 +44,10 @@ class Settings(BaseSettings):
     neo4j_database: str = "neo4j"
 
     # AI dossier generation (LLMDossierGenerator) — see IDossierGenerator
+    # The model itself lives in mcp-server's `generate_dossier` tool; the
+    # backend is just an MCP client of it.
     dossier_llm_enabled: bool = False
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-5-20250929"
     dossier_llm_timeout_seconds: float = 45.0
-    dossier_llm_max_tool_iterations: int = 4
     mcp_server_url: str = "http://localhost:8000/mcp"
 
     @property

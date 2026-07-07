@@ -6,15 +6,18 @@ conversation with a single JSON object of the shape::
     {
       "summary": "...",
       "sections": [
-        {"type": "responsibilities", "title": "...", "responsibilities": ["..."]},
-        {"type": "contacts", "title": "...", "contacts": [{"name": ..., "role": ...,
+        {"section_type": "responsibilities", "title": "...", "responsibilities": ["..."]},
+        {"section_type": "contacts", "title": "...", "contacts": [{"name": ..., "role": ...,
             "email": ..., "relationship": ...}]},
-        {"type": "pending_tasks", "title": "...", "tasks": [{"description": ...,
+        {"section_type": "pending_tasks", "title": "...", "tasks": [{"description": ...,
             "priority": ..., "deadline": ...}]},
-        {"type": "knowledge_areas", "title": "...", "areas": [{"topic": ...,
+        {"section_type": "knowledge_areas", "title": "...", "areas": [{"topic": ...,
             "description": ..., "expertise_level": ...}]}
       ]
     }
+
+This mirrors mcp-server's own ``DossierSection`` wire format (the
+``generate_dossier`` tool's response), so both sides agree on one contract.
 
 Every function here raises ``ValueError`` (or lets ``json.JSONDecodeError``,
 a ``ValueError`` subclass, propagate) on any shape mismatch. The caller
@@ -80,7 +83,7 @@ def _section_from_dict(item: object) -> DossierSection:
     if not isinstance(title, str) or not title:
         raise ValueError("section 'title' must be a non-empty string")
 
-    section_type = item.get("type")
+    section_type = item.get("section_type")
     if section_type == "responsibilities":
         responsibilities = item.get("responsibilities")
         if not isinstance(responsibilities, list) or not all(

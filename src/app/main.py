@@ -67,27 +67,15 @@ async def lifespan(app: FastAPI):
         app.state.event_publisher = NoOpEventPublisher()
 
     fake_dossier_generator = FakeDossierGenerator()
-    if settings.dossier_llm_enabled and settings.anthropic_api_key:
+    if settings.dossier_llm_enabled:
         app.state.dossier_generator = LLMDossierGenerator(
-            anthropic_api_key=settings.anthropic_api_key,
-            model=settings.anthropic_model,
             mcp_server_url=settings.mcp_server_url,
             fallback=fake_dossier_generator,
             timeout_seconds=settings.dossier_llm_timeout_seconds,
-            max_tool_iterations=settings.dossier_llm_max_tool_iterations,
         )
-        logger.info(
-            "Using LLMDossierGenerator (model=%s, mcp_server=%s)",
-            settings.anthropic_model,
-            settings.mcp_server_url,
-        )
+        logger.info("Using LLMDossierGenerator (mcp_server=%s)", settings.mcp_server_url)
     else:
         app.state.dossier_generator = fake_dossier_generator
-        if settings.dossier_llm_enabled:
-            logger.warning(
-                "DOSSIER_LLM_ENABLED is true but ANTHROPIC_API_KEY is empty; "
-                "using FakeDossierGenerator"
-            )
     app.state.event_consumer = None
     if isinstance(app.state.event_publisher, KafkaEventPublisher):
         try:
