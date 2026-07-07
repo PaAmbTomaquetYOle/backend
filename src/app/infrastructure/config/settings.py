@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     neo4j_password: str  # No default — must be set in .env
     neo4j_database: str = "neo4j"
 
+    # AI dossier generation (LLMDossierGenerator) — see IDossierGenerator
+    # The model itself lives in mcp-server's `generate_dossier` tool; the
+    # backend is just an MCP client of it.
+    dossier_llm_enabled: bool = False
+    dossier_llm_timeout_seconds: float = 45.0
+    mcp_server_url: str = "http://localhost:8000/mcp"
+
     @property
     def database_url(self) -> str:
         """Assemble the async PostgreSQL connection URL from individual components.

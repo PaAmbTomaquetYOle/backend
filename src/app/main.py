@@ -17,6 +17,7 @@ from app.application.services.handlers import (
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.domain.events.inbound_events import INBOUND_EVENT_TYPES
 from app.infrastructure.adapters.ai.fake_dossier_generator import FakeDossierGenerator
+from app.infrastructure.adapters.ai.llm_dossier_generator import LLMDossierGenerator
 from app.infrastructure.adapters.events.kafka_dead_letter_queue import KafkaDeadLetterQueue
 from app.infrastructure.adapters.events.kafka_event_consumer import KafkaEventConsumer
 from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
@@ -65,7 +66,16 @@ async def lifespan(app: FastAPI):
     else:
         app.state.event_publisher = NoOpEventPublisher()
 
-    app.state.dossier_generator = FakeDossierGenerator()
+    fake_dossier_generator = FakeDossierGenerator()
+    if settings.dossier_llm_enabled:
+        app.state.dossier_generator = LLMDossierGenerator(
+            mcp_server_url=settings.mcp_server_url,
+            fallback=fake_dossier_generator,
+            timeout_seconds=settings.dossier_llm_timeout_seconds,
+        )
+        logger.info("Using LLMDossierGenerator (mcp_server=%s)", settings.mcp_server_url)
+    else:
+        app.state.dossier_generator = fake_dossier_generator
     app.state.event_consumer = None
     if isinstance(app.state.event_publisher, KafkaEventPublisher):
         try:

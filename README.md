@@ -99,6 +99,19 @@ Malformed messages or handler failures are published to `offboarding.dlq` (`KAFK
 > [!NOTE]
 > slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
 
+## 🤖 AI dossier generation
+
+`IDossierGenerator` (`src/app/application/ports/dossier_generator.py`) decouples dossier content generation from the rest of the offboarding flow. Two implementations exist:
+
+- **`FakeDossierGenerator`** — deterministic placeholder, copies interview answers into a single `ResponsibilitiesSection`. Always available, used as the fallback.
+- **`LLMDossierGenerator`** (`src/app/infrastructure/adapters/ai/llm_dossier_generator.py`) — a thin **MCP client**. The model itself does not live in the backend: this adapter formats the interview transcript and calls mcp-server's `generate_dossier` tool, which runs the LLM (with its own context tools — prior dossiers, SOP search) and returns typed dossier content. Keeping the model in mcp-server means the backend never needs an LLM SDK or API key, and the same generation capability is reusable by any other MCP client.
+
+  **Prompt/contract**: the interview's turns (`InterviewQuestion.answer_text`, `InterviewNote.content`) are flattened into a plain Q/A transcript, sent as the `interview_transcript` argument to `generate_dossier`. The tool's result is a JSON object shaped like `{"summary": ..., "sections": [...]}`, one entry per section type (`responsibilities`, `contacts`, `pending_tasks`, `knowledge_areas`) using the `section_type` discriminator — see mcp-server's `DossierGenerationService` for the actual prompt and tool-use loop. `dossier_response_parser.py` validates and maps that JSON into typed domain objects on this side — any shape mismatch raises and triggers the fallback.
+
+  **Error handling**: the whole mcp-server round trip (connection, tool call, and the generation it runs) is wrapped in a timeout (`DOSSIER_LLM_TIMEOUT_SECONDS`) and a broad `except Exception`. A connection failure, a tool error, or a malformed JSON answer all fall back to `FakeDossierGenerator` — the Kafka consumer's flow never breaks.
+
+Wiring (`src/app/main.py`, lifespan) is feature-flagged: set `DOSSIER_LLM_ENABLED=true` to use `LLMDossierGenerator` (pointed at `MCP_SERVER_URL`); otherwise it stays on `FakeDossierGenerator`. See `.env.example` for `DOSSIER_LLM_*` / `MCP_SERVER_URL`. Running mcp-server locally (`uv run mcp-server` in that repo, with its own `MCP_SERVER_ANTHROPIC_API_KEY` set) exposes the streamable-HTTP endpoint at `MCP_SERVER_URL` (default `/mcp` path).
+
 ## 📜 AsyncAPI contract
 
 The full, machine-readable event contract — all 10 topics above plus the DLQ, with envelopes, payload schemas and pub/sub direction — lives at [`docs/asyncapi/asyncapi.yml`](docs/asyncapi/asyncapi.yml) (AsyncAPI 3.0.0).
