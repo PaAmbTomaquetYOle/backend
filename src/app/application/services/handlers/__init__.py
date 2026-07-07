@@ -6,6 +6,9 @@ from app.application.services.handlers.dossier_generation_requested_handler impo
 from app.application.services.handlers.interview_completed_handler import (
     InterviewCompletedHandler,
 )
+from app.application.services.handlers.interview_started_handler import (
+    InterviewStartedHandler,
+)
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
@@ -16,6 +19,7 @@ from app.application.services.handlers.sop_creation_requested_handler import (
 __all__ = [
     "DossierGenerationRequestedHandler",
     "InterviewCompletedHandler",
+    "InterviewStartedHandler",
     "OffboardingTriggeredHandler",
     "SopCreationRequestedHandler",
 ]

@@ -10,6 +10,7 @@ from neo4j import AsyncGraphDatabase
 from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
+    InterviewStartedHandler,
     OffboardingTriggeredHandler,
     SopCreationRequestedHandler,
 )
@@ -84,6 +85,7 @@ async def lifespan(app: FastAPI):
             )
             dispatcher = InboundEventDispatcher([
                 OffboardingTriggeredHandler(),
+                InterviewStartedHandler(),
                 InterviewCompletedHandler(),
                 DossierGenerationRequestedHandler(),
                 SopCreationRequestedHandler(),

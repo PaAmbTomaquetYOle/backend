@@ -13,8 +13,21 @@ from app.application.services.handlers.interview_completed_handler import (
     InterviewCompletedHandler,
 )
 from app.application.services.inbound_context import InboundContext
+from app.domain import Interview, InterviewId, ProcessId
 from app.domain.events.base import DomainEvent
 from app.domain.events.inbound_events import INTERVIEW_COMPLETED
+from app.domain.interview.state.in_progress import InProgressInterviewState
+from app.domain.interview.state.scheduled import ScheduledInterviewState
+
+
+def _interview(process_id, state) -> Interview:
+    return Interview(
+        interview_id=InterviewId(),
+        process_id=ProcessId(process_id),
+        state=state,
+        scheduled_at=datetime.now(UTC),
+        created_at=datetime.now(UTC),
+    )
 
 
 class TestInterviewCompletedHandler:
@@ -25,6 +38,10 @@ class TestInterviewCompletedHandler:
     async def test_handle_saves_answers_and_advances_state(self) -> None:
         facade = AsyncMock(spec=IOffboardingServiceFacade)
         process_id = uuid4()
+        facade.upsert_interview.return_value = (
+            _interview(process_id, ScheduledInterviewState()),
+            True,
+        )
         event = DomainEvent(
             event_type=INTERVIEW_COMPLETED,
             payload={
@@ -63,5 +80,29 @@ class TestInterviewCompletedHandler:
 
         expected_pid = kwargs["process_id"]
         facade.start_interview.assert_awaited_once_with(expected_pid)
+        facade.complete_interview.assert_awaited_once_with(expected_pid)
+        facade.submit_offboarding_for_review.assert_awaited_once_with(expected_pid)
+
+    @pytest.mark.anyio
+    async def test_handle_skips_start_when_already_in_progress(self) -> None:
+        """If 'interview.started' already moved the interview past SCHEDULED, don't re-start it."""
+        facade = AsyncMock(spec=IOffboardingServiceFacade)
+        process_id = uuid4()
+        facade.upsert_interview.return_value = (
+            _interview(process_id, InProgressInterviewState()),
+            False,
+        )
+        event = DomainEvent(
+            event_type=INTERVIEW_COMPLETED,
+            payload={"process_id": str(process_id), "turns": []},
+            event_id=uuid4(),
+        )
+
+        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        await InterviewCompletedHandler().handle(event, context)
+
+        facade.start_interview.assert_not_awaited()
+        _, kwargs = facade.upsert_interview.call_args
+        expected_pid = kwargs["process_id"]
         facade.complete_interview.assert_awaited_once_with(expected_pid)
         facade.submit_offboarding_for_review.assert_awaited_once_with(expected_pid)
