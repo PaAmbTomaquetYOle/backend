@@ -1,6 +1,27 @@
-# OffBoardMe Backend
+<div align="center">
 
-Backend API for the OffBoardMe Slack Agent, built with FastAPI and hexagonal architecture.
+![BrainTrust · Backend](https://capsule-render.vercel.app/api?type=waving&color=0:1A2980,100:26D0CE&height=200&section=header&text=BrainTrust%20%C2%B7%20Backend&fontSize=46&fontColor=ffffff&desc=Offboarding%20orchestration%20API%20%E2%80%94%20FastAPI%20%C2%B7%20Kafka%20%C2%B7%20Postgres%20%C2%B7%20Neo4j&descSize=17&descAlignY=62&animation=fadeIn)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.14](https://img.shields.io/badge/python-3.14-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![CI](https://github.com/PaAmbTomaquetYOle/backend/actions/workflows/ci.yml/badge.svg)](https://github.com/PaAmbTomaquetYOle/backend/actions/workflows/ci.yml)
+[![Architecture: Hexagonal](https://img.shields.io/badge/architecture-hexagonal-6E56CF)](#)
+
+**🔌 [mcp-server](https://github.com/PaAmbTomaquetYOle/mcp-server)** &nbsp;·&nbsp; **🗄️ backend** &nbsp;·&nbsp; **💬 [slack-agent](https://github.com/PaAmbTomaquetYOle/slack-agent)**
+
+</div>
+
+Backend API for the **BrainTrust** offboarding agent — consumes Kafka events published by **slack-agent**, orchestrates the offboarding lifecycle (interview → dossier → completion), and delegates dossier writing to **mcp-server**'s `generate_dossier` tool. Built with FastAPI and hexagonal architecture.
+
+### 📚 Contents
+
+- [🏗 Infrastructure](#-infrastructure)
+- [🚀 Getting Started](#-getting-started)
+- [📨 Kafka topics](#-kafka-topics)
+- [🤖 AI dossier generation](#-ai-dossier-generation)
+- [📜 AsyncAPI contract](#-asyncapi-contract)
+- [🧪 Testing](#-testing)
 
 ## 🏗 Infrastructure
 
@@ -152,3 +173,13 @@ Coverage is measured automatically (`pytest-cov`) and printed as a terminal tabl
 DB_PASSWORD=test NEO4J_PASSWORD=test KAFKA_CLUSTER_ID=test JWT_SECRET=test uv run pytest --cov-report=html
 # then open htmlcov/index.html
 ```
+
+---
+
+<div align="center">
+
+Part of **BrainTrust** — fighting knowledge loss from volunteer turnover in NGOs.
+
+[mcp-server](https://github.com/PaAmbTomaquetYOle/mcp-server) &nbsp;·&nbsp; [slack-agent](https://github.com/PaAmbTomaquetYOle/slack-agent) &nbsp;·&nbsp; MIT © [Pa Amb Tomàquet Y Olé](LICENSE)
+
+</div>
