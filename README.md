@@ -107,7 +107,8 @@ Prefix: `slack-agent` (`KAFKA_INBOUND_TOPIC_PREFIX`). Consumer group: `offboardm
 
 | Topic | event_type | payload | Effect |
 |---|---|---|---|
-| `slack-agent.offboarding.triggered` | `offboarding.triggered` | `employee_id, manager_id, employee_name?, manager_name?` | Creates the offboarding process and starts it |
+| `slack-agent.offboarding.triggered` | `offboarding.triggered` | `employee_id, manager_id, employee_name?, manager_name?` | Gets or creates the offboarding process for the employee and starts it (idempotent — reuses an existing active process instead of duplicating it) |
+| `slack-agent.offboarding.cancellation_requested` | `offboarding.cancellation_requested` | `process_id` | Cancels the offboarding process |
 | `slack-agent.interview.started` | `interview.started` | `process_id` | Creates the interview if needed and marks it in progress (idempotent — skipped if already past `SCHEDULED`) |
 | `slack-agent.interview.completed` | `interview.completed` | `process_id, turns[]` (`turn_type, speaker_role, timestamp, content, order, topic?, sentiment?, answer_text?`) | Saves the collected answers, completes the interview, submits the process for review |
 | `slack-agent.dossier.generation_requested` | `dossier.generation_requested` | `process_id` | Generates and persists the dossier (interview is read from the DB), then completes the offboarding process |
@@ -133,7 +134,7 @@ Prefix: `offboarding` (`KAFKA_TOPIC_PREFIX`).
 Malformed messages or handler failures are published to `offboarding.dlq` (`KAFKA_DLQ_TOPIC`) with `source_topic` and `error` headers, and the offset is committed — a bad message never blocks or crashes the consumer.
 
 > [!NOTE]
-> slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
+> Writes (create, cancel, lifecycle transitions, dossier generation, SOP creation) are **Kafka-only**. The REST API (`/api/v1/...`) is **read-only** — `GET`/list/search endpoints plus `POST /auth/token`. slack-agent and mcp-server must produce/consume the events above rather than calling REST write endpoints.
 
 ### 🔐 Kafka transport security
 

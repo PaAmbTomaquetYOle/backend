@@ -7,6 +7,7 @@ deserializes them). They double as the dispatch keys for
 """
 
 OFFBOARDING_TRIGGERED = "offboarding.triggered"
+OFFBOARDING_CANCELLATION_REQUESTED = "offboarding.cancellation_requested"
 INTERVIEW_STARTED = "interview.started"
 INTERVIEW_COMPLETED = "interview.completed"
 DOSSIER_GENERATION_REQUESTED = "dossier.generation_requested"
@@ -14,6 +15,7 @@ SOP_CREATION_REQUESTED = "sop.creation_requested"
 
 INBOUND_EVENT_TYPES = (
     OFFBOARDING_TRIGGERED,
+    OFFBOARDING_CANCELLATION_REQUESTED,
     INTERVIEW_STARTED,
     INTERVIEW_COMPLETED,
     DOSSIER_GENERATION_REQUESTED,

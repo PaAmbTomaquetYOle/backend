@@ -12,6 +12,7 @@ from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
     InterviewStartedHandler,
+    OffboardingCancellationRequestedHandler,
     OffboardingTriggeredHandler,
     SopCreationRequestedHandler,
 )
@@ -124,6 +125,7 @@ async def lifespan(app: FastAPI):
             )
             dispatcher = InboundEventDispatcher([
                 OffboardingTriggeredHandler(),
+                OffboardingCancellationRequestedHandler(),
                 InterviewStartedHandler(),
                 InterviewCompletedHandler(),
                 DossierGenerationRequestedHandler(),

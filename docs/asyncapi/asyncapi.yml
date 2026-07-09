@@ -41,9 +41,10 @@ info:
     - `slack-agent.*` — inbound, published by slack-agent, consumed by backend.
     - `offboarding.*` — outbound, published by backend, consumed by slack-agent.
 
-    Note: slack-agent does not yet produce the inbound events — it currently
-    talks to the backend over REST. This contract defines the target shape so
-    both sides can converge on it.
+    Writes (create, cancel, lifecycle transitions, dossier generation, SOP
+    creation) are Kafka-only. The REST API is read-only (GET/list/search plus
+    POST /auth/token) — slack-agent and mcp-server must produce/consume these
+    events rather than call REST write endpoints.
   license:
     name: UNLICENSED
 
@@ -71,6 +72,13 @@ channels:
     messages:
       offboardingTriggered:
         $ref: '#/components/messages/OffboardingTriggered'
+
+  slackAgentOffboardingCancellationRequested:
+    address: slack-agent.offboarding.cancellation_requested
+    description: Cancels the offboarding process.
+    messages:
+      offboardingCancellationRequested:
+        $ref: '#/components/messages/OffboardingCancellationRequested'
 
   slackAgentInterviewStarted:
     address: slack-agent.interview.started
@@ -171,6 +179,13 @@ operations:
     messages:
       - $ref: '#/channels/slackAgentOffboardingTriggered/messages/offboardingTriggered'
 
+  onOffboardingCancellationRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/slackAgentOffboardingCancellationRequested'
+    messages:
+      - $ref: '#/channels/slackAgentOffboardingCancellationRequested/messages/offboardingCancellationRequested'
+
   onInterviewStarted:
     action: receive
     channel:
@@ -249,6 +264,13 @@ components:
       summary: Requests creation of a new offboarding process.
       payload:
         $ref: '#/components/schemas/OffboardingTriggeredEnvelope'
+
+    OffboardingCancellationRequested:
+      name: offboarding.cancellation_requested
+      title: Offboarding cancellation requested
+      summary: Requests cancellation of an offboarding process.
+      payload:
+        $ref: '#/components/schemas/OffboardingCancellationRequestedEnvelope'
 
     InterviewStartedInbound:
       name: interview.started
@@ -410,6 +432,25 @@ components:
               const: offboarding.triggered
             payload:
               $ref: '#/components/schemas/OffboardingTriggeredPayload'
+          required: [payload]
+
+    OffboardingCancellationRequestedPayload:
+      type: object
+      properties:
+        process_id:
+          type: string
+          format: uuid
+      required: [process_id]
+
+    OffboardingCancellationRequestedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/DomainEventEnvelopeBase'
+        - type: object
+          properties:
+            event_type:
+              const: offboarding.cancellation_requested
+            payload:
+              $ref: '#/components/schemas/OffboardingCancellationRequestedPayload'
           required: [payload]
 
     InterviewStartedInboundPayload:

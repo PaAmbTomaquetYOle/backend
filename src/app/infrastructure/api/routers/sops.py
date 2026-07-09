@@ -1,4 +1,9 @@
-"""HTTP endpoints for SOP (Standard Operating Procedure) management."""
+"""HTTP endpoints for SOP (Standard Operating Procedure) management.
+
+Creation is Kafka-only (``sop.creation_requested``, matching the offboarding
+write-convergence policy) — see ``domain/events/inbound_events.py``. Update
+and soft-delete have no Kafka equivalent and remain on REST.
+"""
 
 from typing import Annotated
 from uuid import UUID
@@ -6,12 +11,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 
 from app.application.service_interfaces.sop_service_interface import ISopService
-from app.domain.sops.id import AuthorId, ChannelId, SopId
+from app.domain.sops.id import SopId
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import sop_service_dependency
 from app.infrastructure.api.schemas.common import ErrorResponse
 from app.infrastructure.api.schemas.sop import (
-    CreateSopRequest,
     SopPageResponse,
     SopResponse,
     UpdateSopRequest,
@@ -26,26 +30,6 @@ router = APIRouter(
 )
 
 _404 = {404: {"model": ErrorResponse, "description": "SOP not found"}}
-
-
-@router.post(
-    "",
-    response_model=SopResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a new SOP",
-)
-async def create_sop(
-        body: CreateSopRequest,
-        service: Annotated[ISopService, Depends(sop_service_dependency)],
-) -> SopResponse:
-    """Create a new SOP, publishing SOPCreated."""
-    sop = await service.create_sop(
-        content=body.content,
-        author=AuthorId(body.author),
-        origin_channel=ChannelId(body.origin_channel),
-        tags=body.tags,
-    )
-    return sop_to_response(sop)
 
 
 @router.get(
