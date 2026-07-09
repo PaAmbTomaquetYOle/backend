@@ -27,7 +27,7 @@ from app.infrastructure.adapters.events.topics import topic_name
 from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.api.error_handlers import register_error_handlers
-from app.infrastructure.api.routers import dossier, health, offboarding, sops
+from app.infrastructure.api.routers import auth, dossier, health, offboarding, sops
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
@@ -177,6 +177,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1")
     app.include_router(offboarding.router, prefix="/api/v1")
     app.include_router(dossier.router, prefix="/api/v1")
     app.include_router(sops.router, prefix="/api/v1")

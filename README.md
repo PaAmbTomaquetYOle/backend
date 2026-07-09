@@ -18,6 +18,7 @@ Backend API for the **BrainTrust** offboarding agent — consumes Kafka events p
 
 - [🏗 Infrastructure](#-infrastructure)
 - [🚀 Getting Started](#-getting-started)
+- [🔑 Authentication](#-authentication)
 - [📨 Kafka topics](#-kafka-topics)
 - [🤖 AI dossier generation](#-ai-dossier-generation)
 - [📜 AsyncAPI contract](#-asyncapi-contract)
@@ -46,7 +47,7 @@ Copy the example environment file and fill in the required passwords and secrets
 cp .env.example .env
 ```
 > [!IMPORTANT]
-> You **must** provide secure values for `DB_PASSWORD`, `NEO4J_PASSWORD`, `KAFKA_CLUSTER_ID`, and `JWT_SECRET` in your `.env` file before starting the stack. The `.env.example` file contains instructions on how to generate the Kafka and JWT secrets. Kafka additionally requires SASL_SSL certs — see [🔐 Kafka transport security](#-kafka-transport-security).
+> You **must** provide secure values for `DB_PASSWORD`, `NEO4J_PASSWORD`, `KAFKA_CLUSTER_ID`, `JWT_SECRET`, and `SERVICE_CREDENTIALS` in your `.env` file before starting the stack. The `.env.example` file contains instructions on how to generate the Kafka and JWT secrets. Kafka additionally requires SASL_SSL certs — see [🔐 Kafka transport security](#-kafka-transport-security).
 
 ### 2. Start the Development Stack
 
@@ -69,6 +70,20 @@ The script will build the Docker images and wait until all healthchecks pass. On
 
 > [!TIP]
 > The ports above are defaults. You can change them by modifying `API_PORT`, `KAFKA_UI_PORT`, `NEO4J_BROWSER_PORT`, and `DB_PORT` in your `.env` file. The start scripts will automatically adapt to your configured ports.
+
+## 🔑 Authentication
+
+Every REST endpoint except `POST /api/v1/auth/token` and `GET /api/v1/health*` requires a JWT Bearer token (`Authorization: Bearer <token>`), HS256-signed with `JWT_SECRET`, `aud=JWT_AUDIENCE`.
+
+Services obtain a token via the client-credentials grant:
+
+```bash
+curl -X POST http://localhost:8888/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"grant_type": "client_credentials", "client_id": "slack-agent", "client_secret": "<secret>"}'
+```
+
+Valid `client_id`/`client_secret` pairs are configured via `SERVICE_CREDENTIALS` (a JSON object, e.g. `{"slack-agent": "<secret>", "mcp-server": "<secret>"}`) — see `.env.example`. Tokens expire after `TOKEN_EXPIRY_SECONDS` (default 300s); callers should cache and refresh rather than minting their own tokens.
 
 ## 📨 Kafka topics
 

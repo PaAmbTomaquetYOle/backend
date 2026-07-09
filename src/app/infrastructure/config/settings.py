@@ -1,7 +1,9 @@
 """Application configuration loaded from the environment."""
 
+import json
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +30,11 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
     jwt_audience: str = "offboardme-backend"
+    token_expiry_seconds: int = 300
+
+    # Client-credentials service accounts allowed to mint JWTs via /auth/token,
+    # e.g. {"slack-agent": "<secret>", "mcp-server": "<secret>"}.
+    service_credentials: dict[str, str] = {}
 
     # Kafka
     kafka_bootstrap_servers: str = "localhost:9092"
@@ -45,6 +52,14 @@ class Settings(BaseSettings):
     kafka_sasl_username: str = ""
     kafka_sasl_password: str = ""
     kafka_ssl_cafile: str = ""
+
+    @field_validator("service_credentials", mode="before")
+    @classmethod
+    def _parse_service_credentials(cls, value: object) -> object:
+        """Allow SERVICE_CREDENTIALS to be supplied as a JSON-encoded env string."""
+        if isinstance(value, str):
+            return json.loads(value) if value else {}
+        return value
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"

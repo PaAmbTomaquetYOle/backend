@@ -12,6 +12,8 @@ from sqlmodel import Session
 
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.application.ports.service_credential_repository import IServiceCredentialRepository
+from app.application.ports.token_issuer import ITokenIssuer
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingDossierFacade,
     IOffboardingInterviewFacade,
@@ -21,6 +23,11 @@ from app.application.service_interfaces.sop_service_interface import ISopService
 from app.application.services.dossier_service import DossierService
 from app.application.services.interview_service import InterviewService
 from app.application.services.offboarding_process_service import OffboardingProcessService
+from app.application.services.token_service import TokenService
+from app.infrastructure.adapters.auth.env_service_credential_repository import (
+    EnvServiceCredentialRepository,
+)
+from app.infrastructure.adapters.auth.jwt_token_issuer import JwtTokenIssuer
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
 from app.infrastructure.adapters.repositories.offboarding_process import (
@@ -123,3 +130,27 @@ def sop_service_dependency(
     """Provide a SOP service wired with its repository and the event publisher."""
     publisher = getattr(request.app.state, "event_publisher", None)
     return build_sop_service(session, publisher)
+
+
+def service_credential_repository_dependency(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> IServiceCredentialRepository:
+    """Provide the env-backed service credential repository."""
+    return EnvServiceCredentialRepository(settings)
+
+
+def token_issuer_dependency(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ITokenIssuer:
+    """Provide the JWT-based token issuer."""
+    return JwtTokenIssuer(settings)
+
+
+def token_service_dependency(
+    credential_repository: Annotated[
+        IServiceCredentialRepository, Depends(service_credential_repository_dependency)
+    ],
+    token_issuer: Annotated[ITokenIssuer, Depends(token_issuer_dependency)],
+) -> TokenService:
+    """Provide the token service wired with its credential repository and issuer."""
+    return TokenService(credential_repository, token_issuer)

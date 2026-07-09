@@ -14,6 +14,7 @@ from app.domain.exceptions import (
     InterviewNotFoundError,
     InterviewNotInProgressError,
     InterviewTurnOrderError,
+    InvalidCredentialsError,
     InvalidStateTransitionError,
     ProcessNotFoundError,
     SopNotFoundError,
@@ -102,6 +103,17 @@ def register_error_handlers(app: FastAPI) -> None:
     async def dossier_section_handler(request: Request, exc: DossierSectionError) -> JSONResponse:
         """Return 422 when a dossier section contains invalid data."""
         return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+    @app.exception_handler(InvalidCredentialsError)
+    async def invalid_credentials_handler(
+            request: Request, exc: InvalidCredentialsError
+    ) -> JSONResponse:
+        """Return 401 when client-credentials verification fails."""
+        return JSONResponse(
+            status_code=401,
+            content={"detail": str(exc)},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     @app.exception_handler(IntegrityError)
     async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
