@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     kafka_consumer_group_id: str = "offboardme-backend-consumer"
     kafka_dlq_topic: str = "offboarding.dlq"
 
+    # Kafka transport security — SASL_SSL (SCRAM-SHA-512) authenticates and
+    # encrypts the backend's connection to the broker. Defaults to PLAINTEXT
+    # so local dev/tests are unaffected unless explicitly configured.
+    kafka_security_protocol: str = "PLAINTEXT"
+    kafka_sasl_mechanism: str = "SCRAM-SHA-512"
+    kafka_sasl_username: str = ""
+    kafka_sasl_password: str = ""
+    kafka_ssl_cafile: str = ""
+
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"

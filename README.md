@@ -46,7 +46,7 @@ Copy the example environment file and fill in the required passwords and secrets
 cp .env.example .env
 ```
 > [!IMPORTANT]
-> You **must** provide secure values for `DB_PASSWORD`, `NEO4J_PASSWORD`, `KAFKA_CLUSTER_ID`, and `JWT_SECRET` in your `.env` file before starting the stack. The `.env.example` file contains instructions on how to generate the Kafka and JWT secrets.
+> You **must** provide secure values for `DB_PASSWORD`, `NEO4J_PASSWORD`, `KAFKA_CLUSTER_ID`, and `JWT_SECRET` in your `.env` file before starting the stack. The `.env.example` file contains instructions on how to generate the Kafka and JWT secrets. Kafka additionally requires SASL_SSL certs — see [🔐 Kafka transport security](#-kafka-transport-security).
 
 ### 2. Start the Development Stack
 
@@ -119,6 +119,16 @@ Malformed messages or handler failures are published to `offboarding.dlq` (`KAFK
 
 > [!NOTE]
 > slack-agent does not yet produce these inbound events (it currently talks to the backend over REST). This contract is defined here so both sides can converge on it.
+
+### 🔐 Kafka transport security
+
+The broker requires **SASL_SSL** (SCRAM-SHA-512 over TLS) — plaintext connections are rejected. Generate local certs and a SCRAM user with:
+
+```bash
+./scripts/gen-kafka-certs.sh
+```
+
+This writes broker keystore/truststore material and a client CA (`certs/ca.pem`) that `slack-agent` and the backend both need to connect. Set `KAFKA_SECURITY_PROTOCOL=SASL_SSL`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`, and `KAFKA_SSL_CAFILE` in `.env` (see `.env.example`). Certificate provisioning and secret storage for non-local environments is a devops decision, out of scope here.
 
 ## 🤖 AI dossier generation
 

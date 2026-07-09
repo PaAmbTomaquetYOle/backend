@@ -41,7 +41,11 @@ services:
       retries: 5
       start_period: 30s
 
-  # ── Apache Kafka (KRaft mode) ──────────────────────────────────────────────
+  # ── Apache Kafka (KRaft mode, SASL_SSL/SCRAM-SHA-512) ──────────────────────
+  # Data-plane traffic (SASL listener, kafka:29092 / host 9092) requires
+  # SASL_SSL + SCRAM-SHA-512. The CONTROLLER listener (KRaft quorum) and the
+  # INTERNAL listener (used only by kafka-setup to bootstrap the SCRAM user)
+  # stay PLAINTEXT — neither is reachable outside this compose network.
   kafka:
     image: confluentinc/cp-kafka:7.8.0
     hostname: kafka
@@ -51,9 +55,21 @@ services:
       - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
-      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,SASL:SASL_SSL,SASL_HOST:SASL_SSL'
+      KAFKA_ADVERTISED_LISTENERS: 'SASL://kafka:29092,SASL_HOST://localhost:9092'
+      KAFKA_LISTENERS: 'SASL://kafka:29092,CONTROLLER://kafka:29093,INTERNAL://kafka:29094,SASL_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_SASL_ENABLED_MECHANISMS: 'SCRAM-SHA-512'
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: 'SCRAM-SHA-512'
+      KAFKA_LISTENER_NAME_SASL_SCRAM-SHA-512_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+      KAFKA_LISTENER_NAME_SASL_HOST_SCRAM-SHA-512_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.scram.ScramLoginModule required;'
+      KAFKA_SSL_KEYSTORE_LOCATION: /certs/kafka.keystore.p12
+      KAFKA_SSL_KEYSTORE_PASSWORD: ${KAFKA_SSL_KEYSTORE_PASSWORD}
+      KAFKA_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /certs/kafka.truststore.p12
+      KAFKA_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      KAFKA_SSL_TRUSTSTORE_TYPE: PKCS12
+      KAFKA_SSL_CLIENT_AUTH: none
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -62,12 +78,31 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+    volumes:
+      - ./certs:/certs:ro
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # ── One-shot: bootstrap the SCRAM-SHA-512 user for the backend/slack-agent ──
+  # Starting point only — cert/secret provisioning strategy for non-local
+  # environments is devops's call (Erik / Ki-re), not prescribed here.
+  kafka-setup:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: kafka-setup
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        kafka-configs --bootstrap-server kafka:29094
+        --alter --add-config 'SCRAM-SHA-512=[password=${KAFKA_SASL_PASSWORD}]'
+        --entity-type users --entity-name ${KAFKA_SASL_USERNAME}
 
   # ── Kafka UI ───────────────────────────────────────────────────────────────
   kafka-ui:
@@ -79,9 +114,19 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: SCRAM-SHA-512
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${KAFKA_SASL_USERNAME}" password="${KAFKA_SASL_PASSWORD}";
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: /certs/kafka.truststore.p12
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: ${KAFKA_SSL_TRUSTSTORE_PASSWORD}
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_TYPE: PKCS12
+    volumes:
+      - ./certs:/certs:ro
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
 
   # ── FastAPI Backend ────────────────────────────────────────────────────────
   backend:
@@ -99,13 +144,17 @@ services:
       DB_HOST: postgres
       NEO4J_URI: bolt://neo4j:7687
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_SECURITY_PROTOCOL: SASL_SSL
+      KAFKA_SSL_CAFILE: /certs/ca.pem
+    volumes:
+      - ./certs:/certs:ro
     depends_on:
       postgres:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8888/api/v1/health')"]
       interval: 15s

@@ -1,6 +1,7 @@
 """Application entrypoint and composition root."""
 
 import logging
+import ssl
 from contextlib import asynccontextmanager
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
@@ -27,13 +28,39 @@ from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.api.error_handlers import register_error_handlers
 from app.infrastructure.api.routers import dossier, health, offboarding, sops
-from app.infrastructure.config.settings import get_settings
+from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
 )
 from app.infrastructure.persistence.database import create_db_and_tables, init_engine
 
 logger = logging.getLogger(__name__)
+
+
+def _kafka_connection_kwargs(settings: Settings) -> dict:
+    """Build the security-related kwargs shared by the Kafka producer and consumer.
+
+    Defaults to PLAINTEXT (no extra kwargs) so local dev/tests are unaffected.
+    When SASL is configured, adds SASL credentials; when SASL_SSL/SSL is
+    configured, additionally builds a TLS context from the configured CA file.
+
+    Args:
+        settings: Application settings holding the Kafka security configuration.
+
+    Returns:
+        dict: Keyword arguments to merge into the producer/consumer constructor.
+    """
+    kwargs: dict = {"security_protocol": settings.kafka_security_protocol}
+    protocol = settings.kafka_security_protocol.upper()
+    if protocol.startswith("SASL"):
+        kwargs["sasl_mechanism"] = settings.kafka_sasl_mechanism
+        kwargs["sasl_plain_username"] = settings.kafka_sasl_username
+        kwargs["sasl_plain_password"] = settings.kafka_sasl_password
+    if protocol.endswith("SSL"):
+        kwargs["ssl_context"] = ssl.create_default_context(
+            cafile=settings.kafka_ssl_cafile or None
+        )
+    return kwargs
 
 
 @asynccontextmanager
@@ -51,6 +78,7 @@ async def lifespan(app: FastAPI):
         producer = AIOKafkaProducer(
             bootstrap_servers=settings.kafka_bootstrap_servers,
             client_id=settings.kafka_client_id,
+            **_kafka_connection_kwargs(settings),
         )
         try:
             await producer.start()
@@ -89,6 +117,7 @@ async def lifespan(app: FastAPI):
                 client_id=settings.kafka_client_id,
                 group_id=settings.kafka_consumer_group_id,
                 enable_auto_commit=False,
+                **_kafka_connection_kwargs(settings),
             )
             dead_letter_queue = KafkaDeadLetterQueue(
                 app.state.event_publisher._producer, settings.kafka_dlq_topic
