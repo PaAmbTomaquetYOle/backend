@@ -1,9 +1,13 @@
-"""HTTP endpoints for offboarding process management."""
+"""HTTP endpoints for offboarding process management.
+
+Writes (create, delete, lifecycle transitions) are Kafka-only — see
+``domain/events/inbound_events.py`` — this router is read-only.
+"""
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingProcessFacade,
@@ -16,7 +20,6 @@ from app.infrastructure.api.routers.offboarding_dossier import router as dossier
 from app.infrastructure.api.routers.offboarding_interview import router as interview_router
 from app.infrastructure.api.schemas.common import ErrorResponse
 from app.infrastructure.api.schemas.offboarding import (
-    CreateOffboardingRequest,
     OffboardingListResponse,
     OffboardingProcessResponse,
     process_to_response,
@@ -37,36 +40,6 @@ _404 = {
             "description": "Process not found"
         }
 }
-_409 = {
-    409:
-        {
-            "model": ErrorResponse,
-              "description": "Invalid state transition or constraint violation"
-        }
-}
-
-
-@router.post(
-    "",
-    response_model=OffboardingProcessResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a new offboarding process",
-)
-async def create_offboarding(
-        body: CreateOffboardingRequest,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> OffboardingProcessResponse:
-    """Create a new offboarding process for an employee."""
-    process = await facade.create_offboarding(
-        employee_id=EmployeeId(body.employee_id),
-        manager_id=ManagerId(body.manager_id),
-        employee_name=body.employee_name,
-        manager_name=body.manager_name,
-    )
-    return process_to_response(process)
 
 
 @router.get(
@@ -125,93 +98,4 @@ async def get_offboarding(
 ) -> OffboardingProcessResponse:
     """Retrieve a specific offboarding process by its ID."""
     process = await facade.get_offboarding(OffboardingProcessId(process_id))
-    return process_to_response(process)
-
-
-@router.delete(
-    "/{process_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses=_404,
-    summary="Delete an offboarding process",
-)
-async def delete_offboarding(
-        process_id: UUID,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> None:
-    """Delete an offboarding process by its ID."""
-    await facade.delete_offboarding(OffboardingProcessId(process_id))
-
-
-@router.patch(
-    "/{process_id}/start",
-    response_model=OffboardingProcessResponse,
-    responses={**_404, **_409},
-    summary="Start the offboarding process (NOT_STARTED → IN_PROGRESS)",
-)
-async def start_offboarding(
-        process_id: UUID,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> OffboardingProcessResponse:
-    """Transition an offboarding process from NOT_STARTED to IN_PROGRESS."""
-    process = await facade.start_offboarding(OffboardingProcessId(process_id))
-    return process_to_response(process)
-
-
-@router.patch(
-    "/{process_id}/submit-for-review",
-    response_model=OffboardingProcessResponse,
-    responses={**_404, **_409},
-    summary="Submit the offboarding process for review (IN_PROGRESS → PENDING_REVISION)",
-)
-async def submit_for_review(
-        process_id: UUID,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> OffboardingProcessResponse:
-    """Transition an offboarding process from IN_PROGRESS to PENDING_REVISION."""
-    process = await facade.submit_offboarding_for_review(OffboardingProcessId(process_id))
-    return process_to_response(process)
-
-
-@router.patch(
-    "/{process_id}/complete",
-    response_model=OffboardingProcessResponse,
-    responses={**_404, **_409},
-    summary="Complete the offboarding process (PENDING_REVISION → FINISHED)",
-)
-async def complete_offboarding(
-        process_id: UUID,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> OffboardingProcessResponse:
-    """Transition an offboarding process from PENDING_REVISION to FINISHED."""
-    process = await facade.complete_offboarding(OffboardingProcessId(process_id))
-    return process_to_response(process)
-
-
-@router.patch(
-    "/{process_id}/cancel",
-    response_model=OffboardingProcessResponse,
-    responses={**_404, **_409},
-    summary="Cancel the offboarding process",
-)
-async def cancel_offboarding(
-        process_id: UUID,
-        facade: Annotated[
-            IOffboardingProcessFacade,
-            Depends(offboarding_process_facade_dependency)
-        ],
-) -> OffboardingProcessResponse:
-    """Cancel an offboarding process."""
-    process = await facade.cancel_offboarding(OffboardingProcessId(process_id))
     return process_to_response(process)

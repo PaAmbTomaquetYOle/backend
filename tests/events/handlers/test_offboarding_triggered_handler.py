@@ -26,6 +26,7 @@ class TestOffboardingTriggeredHandler:
     @pytest.mark.anyio
     async def test_handle_creates_and_starts_process(self) -> None:
         facade = AsyncMock(spec=IOffboardingServiceFacade)
+        facade.list_offboardings.return_value = []
         process = OffboardingProcess(
             process_id=OffboardingProcessId(),
             state=NotStartedState(),
@@ -55,3 +56,27 @@ class TestOffboardingTriggeredHandler:
         assert kwargs["employee_name"] == "Alice"
         assert kwargs["manager_name"] == "Bob"
         facade.start_offboarding.assert_awaited_once_with(process.process_id)
+
+    @pytest.mark.anyio
+    async def test_handle_reuses_existing_active_process(self) -> None:
+        """Redelivery of the same event must not create a duplicate process."""
+        facade = AsyncMock(spec=IOffboardingServiceFacade)
+        existing = OffboardingProcess(
+            process_id=OffboardingProcessId(),
+            state=NotStartedState(),
+            employee_id=EmployeeId("U1"),
+            manager_id=ManagerId("U2"),
+            created_at=datetime.now(UTC),
+        )
+        facade.list_offboardings.return_value = [existing]
+        event = DomainEvent(
+            event_type=OFFBOARDING_TRIGGERED,
+            payload={"employee_id": "U1", "manager_id": "U2"},
+            event_id=uuid4(),
+        )
+
+        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        await OffboardingTriggeredHandler().handle(event, context)
+
+        facade.create_offboarding.assert_not_awaited()
+        facade.start_offboarding.assert_awaited_once_with(existing.process_id)

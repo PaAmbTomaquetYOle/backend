@@ -1,4 +1,10 @@
-"""Unit tests for offboarding API endpoints — mock facade, test HTTP layer only."""
+"""Unit tests for offboarding API endpoints — mock facade, test HTTP layer only.
+
+Writes (create, delete, lifecycle transitions, interview/dossier writes) are
+Kafka-only — see ``domain/events/inbound_events.py`` and the corresponding
+handler tests under ``tests/events/handlers``. This module only covers the
+surviving read-only REST endpoints.
+"""
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
@@ -14,12 +20,7 @@ from app.domain import (
     OffboardingProcessId,
     ScheduledInterviewState,
 )
-from app.domain.enums import OffboardingProcessStateEnum
-from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
 from app.domain.exceptions.interview import InterviewNotFoundError
-from app.domain.exceptions.invalid_state_transition import (
-    InvalidOffboardingProcessStateTransitionError,
-)
 from app.domain.exceptions.offboarding import ProcessNotFoundError
 from app.domain.offboarding.id import EmployeeId, InterviewId, ManagerId
 from app.domain.offboarding.state.not_started import NotStartedState
@@ -73,41 +74,6 @@ def client(mock_facade: AsyncMock) -> TestClient:
         "iss": "test-service", "aud": "offboardme-backend"
     }
     return TestClient(app)
-
-
-# ---------------------------------------------------------------------------
-# POST /offboarding
-# ---------------------------------------------------------------------------
-
-class TestCreateOffboarding:
-    def test_201_returns_process(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        process = _make_process()
-        mock_facade.create_offboarding.return_value = process
-
-        r = client.post("/api/v1/offboarding", json={
-            "employee_id": str(uuid4()),
-            "manager_id": str(uuid4()),
-        })
-
-        assert r.status_code == 201
-        body = r.json()
-        assert body["id"] == str(process.process_id.get_id())
-        assert body["state"] == OffboardingProcessStateEnum.NOT_STARTED.value
-
-    def test_422_missing_employee_id(self, client: TestClient) -> None:
-        r = client.post("/api/v1/offboarding", json={"manager_id": str(uuid4())})
-        assert r.status_code == 422
-
-    def test_201_accepts_slack_user_id(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        process = _make_process()
-        mock_facade.create_offboarding.return_value = process
-
-        r = client.post("/api/v1/offboarding", json={
-            "employee_id": "U12345ABCDE",
-            "manager_id": "U67890FGHIJ",
-        })
-
-        assert r.status_code == 201
 
 
 # ---------------------------------------------------------------------------
@@ -176,115 +142,6 @@ class TestGetOffboarding:
 
 
 # ---------------------------------------------------------------------------
-# DELETE /offboarding/{id}
-# ---------------------------------------------------------------------------
-
-class TestDeleteOffboarding:
-    def test_204_on_success(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        mock_facade.delete_offboarding.return_value = None
-
-        r = client.delete(f"/api/v1/offboarding/{uuid4()}")
-
-        assert r.status_code == 204
-
-    def test_404_not_found(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        pid = uuid4()
-        mock_facade.delete_offboarding.side_effect = ProcessNotFoundError(str(pid))
-
-        r = client.delete(f"/api/v1/offboarding/{pid}")
-
-        assert r.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# PATCH /offboarding/{id}/start
-# ---------------------------------------------------------------------------
-
-class TestStartOffboarding:
-    def test_200_returns_updated_process(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        process = _make_process()
-        mock_facade.start_offboarding.return_value = process
-
-        r = client.patch(f"/api/v1/offboarding/{uuid4()}/start")
-
-        assert r.status_code == 200
-
-    def test_404_not_found(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        pid = uuid4()
-        mock_facade.start_offboarding.side_effect = ProcessNotFoundError(str(pid))
-
-        r = client.patch(f"/api/v1/offboarding/{pid}/start")
-
-        assert r.status_code == 404
-
-    def test_409_invalid_transition(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        from app.domain.enums import OffboardingProcessStateEnum
-        mock_facade.start_offboarding.side_effect = InvalidOffboardingProcessStateTransitionError(
-            OffboardingProcessStateEnum.IN_PROGRESS,
-            OffboardingProcessStateEnum.IN_PROGRESS,
-        )
-
-        r = client.patch(f"/api/v1/offboarding/{uuid4()}/start")
-
-        assert r.status_code == 409
-
-
-# ---------------------------------------------------------------------------
-# PUT /offboarding/{id}/interview
-# ---------------------------------------------------------------------------
-
-class TestUpsertInterview:
-    def test_201_creates_new_interview(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        interview = _make_interview()
-        mock_facade.upsert_interview.return_value = (interview, True)
-
-        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
-            "scheduled_at": datetime.now(UTC).isoformat(),
-            "turns": [],
-        })
-
-        assert r.status_code == 201
-        assert "id" in r.json()
-
-    def test_200_updates_existing_interview(
-        self, client: TestClient, mock_facade: AsyncMock
-    ) -> None:
-        interview = _make_interview()
-        mock_facade.upsert_interview.return_value = (interview, False)
-
-        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
-            "scheduled_at": datetime.now(UTC).isoformat(),
-            "turns": [],
-        })
-
-        assert r.status_code == 200
-
-    def test_404_process_not_found(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        pid = uuid4()
-        mock_facade.upsert_interview.side_effect = ProcessNotFoundError(str(pid))
-
-        r = client.put(f"/api/v1/offboarding/{pid}/interview", json={
-            "scheduled_at": datetime.now(UTC).isoformat(),
-        })
-
-        assert r.status_code == 404
-
-    def test_422_answer_text_on_note_type(self, client: TestClient) -> None:
-        r = client.put(f"/api/v1/offboarding/{uuid4()}/interview", json={
-            "scheduled_at": datetime.now(UTC).isoformat(),
-            "turns": [{
-                "turn_type": "note",
-                "speaker_role": "interviewer",
-                "timestamp": datetime.now(UTC).isoformat(),
-                "content": "A note",
-                "order": 0,
-                "answer_text": "should not be allowed",
-            }],
-        })
-        assert r.status_code == 422
-
-
-# ---------------------------------------------------------------------------
 # GET /offboarding/{id}/interview
 # ---------------------------------------------------------------------------
 
@@ -302,46 +159,6 @@ class TestGetInterview:
         mock_facade.get_interview.side_effect = InterviewNotFoundError()
 
         r = client.get(f"/api/v1/offboarding/{uuid4()}/interview")
-
-        assert r.status_code == 404
-
-
-# ---------------------------------------------------------------------------
-# POST /offboarding/{id}/dossier
-# ---------------------------------------------------------------------------
-
-class TestCreateDossier:
-    def test_201_creates_dossier(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        from app.domain import Dossier, DossierId, InterviewId
-        from app.domain.dossier.state.not_generated import NotGeneratedDossierState
-        process_id = uuid4()
-        dossier = Dossier(
-            dossier_id=DossierId(uuid4()),
-            process_id=OffboardingProcessId(process_id),
-            interview_id=InterviewId(uuid4()),
-            state=NotGeneratedDossierState(),
-            created_at=datetime.now(UTC),
-        )
-        mock_facade.create_dossier.return_value = dossier
-
-        r = client.post(f"/api/v1/offboarding/{process_id}/dossier", json={"sections": []})
-
-        assert r.status_code == 201
-        assert "id" in r.json()
-
-    def test_409_dossier_already_exists(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        pid = uuid4()
-        mock_facade.create_dossier.side_effect = DossierAlreadyExistsForProcessError(str(pid))
-
-        r = client.post(f"/api/v1/offboarding/{pid}/dossier", json={"sections": []})
-
-        assert r.status_code == 409
-
-    def test_404_process_not_found(self, client: TestClient, mock_facade: AsyncMock) -> None:
-        pid = uuid4()
-        mock_facade.create_dossier.side_effect = ProcessNotFoundError(str(pid))
-
-        r = client.post(f"/api/v1/offboarding/{pid}/dossier", json={"sections": []})
 
         assert r.status_code == 404
 

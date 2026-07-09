@@ -1,4 +1,9 @@
-"""Unit tests for SOP API endpoints — mock service, test HTTP layer only."""
+"""Unit tests for SOP API endpoints — mock service, test HTTP layer only.
+
+SOP creation is Kafka-only (``sop.creation_requested``) — see
+``tests/events/handlers/test_sop_creation_requested_handler.py``. This module
+only covers the surviving REST endpoints (search, get, update, delete).
+"""
 
 from __future__ import annotations
 
@@ -42,28 +47,6 @@ def client(mock_service: AsyncMock) -> TestClient:
         "iss": "test-service", "aud": "offboardme-backend"
     }
     return TestClient(app)
-
-
-class TestCreateSop:
-    def test_201_returns_sop(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sop = _make_sop()
-        mock_service.create_sop.return_value = sop
-
-        r = client.post("/api/v1/sops", json={
-            "content": sop.content,
-            "author": "U1",
-            "origin_channel": "C1",
-            "tags": ["security"],
-        })
-
-        assert r.status_code == 201
-        body = r.json()
-        assert body["id"] == str(sop.sop_id.get_id())
-        assert body["version"] == 1
-
-    def test_422_missing_content(self, client: TestClient) -> None:
-        r = client.post("/api/v1/sops", json={"author": "U1", "origin_channel": "C1"})
-        assert r.status_code == 422
 
 
 class TestSearchSops:

@@ -4,6 +4,7 @@ This package contains the base exception type and any domain-specific
 exceptions raised by the domain layer.
 """
 
+from .auth import AuthDomainError, InvalidCredentialsError
 from .base import DomainException
 from .dossier import (
     DossierAlreadyExistsForProcessError,
@@ -35,6 +36,7 @@ from .sops import (
 )
 
 __all__ = [
+    "AuthDomainError",
     "DomainException",
     "DossierAlreadyExistsForProcessError",
     "DossierDomainError",
@@ -46,6 +48,7 @@ __all__ = [
     "InterviewNotFoundError",
     "InterviewNotInProgressError",
     "InterviewTurnOrderError",
+    "InvalidCredentialsError",
     "InvalidDossierStateTransitionError",
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
