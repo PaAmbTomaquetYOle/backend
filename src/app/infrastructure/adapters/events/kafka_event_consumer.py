@@ -12,6 +12,7 @@ from app.application.ports.dead_letter_queue import IDeadLetterQueue
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_consumer import IEventConsumer
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.graph_database import IGraphDatabasePort
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.infrastructure.adapters.events.event_deserializer import (
     EventDeserializationError,
@@ -40,12 +41,14 @@ class KafkaEventConsumer(IEventConsumer):
         consumer: AIOKafkaConsumer,
         dispatcher: InboundEventDispatcher,
         dead_letter_queue: IDeadLetterQueue,
+        graph_db: IGraphDatabasePort,
         event_publisher: IEventPublisher | None = None,
         dossier_generator: IDossierGenerator | None = None,
     ) -> None:
         self._consumer = consumer
         self._dispatcher = dispatcher
         self._dlq = dead_letter_queue
+        self._graph_db = graph_db
         self._event_publisher = event_publisher
         self._dossier_generator = dossier_generator
         self._task: asyncio.Task | None = None
@@ -87,7 +90,7 @@ class KafkaEventConsumer(IEventConsumer):
         try:
             with Session(get_engine()) as session:
                 context = build_inbound_context(
-                    session, self._event_publisher, self._dossier_generator
+                    session, self._graph_db, self._event_publisher, self._dossier_generator
                 )
                 await self._dispatcher.dispatch(event, context)
         except Exception as exc:

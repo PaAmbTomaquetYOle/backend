@@ -8,6 +8,9 @@ inbound flow means adding a field here, not changing the handler port.
 
 from dataclasses import dataclass
 
+from app.application.service_interfaces.knowledge_graph_service_interface import (
+    IKnowledgeGraphService,
+)
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingServiceFacade,
 )
@@ -20,3 +23,4 @@ class InboundContext:
 
     offboarding: IOffboardingServiceFacade
     sops: ISopService
+    knowledge_graph: IKnowledgeGraphService

@@ -16,6 +16,7 @@ from app.domain.exceptions import (
     InterviewTurnOrderError,
     InvalidCredentialsError,
     InvalidStateTransitionError,
+    PersonNotFoundInGraphError,
     ProcessNotFoundError,
     SopNotFoundError,
 )
@@ -55,6 +56,13 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(SopNotFoundError)
     async def sop_not_found_handler(request: Request, exc: SopNotFoundError) -> JSONResponse:
         """Return 404 when a SopNotFoundError is raised."""
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    @app.exception_handler(PersonNotFoundInGraphError)
+    async def person_not_found_in_graph_handler(
+            request: Request, exc: PersonNotFoundInGraphError
+    ) -> JSONResponse:
+        """Return 404 when a PersonNotFoundInGraphError is raised."""
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(InvalidStateTransitionError)

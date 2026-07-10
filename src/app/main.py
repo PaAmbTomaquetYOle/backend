@@ -12,6 +12,9 @@ from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
     InterviewStartedHandler,
+    KnowledgeChannelActivityRegisteredHandler,
+    KnowledgeDocumentRegisteredHandler,
+    KnowledgeInteractionRegisteredHandler,
     OffboardingCancellationRequestedHandler,
     OffboardingTriggeredHandler,
     SopCreationRequestedHandler,
@@ -27,8 +30,9 @@ from app.infrastructure.adapters.events.noop_event_publisher import NoOpEventPub
 from app.infrastructure.adapters.events.topics import topic_name
 from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
+from app.infrastructure.adapters.graph.schema import initialize_knowledge_graph_schema
 from app.infrastructure.api.error_handlers import register_error_handlers
-from app.infrastructure.api.routers import auth, dossier, health, offboarding, sops
+from app.infrastructure.api.routers import auth, dossier, health, knowledge_graph, offboarding, sops
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
@@ -105,6 +109,18 @@ async def lifespan(app: FastAPI):
         logger.info("Using LLMDossierGenerator (mcp_server=%s)", settings.mcp_server_url)
     else:
         app.state.dossier_generator = fake_dossier_generator
+    try:
+        neo4j_driver = AsyncGraphDatabase.driver(
+            settings.neo4j_uri,
+            auth=(settings.neo4j_user, settings.neo4j_password)
+        )
+        app.state.graph_db = Neo4jAdapter(neo4j_driver)
+        await initialize_knowledge_graph_schema(app.state.graph_db)
+        logger.info("Neo4j driver initialized")
+    except Exception:
+        logger.warning("Failed to initialize Neo4j driver, using NoOpGraphAdapter", exc_info=True)
+        app.state.graph_db = NoOpGraphAdapter()
+
     app.state.event_consumer = None
     if isinstance(app.state.event_publisher, KafkaEventPublisher):
         try:
@@ -130,11 +146,15 @@ async def lifespan(app: FastAPI):
                 InterviewCompletedHandler(),
                 DossierGenerationRequestedHandler(),
                 SopCreationRequestedHandler(),
+                KnowledgeInteractionRegisteredHandler(),
+                KnowledgeDocumentRegisteredHandler(),
+                KnowledgeChannelActivityRegisteredHandler(),
             ])
             event_consumer = KafkaEventConsumer(
                 consumer=kafka_consumer,
                 dispatcher=dispatcher,
                 dead_letter_queue=dead_letter_queue,
+                graph_db=app.state.graph_db,
                 event_publisher=app.state.event_publisher,
                 dossier_generator=app.state.dossier_generator,
             )
@@ -144,17 +164,6 @@ async def lifespan(app: FastAPI):
         except Exception:
             logger.warning("Failed to start Kafka consumer", exc_info=True)
             app.state.event_consumer = None
-
-    try:
-        neo4j_driver = AsyncGraphDatabase.driver(
-            settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password)
-        )
-        app.state.graph_db = Neo4jAdapter(neo4j_driver)
-        logger.info("Neo4j driver initialized")
-    except Exception:
-        logger.warning("Failed to initialize Neo4j driver, using NoOpGraphAdapter", exc_info=True)
-        app.state.graph_db = NoOpGraphAdapter()
 
     yield
 
@@ -183,6 +192,7 @@ def create_app() -> FastAPI:
     app.include_router(offboarding.router, prefix="/api/v1")
     app.include_router(dossier.router, prefix="/api/v1")
     app.include_router(sops.router, prefix="/api/v1")
+    app.include_router(knowledge_graph.router, prefix="/api/v1")
     register_error_handlers(app)
     return app
 

@@ -27,6 +27,7 @@ from .dossier import DossierSearchResult, IDossierRepository
 from .event_publisher import IEventPublisher
 from .graph_database import IGraphDatabasePort
 from .interview import IInterviewRepository
+from .knowledge_graph import IKnowledgeGraphRepository
 from .offboarding_process import IOffboardingProcessRepository
 
 __all__: list[str] = [
@@ -35,6 +36,7 @@ __all__: list[str] = [
     "IEventPublisher",
     "IGraphDatabasePort",
     "IInterviewRepository",
+    "IKnowledgeGraphRepository",
     "IOffboardingProcessRepository",
 ]
 

@@ -32,6 +32,7 @@ from app.domain.events.inbound_events import (
     SOP_CREATION_REQUESTED,
 )
 from app.infrastructure.adapters.ai.fake_dossier_generator import FakeDossierGenerator
+from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.composition import build_inbound_context, build_offboarding_facade
 from app.infrastructure.persistence import models as _models  # noqa: F401 — registers tables
 
@@ -63,6 +64,7 @@ class TestConsumerIntegration:
         engine = _make_engine()
         publisher = _CapturingPublisher()
         generator = FakeDossierGenerator()
+        graph_db = NoOpGraphAdapter()
         dispatcher = InboundEventDispatcher([
             OffboardingTriggeredHandler(),
             InterviewCompletedHandler(),
@@ -72,7 +74,7 @@ class TestConsumerIntegration:
 
         async def dispatch(event: DomainEvent) -> None:
             with Session(engine) as session:
-                context = build_inbound_context(session, publisher, generator)
+                context = build_inbound_context(session, graph_db, publisher, generator)
                 await dispatcher.dispatch(event, context)
 
         # 1. offboarding.triggered -> process created and started
@@ -143,7 +145,7 @@ class TestConsumerIntegration:
         ))
 
         with Session(engine) as session:
-            sops_service = build_inbound_context(session, publisher, generator).sops
+            sops_service = build_inbound_context(session, graph_db, publisher, generator).sops
             sops, total = await sops_service.search_sops()
         assert total == 1
         assert sops[0].content == "How to rotate secrets"

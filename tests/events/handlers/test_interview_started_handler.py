@@ -46,7 +46,7 @@ class TestInterviewStartedHandler:
             payload={"process_id": str(process_id), "employee_id": "U1"},
             event_id=uuid4(),
         )
-        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
 
         await InterviewStartedHandler().handle(event, context)
 
@@ -69,7 +69,7 @@ class TestInterviewStartedHandler:
             payload={"process_id": str(process_id), "employee_id": "U1"},
             event_id=uuid4(),
         )
-        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
 
         await InterviewStartedHandler().handle(event, context)
 

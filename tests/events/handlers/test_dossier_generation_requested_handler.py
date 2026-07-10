@@ -30,7 +30,7 @@ class TestDossierGenerationRequestedHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock())
+        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
         await DossierGenerationRequestedHandler().handle(event, context)
 
         facade.generate_dossier.assert_awaited_once()

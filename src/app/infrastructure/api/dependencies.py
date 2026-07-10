@@ -14,6 +14,9 @@ from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
 from app.application.ports.service_credential_repository import IServiceCredentialRepository
 from app.application.ports.token_issuer import ITokenIssuer
+from app.application.service_interfaces.knowledge_graph_service_interface import (
+    IKnowledgeGraphService,
+)
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingDossierFacade,
     IOffboardingInterviewFacade,
@@ -33,7 +36,11 @@ from app.infrastructure.adapters.repositories.interview import InterviewReposito
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
-from app.infrastructure.composition import build_offboarding_facade, build_sop_service
+from app.infrastructure.composition import (
+    build_knowledge_graph_service,
+    build_offboarding_facade,
+    build_sop_service,
+)
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
 
@@ -130,6 +137,13 @@ def sop_service_dependency(
     """Provide a SOP service wired with its repository and the event publisher."""
     publisher = getattr(request.app.state, "event_publisher", None)
     return build_sop_service(session, publisher)
+
+
+def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphService:
+    """Provide a knowledge graph service wired with its Neo4j-backed repository."""
+    graph_db = request.app.state.graph_db
+    publisher = getattr(request.app.state, "event_publisher", None)
+    return build_knowledge_graph_service(graph_db, publisher)
 
 
 def service_credential_repository_dependency(
