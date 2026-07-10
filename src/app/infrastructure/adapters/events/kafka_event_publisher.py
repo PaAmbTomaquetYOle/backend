@@ -19,6 +19,11 @@ class KafkaEventPublisher(IEventPublisher):
         self._producer = producer
         self._topic_prefix = topic_prefix
 
+    @property
+    def producer(self) -> AIOKafkaProducer:
+        """The underlying Kafka producer, for adapters (e.g. the DLQ) that need to reuse it."""
+        return self._producer
+
     async def publish(self, event: DomainEvent) -> None:
         topic = topic_name(self._topic_prefix, event.event_type)
         value = json.dumps(event.to_dict()).encode("utf-8")
@@ -32,3 +37,6 @@ class KafkaEventPublisher(IEventPublisher):
     async def publish_many(self, events: list[DomainEvent]) -> None:
         for event in events:
             await self.publish(event)
+
+    async def stop(self) -> None:
+        await self._producer.stop()

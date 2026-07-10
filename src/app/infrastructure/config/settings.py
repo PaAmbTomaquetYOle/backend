@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     db_password: str  # No default — must be set in .env
 
     # JWT
-    jwt_secret: str = ""
+    jwt_secret: str  # No default — must be set in .env
     jwt_algorithm: str = "HS256"
     jwt_audience: str = "offboardme-backend"
     token_expiry_seconds: int = 300

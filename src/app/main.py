@@ -137,7 +137,7 @@ async def lifespan(app: FastAPI):
                 **_kafka_connection_kwargs(settings),
             )
             dead_letter_queue = KafkaDeadLetterQueue(
-                app.state.event_publisher._producer, settings.kafka_dlq_topic
+                app.state.event_publisher.producer, settings.kafka_dlq_topic
             )
             dispatcher = InboundEventDispatcher([
                 OffboardingTriggeredHandler(),
@@ -174,7 +174,7 @@ async def lifespan(app: FastAPI):
 
     publisher = getattr(app.state, "event_publisher", None)
     if isinstance(publisher, KafkaEventPublisher):
-        await publisher._producer.stop()
+        await publisher.stop()
         logger.info("Kafka producer stopped")
 
     graph_db = getattr(app.state, "graph_db", None)
