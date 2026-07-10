@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.graph_database import IGraphDatabasePort
 from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
@@ -23,13 +23,13 @@ def health() -> dict[str, str]:
 @router.get("/health/db")
 async def health_db(
     request: Request,
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     graph_db: Annotated[IGraphDatabasePort, Depends(graph_database_dependency)],
 ) -> JSONResponse:
     """Return readiness status by checking database connections."""
     postgres_ok = False
     try:
-        session.execute(text("SELECT 1"))
+        await session.execute(text("SELECT 1"))
         postgres_ok = True
     except Exception:
         pass

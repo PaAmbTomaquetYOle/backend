@@ -41,7 +41,7 @@ from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
 )
-from app.infrastructure.persistence.database import create_db_and_tables, init_engine
+from app.infrastructure.persistence.database import create_db_and_tables, get_engine, init_engine
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ async def lifespan(app: FastAPI):
     """
     settings = get_settings()
     init_engine(settings.database_url)
-    create_db_and_tables()
+    await create_db_and_tables()
 
     if settings.kafka_bootstrap_servers:
         producer = AIOKafkaProducer(
@@ -185,6 +185,9 @@ async def lifespan(app: FastAPI):
     if isinstance(graph_db, Neo4jAdapter):
         await graph_db._driver.close()
         logger.info("Neo4j driver stopped")
+
+    await get_engine().dispose()
+    logger.info("Database engine disposed")
 
 
 def create_app() -> FastAPI:
