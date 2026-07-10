@@ -136,7 +136,8 @@ def sop_service_dependency(
 ) -> ISopService:
     """Provide a SOP service wired with its repository and the event publisher."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_sop_service(session, publisher)
+    dialect_name = session.get_bind().dialect.name
+    return build_sop_service(session, publisher, dialect_name=dialect_name)
 
 
 def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphService:

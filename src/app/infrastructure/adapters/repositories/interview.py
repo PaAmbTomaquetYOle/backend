@@ -1,7 +1,8 @@
 """SQLModel-backed repository for interviews."""
 from collections.abc import Sequence
 
-from sqlmodel import Session, col, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import col, select
 
 from app.application.ports.interview import IInterviewRepository
 from app.domain.interview.interview import Interview
@@ -15,7 +16,7 @@ from app.infrastructure.persistence.models.interview import (
 class InterviewRepository(IInterviewRepository):
     """SQLModel-backed implementation of IInterviewRepository."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         """Initialize the repository with a database session.
 
         Args:
@@ -23,72 +24,80 @@ class InterviewRepository(IInterviewRepository):
         """
         self._session = session
 
-    def save(self, interview: Interview) -> None:
+    async def save(self, interview: Interview) -> None:
         """Persist an interview and all its turns (insert or update)."""
         model = InterviewModel.from_domain(interview)
-        self._session.merge(model)
-        self._session.flush()
+        await self._session.merge(model)
+        await self._session.flush()
 
         stmt = select(InterviewTurnModel).where(
             col(InterviewTurnModel.interview_id) == model.id
         )
-        existing_turns = self._session.exec(stmt).all()
+        existing_turns = (await self._session.execute(stmt)).scalars().all()
         for turn in existing_turns:
-            self._session.delete(turn)
-        self._session.flush()
+            await self._session.delete(turn)
+        await self._session.flush()
 
         interview_id = model.id
         for turn in interview.turns:
             turn_model = InterviewTurnModel.from_domain(turn, interview_id)
             self._session.add(turn_model)
 
-        self._session.commit()
+        await self._session.commit()
 
-    def find_by_id(self, interview_id: InterviewId) -> Interview | None:
+    async def find_by_id(self, interview_id: InterviewId) -> Interview | None:
         """Return the interview with the given ID, or None if not found."""
-        model = self._session.get(InterviewModel, interview_id.get_id())
+        model = await self._session.get(InterviewModel, interview_id.get_id())
         if not model:
             return None
-        turns: Sequence[InterviewTurnModel] = self._session.exec(
-            select(InterviewTurnModel).where(
-                col(InterviewTurnModel.interview_id) == model.id
-            )
-        ).all()
-        # noinspection PyTypeChecker
-        return model.to_domain(list(turns))
-
-    def find_by_process_id(self, process_id: OffboardingProcessId) -> Interview | None:
-        """Return the interview for the given process, or None if not found."""
-        model: InterviewModel | None = self._session.exec(
-            select(InterviewModel).where(
-                col(InterviewModel.process_id) == process_id.get_id()
-            )
-        ).first()
-        if not model:
-            return None
-        turns: Sequence[InterviewTurnModel] = self._session.exec(
-            select(InterviewTurnModel).where(
-                col(InterviewTurnModel.interview_id) == model.id
-            )
-        ).all()
-        return model.to_domain(list(turns))
-
-    def find_all(self) -> list[Interview]:
-        """Return all stored interviews."""
-        models = self._session.exec(select(InterviewModel)).all()
-        result: list[Interview] = []
-        for model in models:
-            turns = self._session.exec(
+        turns: Sequence[InterviewTurnModel] = (
+            await self._session.execute(
                 select(InterviewTurnModel).where(
                     col(InterviewTurnModel.interview_id) == model.id
                 )
-            ).all()
+            )
+        ).scalars().all()
+        # noinspection PyTypeChecker
+        return model.to_domain(list(turns))
+
+    async def find_by_process_id(self, process_id: OffboardingProcessId) -> Interview | None:
+        """Return the interview for the given process, or None if not found."""
+        model: InterviewModel | None = (
+            await self._session.execute(
+                select(InterviewModel).where(
+                    col(InterviewModel.process_id) == process_id.get_id()
+                )
+            )
+        ).scalars().first()
+        if not model:
+            return None
+        turns: Sequence[InterviewTurnModel] = (
+            await self._session.execute(
+                select(InterviewTurnModel).where(
+                    col(InterviewTurnModel.interview_id) == model.id
+                )
+            )
+        ).scalars().all()
+        return model.to_domain(list(turns))
+
+    async def find_all(self) -> list[Interview]:
+        """Return all stored interviews."""
+        models = (await self._session.execute(select(InterviewModel))).scalars().all()
+        result: list[Interview] = []
+        for model in models:
+            turns = (
+                await self._session.execute(
+                    select(InterviewTurnModel).where(
+                        col(InterviewTurnModel.interview_id) == model.id
+                    )
+                )
+            ).scalars().all()
             result.append(model.to_domain(list(turns)))
         return result
 
-    def delete(self, interview_id: InterviewId) -> None:
+    async def delete(self, interview_id: InterviewId) -> None:
         """Remove the interview with the given ID (no-op if not found)."""
-        model = self._session.get(InterviewModel, interview_id.get_id())
+        model = await self._session.get(InterviewModel, interview_id.get_id())
         if model:
-            self._session.delete(model)
-            self._session.commit()
+            await self._session.delete(model)
+            await self._session.commit()

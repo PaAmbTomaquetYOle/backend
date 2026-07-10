@@ -10,15 +10,15 @@ class ISopRepository(ABC):
     """Interface for the SOP repository."""
 
     @abstractmethod
-    def save(self, sop: Sop) -> None:
+    async def save(self, sop: Sop) -> None:
         """Persist a SOP (insert or update by ID), including its tags."""
 
     @abstractmethod
-    def find_by_id(self, sop_id: SopId) -> Sop | None:
+    async def find_by_id(self, sop_id: SopId) -> Sop | None:
         """Return the non-deleted SOP with the given ID, or None if not found."""
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         text: str | None,
         tags: list[str] | None,
@@ -40,5 +40,5 @@ class ISopRepository(ABC):
         """
 
     @abstractmethod
-    def soft_delete(self, sop_id: SopId) -> None:
+    async def soft_delete(self, sop_id: SopId) -> None:
         """Mark the SOP with the given ID as deleted (no-op if not found)."""

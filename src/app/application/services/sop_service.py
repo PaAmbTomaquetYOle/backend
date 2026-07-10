@@ -74,7 +74,7 @@ class SopService(ISopService):
             origin_channel=origin_channel,
             created_at=datetime.now(UTC),
         )
-        self._repo.save(sop)
+        await self._repo.save(sop)
         await self._publish(SOPCreated(
             sop_id=sop.sop_id.get_id(),
             author=sop.author.get_id(),
@@ -97,7 +97,7 @@ class SopService(ISopService):
         Raises:
             SopNotFoundError: If no non-deleted SOP with the given ID exists.
         """
-        sop = self._repo.find_by_id(sop_id)
+        sop = await self._repo.find_by_id(sop_id)
         if sop is None:
             raise SopNotFoundError(str(sop_id.get_id()))
         return sop
@@ -120,7 +120,7 @@ class SopService(ISopService):
         Returns:
             A (items, total) tuple.
         """
-        return self._repo.search(text=text, tags=tags, page=page, size=size)
+        return await self._repo.search(text=text, tags=tags, page=page, size=size)
 
     async def update_sop(
         self,
@@ -143,7 +143,7 @@ class SopService(ISopService):
         """
         sop = await self.get_sop(sop_id)
         sop.revise(content=content, tags=tags)
-        self._repo.save(sop)
+        await self._repo.save(sop)
         return sop
 
     async def delete_sop(self, sop_id: SopId) -> None:
@@ -156,4 +156,4 @@ class SopService(ISopService):
             SopNotFoundError: If no non-deleted SOP with the given ID exists.
         """
         await self.get_sop(sop_id)
-        self._repo.soft_delete(sop_id)
+        await self._repo.soft_delete(sop_id)

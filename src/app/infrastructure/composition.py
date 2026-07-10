@@ -59,17 +59,22 @@ def build_offboarding_facade(
 def build_sop_service(
     session: AsyncSession,
     event_publisher: IEventPublisher | None = None,
+    dialect_name: str = "postgresql",
 ) -> SopService:
     """Assemble a fully wired SopService from a session.
 
     Args:
         session: The active SQLModel session used by the SOP repository.
         event_publisher: Optional event publisher used to publish SOPCreated.
+        dialect_name: The SQL dialect in use, forwarded to SopRepository to
+            pick its text search strategy. Defaults to "postgresql".
 
     Returns:
         SopService: A fully wired SOP service instance.
     """
-    return SopService(SopRepository(session), event_publisher=event_publisher)
+    return SopService(
+        SopRepository(session, dialect_name=dialect_name), event_publisher=event_publisher
+    )
 
 
 def build_knowledge_graph_service(
@@ -111,8 +116,9 @@ def build_inbound_context(
     Returns:
         InboundContext: The composed per-message context.
     """
+    dialect_name = session.get_bind().dialect.name
     return InboundContext(
         offboarding=build_offboarding_facade(session, event_publisher, dossier_generator),
-        sops=build_sop_service(session, event_publisher),
+        sops=build_sop_service(session, event_publisher, dialect_name=dialect_name),
         knowledge_graph=build_knowledge_graph_service(graph_db, event_publisher),
     )

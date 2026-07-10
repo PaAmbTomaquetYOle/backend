@@ -52,7 +52,7 @@ class InterviewService(IInterviewService):
             created_at=datetime.now(UTC),
             turns=turns,
         )
-        self._repo.save(interview)
+        await self._repo.save(interview)
         return interview
 
     async def get_interview(self, interview_id: InterviewId) -> Interview:
@@ -67,7 +67,7 @@ class InterviewService(IInterviewService):
         Raises:
             InterviewNotFoundError: If no interview with the given ID exists.
         """
-        interview = self._repo.find_by_id(interview_id)
+        interview = await self._repo.find_by_id(interview_id)
         if interview is None:
             raise InterviewNotFoundError(f"Interview {interview_id.get_id()} not found")
         return interview
@@ -84,7 +84,7 @@ class InterviewService(IInterviewService):
         Raises:
             InterviewNotFoundError: If no interview exists for the given process.
         """
-        interview = self._repo.find_by_process_id(process_id)
+        interview = await self._repo.find_by_process_id(process_id)
         if interview is None:
             raise InterviewNotFoundError(f"No interview found for process {process_id.get_id()}")
         return interview
@@ -110,7 +110,7 @@ class InterviewService(IInterviewService):
             A tuple of (interview, created) where created is True if a new interview
             was created, or False if an existing one was updated.
         """
-        existing = self._repo.find_by_process_id(process_id)
+        existing = await self._repo.find_by_process_id(process_id)
         if existing is None:
             interview = await self.create_interview(process_id, scheduled_at, turns)
             return interview, True
@@ -122,7 +122,7 @@ class InterviewService(IInterviewService):
             created_at=existing.created_at,
             turns=turns,
         )
-        self._repo.save(updated)
+        await self._repo.save(updated)
         return updated, False
 
     async def start_interview(self, interview_id: InterviewId) -> Interview:
@@ -140,7 +140,7 @@ class InterviewService(IInterviewService):
         """
         interview = await self.get_interview(interview_id)
         interview.start()
-        self._repo.save(interview)
+        await self._repo.save(interview)
         return interview
 
     async def complete_interview(self, interview_id: InterviewId) -> Interview:
@@ -158,7 +158,7 @@ class InterviewService(IInterviewService):
         """
         interview = await self.get_interview(interview_id)
         interview.complete()
-        self._repo.save(interview)
+        await self._repo.save(interview)
         return interview
 
     async def cancel_interview(self, interview_id: InterviewId) -> Interview:
@@ -176,7 +176,7 @@ class InterviewService(IInterviewService):
         """
         interview = await self.get_interview(interview_id)
         interview.cancel()
-        self._repo.save(interview)
+        await self._repo.save(interview)
         return interview
 
     async def add_turns(
@@ -204,5 +204,5 @@ class InterviewService(IInterviewService):
         interview = await self.get_interview(interview_id)
         for turn in turns:
             interview.add_turn(turn)
-        self._repo.save(interview)
+        await self._repo.save(interview)
         return interview
