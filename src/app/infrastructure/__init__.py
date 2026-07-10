@@ -16,4 +16,6 @@ What does NOT go here:
   that translates between the outside world and the application layer.
 """
 
+from .persistence import models as _models  # noqa: F401 — registers SQLModel tables
+
 __all__: list[str] = []

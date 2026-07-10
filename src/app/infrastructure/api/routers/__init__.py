@@ -17,6 +17,6 @@ What does NOT go here:
 - Business logic, dependency construction, or direct use of external SDKs.
 """
 
-from app.infrastructure.api.routers import health
+from app.infrastructure.api.routers import dossier, health, offboarding
 
-__all__ = ["health"]
+__all__ = ["dossier", "health", "offboarding"]
