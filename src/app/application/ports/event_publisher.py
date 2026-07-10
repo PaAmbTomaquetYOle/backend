@@ -15,3 +15,7 @@ class IEventPublisher(ABC):
     @abstractmethod
     async def publish_many(self, events: list[DomainEvent]) -> None:
         """Publish multiple domain events."""
+
+    @abstractmethod
+    async def stop(self) -> None:
+        """Release any underlying connections/resources held by the publisher."""

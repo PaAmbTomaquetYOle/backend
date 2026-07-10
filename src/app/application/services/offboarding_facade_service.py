@@ -244,10 +244,12 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             InvalidOffboardingProcessStateTransitionError: If the process is already in
                 a terminal state.
         """
+        previous_process = await self._process_service.get_process(process_id)
+        previous_state = previous_process.state_value.value
         process = await self._process_service.cancel_offboarding(process_id)
         await self._publish(OffboardingStateChanged(
             process_id=process.process_id.get_id(),
-            previous_state="in_progress",
+            previous_state=previous_state,
             new_state="cancelled",
             employee_id=process.employee_id.get_id(),
             manager_id=process.manager_id.get_id(),

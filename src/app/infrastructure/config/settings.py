@@ -27,10 +27,15 @@ class Settings(BaseSettings):
     db_password: str  # No default — must be set in .env
 
     # JWT
-    jwt_secret: str = ""
+    jwt_secret: str  # No default — must be set in .env
     jwt_algorithm: str = "HS256"
     jwt_audience: str = "offboardme-backend"
     token_expiry_seconds: int = 300
+
+    # Rate limit applied to POST /auth/token (per client IP), to slow down
+    # credential brute-forcing against SERVICE_CREDENTIALS. See BE-17 for the
+    # tracked follow-up to roll rate limiting out to other endpoints.
+    auth_token_rate_limit: str = "10/minute"
 
     # Client-credentials service accounts allowed to mint JWTs via /auth/token,
     # e.g. {"slack-agent": "<secret>", "mcp-server": "<secret>"}.

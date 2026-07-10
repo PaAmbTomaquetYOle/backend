@@ -49,6 +49,9 @@ class _CapturingPublisher(IEventPublisher):
     async def publish_many(self, events: list[DomainEvent]) -> None:
         self.events.extend(events)
 
+    async def stop(self) -> None:
+        pass
+
 
 def _make_engine():
     engine = create_engine(

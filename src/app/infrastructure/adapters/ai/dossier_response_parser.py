@@ -40,7 +40,7 @@ from app.domain.dossier.section import (
     ResponsibilitiesSection,
 )
 
-_JSON_FENCE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", re.DOTALL)
+_JSON_FENCE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def parse_llm_response(text: str) -> tuple[str | None, list[DossierSection]]:

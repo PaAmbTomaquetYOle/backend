@@ -10,6 +10,13 @@ from app.application.ports.graph_database import IGraphDatabasePort
 
 logger = logging.getLogger(__name__)
 
+# Default server-side timeout (seconds) for Cypher queries executed through
+# this adapter. Guards against pathological/runaway queries (e.g. a topic
+# connected to many experts each connected to many topics) hanging the
+# request indefinitely. Not currently exposed via Settings — bump here if a
+# legitimate query needs more headroom.
+_QUERY_TIMEOUT_SECONDS = 10.0
+
 
 class Neo4jAdapter(IGraphDatabasePort):
     """Concrete adapter that wraps a Neo4j AsyncDriver.
@@ -53,5 +60,7 @@ class Neo4jAdapter(IGraphDatabasePort):
         Returns:
             list[dict]: Each element is a record returned by the query.
         """
-        result = await self._driver.execute_query(query, parameters or {})
+        result = await self._driver.execute_query(
+            query, parameters or {}, timeout=_QUERY_TIMEOUT_SECONDS
+        )
         return [record.data() for record in result.records]
