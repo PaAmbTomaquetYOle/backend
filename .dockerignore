@@ -1,0 +1,80 @@
+# ── Version control ─────────────────────────────────────────────────────────
+.git
+.gitignore
+.github
+.worktrees
+
+# ── Python bytecode / caches ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Packaging / build artifacts ─────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# ── Virtual environments (rebuilt inside the image via uv sync) ────────────
+.venv/
+venv/
+ENV/
+env/
+
+# ── Test / lint / type-check caches and reports ─────────────────────────────
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+.tox/
+.nox/
+
+# ── Secrets / local env config ──────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+certs/
+
+# ── Editors / IDE ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+
+# ── OS cruft ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs / temp ──────────────────────────────────────────────────────────────
+*.log
+tmp/
+.tmp/
+
+# ── Docker-related files not needed inside the build context ────────────────
+docker-compose*.yml
+docker-compose.override.yml
+.dockerignore
+Dockerfile.*
+
+# ── Docs / non-runtime project files (not needed in the runtime image) ──────
+# Includes docs/asyncapi's own node_modules / package-lock.json (Node tooling
+# used only to validate/generate the AsyncAPI contract, never at runtime).
+docs/
+README.md
+LICENSE
+CLAUDE.md
+node_modules/
+
+# ── Tests (not copied into the image; Dockerfile only COPYs src/) ───────────
+tests/
+
+# ── Alembic migration tooling caches ─────────────────────────────────────────
+alembic/__pycache__/
+
+# ── Local scripts not needed at runtime (certs/dev-stack bootstrap only) ────
+scripts/
