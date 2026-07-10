@@ -55,7 +55,7 @@ class DossierService(IDossierService):
             summary=summary,
             sections=sections,
         )
-        self._repo.save(dossier)
+        await self._repo.save(dossier)
         return dossier
 
     async def get_dossier(self, dossier_id: DossierId) -> Dossier:
@@ -70,7 +70,7 @@ class DossierService(IDossierService):
         Raises:
             DossierNotFoundError: If no dossier with the given ID exists.
         """
-        dossier = self._repo.find_by_id(dossier_id)
+        dossier = await self._repo.find_by_id(dossier_id)
         if dossier is None:
             raise DossierNotFoundError(f"Dossier {dossier_id.get_id()} not found")
         return dossier
@@ -89,7 +89,7 @@ class DossierService(IDossierService):
         Returns:
             The matching dossiers with process display context.
         """
-        return self._repo.search(employee_name=employee_name, process_id=process_id)
+        return await self._repo.search(employee_name=employee_name, process_id=process_id)
 
     async def get_process_dossier(self, process_id: ProcessId) -> Dossier:
         """Retrieve the dossier associated with the given offboarding process.
@@ -103,7 +103,7 @@ class DossierService(IDossierService):
         Raises:
             DossierNotFoundError: If no dossier exists for the given process.
         """
-        dossier = self._repo.find_by_process_id(process_id)
+        dossier = await self._repo.find_by_process_id(process_id)
         if dossier is None:
             raise DossierNotFoundError(f"No dossier found for process {process_id.get_id()}")
         return dossier
@@ -130,5 +130,5 @@ class DossierService(IDossierService):
         dossier = await self.get_dossier(dossier_id)
         dossier.start_generating(interview_state)
         dossier.complete_generation()
-        self._repo.save(dossier)
+        await self._repo.save(dossier)
         return dossier

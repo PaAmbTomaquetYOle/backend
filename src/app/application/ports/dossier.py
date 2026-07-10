@@ -29,27 +29,27 @@ class IDossierRepository(ABC):
     """Interface for the Dossier repository."""
 
     @abstractmethod
-    def save(self, dossier: Dossier) -> None:
+    async def save(self, dossier: Dossier) -> None:
         """Persist a dossier (insert or update by ID)."""
 
     @abstractmethod
-    def find_by_id(self, dossier_id: DossierId) -> Dossier | None:
+    async def find_by_id(self, dossier_id: DossierId) -> Dossier | None:
         """Return the dossier with the given ID, or None if not found."""
 
     @abstractmethod
-    def find_by_process_id(self, process_id: ProcessId) -> Dossier | None:
+    async def find_by_process_id(self, process_id: ProcessId) -> Dossier | None:
         """Return the dossier for the given process, or None if not found."""
 
     @abstractmethod
-    def find_by_interview_id(self, interview_id: InterviewId) -> Dossier | None:
+    async def find_by_interview_id(self, interview_id: InterviewId) -> Dossier | None:
         """Return the dossier associated with the given interview, or None if not found."""
 
     @abstractmethod
-    def find_all(self) -> list[Dossier]:
+    async def find_all(self) -> list[Dossier]:
         """Return all stored dossiers."""
 
     @abstractmethod
-    def search(
+    async def search(
         self,
         employee_name: str | None = None,
         process_id: UUID | None = None,
@@ -61,5 +61,5 @@ class IDossierRepository(ABC):
         """
 
     @abstractmethod
-    def delete(self, dossier_id: DossierId) -> None:
+    async def delete(self, dossier_id: DossierId) -> None:
         """Remove the dossier with the given ID (no-op if not found)."""
