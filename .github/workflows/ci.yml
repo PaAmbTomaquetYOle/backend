@@ -8,6 +8,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DB_PASSWORD: test
+      NEO4J_PASSWORD: test
+      KAFKA_CLUSTER_ID: test
+      JWT_SECRET: test
     steps:
       - uses: actions/checkout@v4
 
