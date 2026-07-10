@@ -26,6 +26,11 @@ from .invalid_state_transition import (
     InvalidOffboardingProcessStateTransitionError,
     InvalidStateTransitionError,
 )
+from .knowledge_graph import (
+    KnowledgeGraphDomainError,
+    PersonNotFoundInGraphError,
+    TopicNotFoundInGraphError,
+)
 from .offboarding import (
     OffboardingDomainError,
     ProcessNotFoundError,
@@ -53,8 +58,11 @@ __all__ = [
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
     "InvalidStateTransitionError",
+    "KnowledgeGraphDomainError",
     "OffboardingDomainError",
+    "PersonNotFoundInGraphError",
     "ProcessNotFoundError",
     "SopDomainError",
     "SopNotFoundError",
+    "TopicNotFoundInGraphError",
 ]

@@ -54,6 +54,7 @@ from .events import (
     DomainEvent,
     DossierGenerated,
     InterviewCompleted,
+    KnowledgeGraphUpdated,
     OffboardingCompleted,
     OffboardingStateChanged,
     SOPCreated,
@@ -74,10 +75,13 @@ from .exceptions import (
     InvalidInterviewStateTransitionError,
     InvalidOffboardingProcessStateTransitionError,
     InvalidStateTransitionError,
+    KnowledgeGraphDomainError,
     OffboardingDomainError,
+    PersonNotFoundInGraphError,
     ProcessNotFoundError,
     SopDomainError,
     SopNotFoundError,
+    TopicNotFoundInGraphError,
 )
 from .interview import (
     CancelledInterviewState,
@@ -89,6 +93,14 @@ from .interview import (
     InterviewState,
     InterviewTurn,
     ScheduledInterviewState,
+)
+from .knowledge_graph import (
+    ChannelNode,
+    DocumentNode,
+    ExpertResult,
+    PersonKnowledgeProfile,
+    PersonNode,
+    TopicNode,
 )
 from .offboarding import (
     CancelledState,
@@ -120,6 +132,7 @@ __all__: list[str] = [
     "DomainEvent",
     "DossierGenerated",
     "InterviewCompleted",
+    "KnowledgeGraphUpdated",
     "OffboardingCompleted",
     "OffboardingStateChanged",
     "SOPCreated",
@@ -162,10 +175,13 @@ __all__: list[str] = [
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
     "InvalidStateTransitionError",
+    "KnowledgeGraphDomainError",
     "OffboardingDomainError",
+    "PersonNotFoundInGraphError",
     "ProcessNotFoundError",
     "SopDomainError",
     "SopNotFoundError",
+    "TopicNotFoundInGraphError",
     # Interview domain
     "CancelledInterviewState",
     "CompletedInterviewState",
@@ -176,6 +192,13 @@ __all__: list[str] = [
     "InterviewState",
     "InterviewTurn",
     "ScheduledInterviewState",
+    # Knowledge graph domain
+    "ChannelNode",
+    "DocumentNode",
+    "ExpertResult",
+    "PersonKnowledgeProfile",
+    "PersonNode",
+    "TopicNode",
     # Offboarding domain
     "CancelledState",
     "DossierId",
