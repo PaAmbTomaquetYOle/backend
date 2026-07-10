@@ -28,8 +28,8 @@ def _valid_envelope() -> bytes:
 class TestKafkaEventConsumer:
     @pytest.mark.anyio
     async def test_process_dispatches_valid_event_and_commits(self) -> None:
-        consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
-        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
@@ -42,8 +42,8 @@ class TestKafkaEventConsumer:
 
     @pytest.mark.anyio
     async def test_process_routes_malformed_message_to_dlq_and_commits(self) -> None:
-        consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
-        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
 
         await event_consumer._process(_message(b"not json"))
 
@@ -56,9 +56,9 @@ class TestKafkaEventConsumer:
 
     @pytest.mark.anyio
     async def test_process_routes_handler_failure_to_dlq_and_commits(self) -> None:
-        consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
         dispatcher.dispatch.side_effect = RuntimeError("boom")
-        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
@@ -71,8 +71,8 @@ class TestKafkaEventConsumer:
     @pytest.mark.anyio
     async def test_consumer_survives_repeated_failures(self) -> None:
         """A run of malformed/failing messages never raises out of _process."""
-        consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
-        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
 
         for _ in range(5):
             await event_consumer._process(_message(b"garbage"))
@@ -82,8 +82,8 @@ class TestKafkaEventConsumer:
 
     @pytest.mark.anyio
     async def test_start_starts_consumer_and_stop_stops_it(self) -> None:
-        consumer, dispatcher, dlq = AsyncMock(), AsyncMock(), AsyncMock()
-        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq)
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
 
         await event_consumer.start()
         consumer.start.assert_awaited_once()

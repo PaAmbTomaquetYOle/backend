@@ -13,12 +13,17 @@ from sqlmodel import Session
 
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.graph_database import IGraphDatabasePort
 from app.application.services.dossier_service import DossierService
 from app.application.services.inbound_context import InboundContext
 from app.application.services.interview_service import InterviewService
+from app.application.services.knowledge_graph_service import KnowledgeGraphService
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
 from app.application.services.sop_service import SopService
+from app.infrastructure.adapters.graph.knowledge_graph_repository import (
+    Neo4jKnowledgeGraphRepository,
+)
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
 from app.infrastructure.adapters.repositories.offboarding_process import (
@@ -67,8 +72,27 @@ def build_sop_service(
     return SopService(SopRepository(session), event_publisher=event_publisher)
 
 
+def build_knowledge_graph_service(
+    graph_db: IGraphDatabasePort,
+    event_publisher: IEventPublisher | None = None,
+) -> KnowledgeGraphService:
+    """Assemble a fully wired KnowledgeGraphService from a graph database port.
+
+    Args:
+        graph_db: The graph database port used by the Neo4j-backed repository.
+        event_publisher: Optional event publisher used to publish KnowledgeGraphUpdated.
+
+    Returns:
+        KnowledgeGraphService: A fully wired knowledge graph service instance.
+    """
+    return KnowledgeGraphService(
+        Neo4jKnowledgeGraphRepository(graph_db), event_publisher=event_publisher
+    )
+
+
 def build_inbound_context(
     session: Session,
+    graph_db: IGraphDatabasePort,
     event_publisher: IEventPublisher | None = None,
     dossier_generator: IDossierGenerator | None = None,
 ) -> InboundContext:
@@ -80,6 +104,7 @@ def build_inbound_context(
 
     Args:
         session: The active SQLModel session shared across the composed services.
+        graph_db: The graph database port used by the knowledge graph service.
         event_publisher: Optional event publisher for domain event dispatching.
         dossier_generator: Optional generator used by generate_dossier.
 
@@ -89,4 +114,5 @@ def build_inbound_context(
     return InboundContext(
         offboarding=build_offboarding_facade(session, event_publisher, dossier_generator),
         sops=build_sop_service(session, event_publisher),
+        knowledge_graph=build_knowledge_graph_service(graph_db, event_publisher),
     )
