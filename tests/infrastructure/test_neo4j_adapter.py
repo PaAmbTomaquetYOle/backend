@@ -52,7 +52,7 @@ async def test_neo4j_adapter_execute_query(mock_driver: AsyncMock) -> None:
     results = await adapter.execute_query(query, params)
 
     assert results == [{"id": 1, "name": "Test"}]
-    mock_driver.execute_query.assert_awaited_once_with(query, params)
+    mock_driver.execute_query.assert_awaited_once_with(query, params, timeout=10.0)
 
 
 @pytest.mark.anyio

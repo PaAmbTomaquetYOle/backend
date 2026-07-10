@@ -7,6 +7,9 @@ from contextlib import asynccontextmanager
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.application.services.handlers import (
     DossierGenerationRequestedHandler,
@@ -32,6 +35,7 @@ from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
 from app.infrastructure.adapters.graph.schema import initialize_knowledge_graph_schema
 from app.infrastructure.api.error_handlers import register_error_handlers
+from app.infrastructure.api.rate_limiter import limiter
 from app.infrastructure.api.routers import auth, dossier, health, knowledge_graph, offboarding, sops
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence import (
@@ -187,6 +191,9 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(offboarding.router, prefix="/api/v1")

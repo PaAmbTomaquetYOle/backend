@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     jwt_audience: str = "offboardme-backend"
     token_expiry_seconds: int = 300
 
+    # Rate limit applied to POST /auth/token (per client IP), to slow down
+    # credential brute-forcing against SERVICE_CREDENTIALS. See BE-17 for the
+    # tracked follow-up to roll rate limiting out to other endpoints.
+    auth_token_rate_limit: str = "10/minute"
+
     # Client-credentials service accounts allowed to mint JWTs via /auth/token,
     # e.g. {"slack-agent": "<secret>", "mcp-server": "<secret>"}.
     service_credentials: dict[str, str] = {}

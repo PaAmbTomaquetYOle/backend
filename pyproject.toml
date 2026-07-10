@@ -16,6 +16,7 @@ dependencies = [
     "aiokafka>=0.14.0",
     "neo4j>=5.28",
     "mcp>=1.28.1",
+    "slowapi>=0.1.10",
 ]
 
 [dependency-groups]
