@@ -33,7 +33,7 @@ class TestKafkaEventConsumer:
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
-                patch(f"{_PATCH_TARGET}.Session"):
+                patch(f"{_PATCH_TARGET}.AsyncSession"):
             await event_consumer._process(_message(_valid_envelope()))
 
         dispatcher.dispatch.assert_awaited_once()
@@ -62,7 +62,7 @@ class TestKafkaEventConsumer:
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
-                patch(f"{_PATCH_TARGET}.Session"):
+                patch(f"{_PATCH_TARGET}.AsyncSession"):
             await event_consumer._process(_message(_valid_envelope()))
 
         dlq.send.assert_awaited_once()

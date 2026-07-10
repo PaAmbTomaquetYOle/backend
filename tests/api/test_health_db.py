@@ -11,8 +11,8 @@ from app.infrastructure.api.dependencies import get_session, graph_database_depe
 
 
 @pytest.fixture
-def mock_session() -> Mock:
-    return Mock()
+def mock_session() -> AsyncMock:
+    return AsyncMock()
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def client_with_mocks(
 
 def test_health_db_returns_ok_when_both_dbs_are_up(
     client_with_mocks: TestClient,
-    mock_session: Mock,
+    mock_session: AsyncMock,
     mock_graph_db: AsyncMock,
 ) -> None:
     mock_session.execute.return_value = None
@@ -55,7 +55,7 @@ def test_health_db_returns_ok_when_both_dbs_are_up(
 
 def test_health_db_returns_503_when_postgres_fails(
     client_with_mocks: TestClient,
-    mock_session: Mock,
+    mock_session: AsyncMock,
     mock_graph_db: AsyncMock,
 ) -> None:
     mock_session.execute.side_effect = Exception("DB Down")
@@ -68,7 +68,7 @@ def test_health_db_returns_503_when_postgres_fails(
 
 def test_health_db_returns_503_when_neo4j_fails(
     client_with_mocks: TestClient,
-    mock_session: Mock,
+    mock_session: AsyncMock,
     mock_graph_db: AsyncMock,
 ) -> None:
     mock_graph_db.verify_connectivity.return_value = False
@@ -80,7 +80,7 @@ def test_health_db_returns_503_when_neo4j_fails(
 
 def test_health_db_returns_503_when_kafka_fails(
     client_with_mocks: TestClient,
-    mock_session: Mock,
+    mock_session: AsyncMock,
     mock_graph_db: AsyncMock,
 ) -> None:
     client_with_mocks.app.state.event_publisher = Mock()  # Not a KafkaEventPublisher
