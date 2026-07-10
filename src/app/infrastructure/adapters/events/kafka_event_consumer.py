@@ -6,7 +6,7 @@ import logging
 
 from aiokafka import AIOKafkaConsumer
 from aiokafka.structs import ConsumerRecord
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.dead_letter_queue import IDeadLetterQueue
 from app.application.ports.dossier_generator import IDossierGenerator
@@ -88,7 +88,7 @@ class KafkaEventConsumer(IEventConsumer):
             return
 
         try:
-            with Session(get_engine()) as session:
+            async with AsyncSession(get_engine()) as session:
                 context = build_inbound_context(
                     session, self._graph_db, self._event_publisher, self._dossier_generator
                 )
