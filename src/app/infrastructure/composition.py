@@ -9,7 +9,7 @@ message, with its own session. This module is the single place that knows how
 to assemble an ``OffboardingFacadeService``, so both call sites stay in sync.
 """
 
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
@@ -33,7 +33,7 @@ from app.infrastructure.adapters.repositories.sop import SopRepository
 
 
 def build_offboarding_facade(
-    session: Session,
+    session: AsyncSession,
     event_publisher: IEventPublisher | None = None,
     dossier_generator: IDossierGenerator | None = None,
 ) -> OffboardingFacadeService:
@@ -57,7 +57,7 @@ def build_offboarding_facade(
 
 
 def build_sop_service(
-    session: Session,
+    session: AsyncSession,
     event_publisher: IEventPublisher | None = None,
 ) -> SopService:
     """Assemble a fully wired SopService from a session.
@@ -91,7 +91,7 @@ def build_knowledge_graph_service(
 
 
 def build_inbound_context(
-    session: Session,
+    session: AsyncSession,
     graph_db: IGraphDatabasePort,
     event_publisher: IEventPublisher | None = None,
     dossier_generator: IDossierGenerator | None = None,
