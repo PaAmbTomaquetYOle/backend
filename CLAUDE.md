@@ -15,6 +15,9 @@ uv run pytest tests/domain/test_offboarding_process.py                       # s
 uv run pytest tests/domain/test_offboarding_process.py::test_name -v          # single test
 uv run pytest --cov-report=html                                              # HTML coverage -> htmlcov/index.html
 uv run ruff check .                                                          # lint
+uv run alembic upgrade head                                                  # apply all pending migrations
+uv run alembic revision --autogenerate -m "description"                     # generate a migration after a model change
+uv run alembic downgrade -1                                                  # roll back one migration
 ```
 
 Local full stack (Postgres, Neo4j, Kafka, Kafka UI) via Docker Compose:
@@ -33,6 +36,10 @@ Requires `.env` (copy from `.env.example`) with real values for `DB_PASSWORD`, `
 - **`domain/`** — Entities, value objects, domain events, exceptions. Zero framework dependencies. Lifecycles (`offboarding/`, `interview/`, `dossier/`) are modeled as **State pattern**: each has a `process.py`/entity holding a `state`, plus a `state/` subpackage with one concrete state class per lifecycle stage (e.g. `offboarding/state/{not_started,in_progress,pending_revision,finished,cancelled}.py`), all extending `state/base.py`.
 - **`application/`** — `ports/` (interfaces infrastructure must implement — event publisher, dossier generator, graph database, repositories), `service_interfaces/` (contracts services implement), `services/` (use cases: `offboarding_facade_service.py` fronts the others — `offboarding_process_service`, `interview_service`, `dossier_service`, `sop_service`, `knowledge_graph_service`, `token_service`). `services/handlers/` holds one handler per inbound Kafka event type, dispatched by `inbound_event_dispatcher.py`.
 - **`infrastructure/`** — `api/routers/` (FastAPI routers — REST is read-only, see below), `adapters/` (`ai/` — `FakeDossierGenerator` / `LLMDossierGenerator`; `events/` — Kafka producer/consumer/DLQ; `graph/` — Neo4j), `persistence/` (SQLModel models + engine), `config/settings.py` (env-driven `Settings`).
+
+### Schema migrations own production; `create_all()` is test-only
+
+Alembic (`alembic/`, driven by `alembic/env.py`) owns the Postgres schema — `env.py` reads the connection URL from `Settings` and targets `SQLModel.metadata`, so every model in `persistence/models/` is picked up automatically. `main.py`'s lifespan only calls `init_engine()`; it does **not** call `create_db_and_tables()`. The tests' in-memory SQLite fixtures still call `create_db_and_tables()` directly (SQLite has no migration story here and doesn't need one). When a model changes, generate a migration with `alembic revision --autogenerate` and review it — autogenerate misses things like the raw-SQL GIN full-text index on `sops.content` (`SOPS_CONTENT_FTS_INDEX_SQL` in `models/sop.py`), which is added to migrations by hand via `op.execute(...)`.
 
 ### Two composition roots, kept in sync deliberately
 
