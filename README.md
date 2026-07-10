@@ -18,6 +18,7 @@ Backend API for the **BrainTrust** offboarding agent — consumes Kafka events p
 
 - [🏗 Infrastructure](#-infrastructure)
 - [🚀 Getting Started](#-getting-started)
+- [🗃 Database Migrations](#-database-migrations)
 - [🔑 Authentication](#-authentication)
 - [📨 Kafka topics](#-kafka-topics)
 - [🤖 AI dossier generation](#-ai-dossier-generation)
@@ -70,6 +71,35 @@ The script will build the Docker images and wait until all healthchecks pass. On
 
 > [!TIP]
 > The ports above are defaults. You can change them by modifying `API_PORT`, `KAFKA_UI_PORT`, `NEO4J_BROWSER_PORT`, and `DB_PORT` in your `.env` file. The start scripts will automatically adapt to your configured ports.
+
+## 🗃 Database Migrations
+
+The Postgres schema is versioned with [Alembic](https://alembic.sqlalchemy.org/). `alembic/env.py` reads the connection URL from `Settings` (no credentials hardcoded in `alembic.ini`) and targets `SQLModel.metadata`, so every model under `src/app/infrastructure/persistence/models/` is picked up automatically.
+
+### Apply all pending migrations
+```bash
+uv run alembic upgrade head
+```
+
+### Create a new migration after changing a model
+```bash
+uv run alembic revision --autogenerate -m "describe the change"
+```
+> [!IMPORTANT]
+> Always review the generated migration — autogenerate does not detect everything (e.g. the raw-SQL GIN full-text index on `sops.content`, data migrations, column renames).
+
+### Roll back one revision
+```bash
+uv run alembic downgrade -1
+```
+
+### Show the current applied revision
+```bash
+uv run alembic current
+```
+
+> [!NOTE]
+> For a database that already has tables created by the old `create_all()` path, run `uv run alembic stamp head` once to mark it as up to date without re-running the baseline migration.
 
 ## 🔑 Authentication
 
