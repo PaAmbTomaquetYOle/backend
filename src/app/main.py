@@ -25,6 +25,8 @@ from app.application.services.handlers import (
     SopCandidateDecidedHandler,
     SopCandidateOfferedHandler,
     SopCreationRequestedHandler,
+    SopDeletionRequestedHandler,
+    SopUpdateRequestedHandler,
 )
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.domain.events.inbound_events import INBOUND_EVENT_TYPES
@@ -163,6 +165,8 @@ async def lifespan(app: FastAPI):
                 OffboardingTasksExtractedHandler(),
                 DossierGenerationRequestedHandler(),
                 SopCreationRequestedHandler(),
+                SopUpdateRequestedHandler(),
+                SopDeletionRequestedHandler(),
                 SopCandidateOfferedHandler(),
                 SopCandidateDecidedHandler(),
                 KnowledgeInteractionRegisteredHandler(),

@@ -140,6 +140,24 @@ channels:
       sopCreationRequested:
         $ref: '#/components/messages/SopCreationRequested'
 
+  slackAgentSopUpdateRequested:
+    address: slack-agent.sop.update_requested
+    description: >
+      Applies a partial revision to a SOP (BE-21), bumping its version.
+      Replaces the former `PATCH /sops/{sop_id}` REST endpoint.
+    messages:
+      sopUpdateRequested:
+        $ref: '#/components/messages/SopUpdateRequested'
+
+  slackAgentSopDeletionRequested:
+    address: slack-agent.sop.deletion_requested
+    description: >
+      Soft-deletes a SOP (BE-21). Replaces the former
+      `DELETE /sops/{sop_id}` REST endpoint.
+    messages:
+      sopDeletionRequested:
+        $ref: '#/components/messages/SopDeletionRequested'
+
   slackAgentSopCandidateOffered:
     address: slack-agent.sop.candidate_offered
     description: >
@@ -224,6 +242,20 @@ channels:
       sopCreated:
         $ref: '#/components/messages/SopCreated'
 
+  offboardingSopUpdated:
+    address: offboarding.sop.updated
+    description: A SOP document was revised (BE-21).
+    messages:
+      sopUpdated:
+        $ref: '#/components/messages/SopUpdated'
+
+  offboardingSopDeleted:
+    address: offboarding.sop.deleted
+    description: A SOP document was soft-deleted (BE-21).
+    messages:
+      sopDeleted:
+        $ref: '#/components/messages/SopDeleted'
+
   offboardingKnowledgeGraphUpdated:
     address: offboarding.knowledge_graph.updated
     description: >
@@ -306,6 +338,20 @@ operations:
     messages:
       - $ref: '#/channels/slackAgentSopCreationRequested/messages/sopCreationRequested'
 
+  onSopUpdateRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/slackAgentSopUpdateRequested'
+    messages:
+      - $ref: '#/channels/slackAgentSopUpdateRequested/messages/sopUpdateRequested'
+
+  onSopDeletionRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/slackAgentSopDeletionRequested'
+    messages:
+      - $ref: '#/channels/slackAgentSopDeletionRequested/messages/sopDeletionRequested'
+
   onSopCandidateOffered:
     action: receive
     channel:
@@ -375,6 +421,20 @@ operations:
       $ref: '#/channels/offboardingSopCreated'
     messages:
       - $ref: '#/channels/offboardingSopCreated/messages/sopCreated'
+
+  sendSopUpdated:
+    action: send
+    channel:
+      $ref: '#/channels/offboardingSopUpdated'
+    messages:
+      - $ref: '#/channels/offboardingSopUpdated/messages/sopUpdated'
+
+  sendSopDeleted:
+    action: send
+    channel:
+      $ref: '#/channels/offboardingSopDeleted'
+    messages:
+      - $ref: '#/channels/offboardingSopDeleted/messages/sopDeleted'
 
   sendKnowledgeGraphUpdated:
     action: send
@@ -448,6 +508,20 @@ components:
       payload:
         $ref: '#/components/schemas/SopCreationRequestedEnvelope'
 
+    SopUpdateRequested:
+      name: sop.update_requested
+      title: SOP update requested
+      summary: Requests a partial revision to a SOP (BE-21).
+      payload:
+        $ref: '#/components/schemas/SopUpdateRequestedEnvelope'
+
+    SopDeletionRequested:
+      name: sop.deletion_requested
+      title: SOP deletion requested
+      summary: Requests a soft-delete of a SOP (BE-21).
+      payload:
+        $ref: '#/components/schemas/SopDeletionRequestedEnvelope'
+
     SopCandidateOffered:
       name: sop.candidate_offered
       title: SOP candidate offered
@@ -519,6 +593,20 @@ components:
       summary: A SOP document was created.
       payload:
         $ref: '#/components/schemas/SopCreatedEnvelope'
+
+    SopUpdated:
+      name: sop.updated
+      title: SOP updated
+      summary: A SOP document was revised (BE-21).
+      payload:
+        $ref: '#/components/schemas/SopUpdatedEnvelope'
+
+    SopDeleted:
+      name: sop.deleted
+      title: SOP deleted
+      summary: A SOP document was soft-deleted (BE-21).
+      payload:
+        $ref: '#/components/schemas/SopDeletedEnvelope'
 
     KnowledgeGraphUpdated:
       name: knowledge_graph.updated
@@ -811,6 +899,64 @@ components:
               $ref: '#/components/schemas/SopCreationRequestedPayload'
           required: [payload]
 
+    SopUpdateRequestedPayload:
+      type: object
+      description: >
+        Replaces the former `PATCH /sops/{sop_id}` REST body (BE-21).
+      properties:
+        sop_id:
+          type: string
+          format: uuid
+        editor:
+          type: string
+        origin_channel:
+          type: string
+        content:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required: [sop_id, editor, origin_channel]
+
+    SopUpdateRequestedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/DomainEventEnvelopeBase'
+        - type: object
+          properties:
+            event_type:
+              const: sop.update_requested
+            payload:
+              $ref: '#/components/schemas/SopUpdateRequestedPayload'
+          required: [payload]
+
+    SopDeletionRequestedPayload:
+      type: object
+      description: >
+        Replaces the former `DELETE /sops/{sop_id}` REST call (BE-21).
+      properties:
+        sop_id:
+          type: string
+          format: uuid
+        requester:
+          type: string
+        origin_channel:
+          type: string
+      required: [sop_id, requester, origin_channel]
+
+    SopDeletionRequestedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/DomainEventEnvelopeBase'
+        - type: object
+          properties:
+            event_type:
+              const: sop.deletion_requested
+            payload:
+              $ref: '#/components/schemas/SopDeletionRequestedPayload'
+          required: [payload]
+
     SopCandidateOfferedPayload:
       type: object
       properties:
@@ -1093,6 +1239,67 @@ components:
               const: sop.created
             payload:
               $ref: '#/components/schemas/SopCreatedPayload'
+          required: [payload]
+
+    SopUpdatedPayload:
+      type: object
+      description: >
+        Unlike every other outbound payload, `tags` and `version` are not
+        stringified — they are emitted as a genuine JSON array and integer.
+      properties:
+        sop_id:
+          type: string
+          format: uuid
+        editor:
+          type: string
+        origin_channel:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+      required: [sop_id, editor, origin_channel, tags, version, updated_at]
+
+    SopUpdatedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/DomainEventEnvelopeBase'
+        - type: object
+          properties:
+            event_type:
+              const: sop.updated
+            payload:
+              $ref: '#/components/schemas/SopUpdatedPayload'
+          required: [payload]
+
+    SopDeletedPayload:
+      type: object
+      properties:
+        sop_id:
+          type: string
+          format: uuid
+        requester:
+          type: string
+        origin_channel:
+          type: string
+        deleted_at:
+          type: string
+          format: date-time
+      required: [sop_id, requester, origin_channel, deleted_at]
+
+    SopDeletedEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/DomainEventEnvelopeBase'
+        - type: object
+          properties:
+            event_type:
+              const: sop.deleted
+            payload:
+              $ref: '#/components/schemas/SopDeletedPayload'
           required: [payload]
 
     KnowledgeGraphUpdatedPayload:
