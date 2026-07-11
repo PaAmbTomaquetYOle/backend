@@ -21,7 +21,7 @@ from typing import Any
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
-from app.application.ports.dossier_generator import IDossierGenerator
+from app.application.ports.dossier_generator import DossierScope, IDossierGenerator
 from app.domain.dossier.section import DossierSection
 from app.domain.interview.interview import Interview
 from app.domain.interview.turn import InterviewNote, InterviewQuestion
@@ -53,18 +53,22 @@ class LLMDossierGenerator(IDossierGenerator):
         self._fallback = fallback
         self._timeout_seconds = timeout_seconds
 
-    async def generate(self, interview: Interview) -> tuple[str | None, list[DossierSection]]:
+    async def generate(
+        self, interview: Interview, scope: DossierScope = "offboarding"
+    ) -> tuple[str | None, list[DossierSection]]:
         """Generate dossier content, falling back on any failure.
 
         Args:
             interview: The completed interview to derive dossier content from.
+            scope: Which kind of dossier to write, forwarded to mcp-server's
+                'generate_dossier' tool as 'review_scope'.
 
         Returns:
             A tuple of (summary, sections) to persist on the dossier.
         """
         try:
             return await asyncio.wait_for(
-                self._generate_via_mcp(interview), timeout=self._timeout_seconds
+                self._generate_via_mcp(interview, scope), timeout=self._timeout_seconds
             )
         except Exception:
             logger.warning(
@@ -72,17 +76,20 @@ class LLMDossierGenerator(IDossierGenerator):
                 type(self._fallback).__name__,
                 exc_info=True,
             )
-            return await self._fallback.generate(interview)
+            return await self._fallback.generate(interview, scope)
 
     async def _generate_via_mcp(
-        self, interview: Interview
+        self, interview: Interview, scope: DossierScope
     ) -> tuple[str | None, list[DossierSection]]:
         async with streamablehttp_client(self._mcp_server_url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.call_tool(
                     "generate_dossier",
-                    {"interview_transcript": _format_interview(interview)},
+                    {
+                        "interview_transcript": _format_interview(interview),
+                        "review_scope": scope,
+                    },
                 )
                 text = _tool_result_text(result)
                 if result.isError:

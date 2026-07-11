@@ -173,7 +173,7 @@ class MonthlyReviewFacadeService(IMonthlyReviewServiceFacade):
         """
         interview = await self._interview_service.get_process_interview(process_id)
         if self._dossier_generator is not None:
-            summary, sections = await self._dossier_generator.generate(interview)
+            summary, sections = await self._dossier_generator.generate(interview, "monthly")
         else:
             summary, sections = None, []
 
