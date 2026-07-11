@@ -34,12 +34,56 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.application.observability.observed_operation import ObservedOperation
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.metrics import FailureKind, IMetricsPort
 from app.infrastructure.composition import build_review_scheduling_service
 from app.infrastructure.persistence.database import get_engine
 
 logger = logging.getLogger(__name__)
+
+
+class _ReviewSweepOperation(ObservedOperation[None]):
+    """Runs one scheduling sweep, recording a metric and swallowing any failure.
+
+    Kept broad (`Exception`, the base default) on purpose: a sweep touches
+    Postgres, and — through the facades it builds — Kafka publishing and the
+    dossier generator, so it can fail in ways owned by several unrelated
+    adapters. A failed sweep must never crash the scheduler; it simply
+    retries on the next scheduled run.
+    """
+
+    def __init__(
+        self,
+        metrics: IMetricsPort | None,
+        event_publisher: IEventPublisher | None,
+        dossier_generator: IDossierGenerator | None,
+    ) -> None:
+        super().__init__(metrics)
+        self._event_publisher = event_publisher
+        self._dossier_generator = dossier_generator
+
+    async def _execute(self) -> None:
+        async with AsyncSession(get_engine()) as session:
+            service = build_review_scheduling_service(
+                session, self._event_publisher, self._dossier_generator
+            )
+            result = await service.run_due_reviews()
+            logger.info(
+                "Review scheduling sweep complete: %d monthly, %d annual review(s) started",
+                len(result.monthly_started),
+                len(result.annual_started),
+            )
+
+    def _failure_kind(self) -> FailureKind:
+        return FailureKind.REVIEW_SWEEP
+
+    def _log_failure(self, exc: Exception) -> None:
+        logger.warning("Review scheduling sweep failed", exc_info=True)
+
+    async def _recover(self, exc: Exception) -> None:
+        return None
 
 
 class ReviewScheduler:
@@ -50,6 +94,7 @@ class ReviewScheduler:
         hour_utc: int,
         event_publisher: IEventPublisher | None = None,
         dossier_generator: IDossierGenerator | None = None,
+        metrics: IMetricsPort | None = None,
     ) -> None:
         """Configure the scheduler.
 
@@ -61,11 +106,14 @@ class ReviewScheduler:
             dossier_generator: Optional generator, forwarded the same way for
                 consistency with the other facades (unused by scheduling
                 itself, which only creates/starts processes).
+            metrics: Optional port for recording a failed sweep. If None,
+                the failure is still logged but not counted (BE-20).
         """
         self._scheduler = AsyncIOScheduler(timezone="UTC")
         self._hour_utc = hour_utc
         self._event_publisher = event_publisher
         self._dossier_generator = dossier_generator
+        self._metrics = metrics
 
     def start(self) -> None:
         """Register the daily sweep job and start the scheduler."""
@@ -90,16 +138,6 @@ class ReviewScheduler:
         Never lets an exception escape — a failed sweep should not crash the
         scheduler; it will simply retry on the next scheduled run.
         """
-        try:
-            async with AsyncSession(get_engine()) as session:
-                service = build_review_scheduling_service(
-                    session, self._event_publisher, self._dossier_generator
-                )
-                result = await service.run_due_reviews()
-                logger.info(
-                    "Review scheduling sweep complete: %d monthly, %d annual review(s) started",
-                    len(result.monthly_started),
-                    len(result.annual_started),
-                )
-        except Exception:
-            logger.warning("Review scheduling sweep failed", exc_info=True)
+        await _ReviewSweepOperation(
+            self._metrics, self._event_publisher, self._dossier_generator
+        ).run()

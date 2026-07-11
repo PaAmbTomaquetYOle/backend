@@ -2,6 +2,7 @@
 
 import json
 from datetime import UTC, datetime
+from unittest.mock import Mock
 
 import pytest
 
@@ -177,6 +178,30 @@ class TestLLMDossierGenerator:
 
         assert "1" in summary
         assert len(sections) == 1
+
+    @pytest.mark.anyio
+    async def test_falls_back_records_a_dossier_fallback_metric(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """BE-20: a fallback must be visible outside the logs via IMetricsPort."""
+        from app.application.ports.metrics import FailureKind
+
+        def _raise(url: str):
+            raise ConnectionError("mcp-server unreachable")
+
+        monkeypatch.setattr(module, "streamablehttp_client", _raise)
+        metrics = Mock()
+        generator = LLMDossierGenerator(
+            mcp_server_url="http://localhost:8000/mcp",
+            fallback=FakeDossierGenerator(),
+            metrics=metrics,
+        )
+
+        await generator.generate(_interview())
+
+        metrics.increment_failure.assert_called_once()
+        args, kwargs = metrics.increment_failure.call_args
+        assert args[0] == FailureKind.DOSSIER_FALLBACK
 
     @pytest.mark.anyio
     async def test_falls_back_on_timeout(self, monkeypatch: pytest.MonkeyPatch) -> None:

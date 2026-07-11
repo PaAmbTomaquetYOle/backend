@@ -16,18 +16,69 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
+from app.application.observability.observed_operation import ObservedOperation
 from app.application.ports.dossier_generator import DossierScope, IDossierGenerator
+from app.application.ports.metrics import FailureKind, IMetricsPort
 from app.domain.dossier.section import DossierSection
 from app.domain.interview.interview import Interview
 from app.domain.interview.turn import InterviewNote, InterviewQuestion
 from app.infrastructure.adapters.ai.dossier_response_parser import parse_llm_response
 
 logger = logging.getLogger(__name__)
+
+
+class DossierGenerationOperation(ObservedOperation[tuple[str | None, list[DossierSection]]]):
+    """Runs the mcp-server round trip, falling back to a default generator on any failure.
+
+    Deliberately keeps the base class' broad `Exception` catch instead of
+    narrowing it: the round trip can fail in ways that span multiple
+    unrelated layers (TCP connection refused, MCP protocol/tool error,
+    `asyncio.TimeoutError` from the wrapping `wait_for`, malformed JSON in
+    `parse_llm_response`), and every one of them must degrade to the
+    fallback generator rather than breaking the Kafka consumer's flow — see
+    CLAUDE.md, "AI dossier generation is pluggable".
+    """
+
+    def __init__(
+        self,
+        metrics: IMetricsPort | None,
+        mcp_call: Callable[[], Awaitable[tuple[str | None, list[DossierSection]]]],
+        timeout_seconds: float,
+        fallback: IDossierGenerator,
+        interview: Interview,
+        scope: DossierScope,
+    ) -> None:
+        super().__init__(metrics)
+        self._mcp_call = mcp_call
+        self._timeout_seconds = timeout_seconds
+        self._fallback = fallback
+        self._interview = interview
+        self._scope = scope
+
+    async def _execute(self) -> tuple[str | None, list[DossierSection]]:
+        return await asyncio.wait_for(self._mcp_call(), timeout=self._timeout_seconds)
+
+    def _failure_kind(self) -> FailureKind:
+        return FailureKind.DOSSIER_FALLBACK
+
+    def _labels(self) -> dict[str, str]:
+        return {"scope": self._scope, "fallback": type(self._fallback).__name__}
+
+    def _log_failure(self, exc: Exception) -> None:
+        logger.warning(
+            "mcp-server dossier generation failed, falling back to %s",
+            type(self._fallback).__name__,
+            exc_info=True,
+        )
+
+    async def _recover(self, exc: Exception) -> tuple[str | None, list[DossierSection]]:
+        return await self._fallback.generate(self._interview, self._scope)
 
 
 class LLMDossierGenerator(IDossierGenerator):
@@ -38,6 +89,7 @@ class LLMDossierGenerator(IDossierGenerator):
         mcp_server_url: str,
         fallback: IDossierGenerator,
         timeout_seconds: float = 45.0,
+        metrics: IMetricsPort | None = None,
     ) -> None:
         """Configure the adapter.
 
@@ -48,10 +100,13 @@ class LLMDossierGenerator(IDossierGenerator):
                 timeout elapses.
             timeout_seconds: Wall-clock budget for the whole mcp-server round
                 trip (connection, tool call, and the LLM generation it runs).
+            metrics: Optional port for recording a fallback to `fallback`. If
+                None, the fallback is still logged but not counted (BE-20).
         """
         self._mcp_server_url = mcp_server_url
         self._fallback = fallback
         self._timeout_seconds = timeout_seconds
+        self._metrics = metrics
 
     async def generate(
         self, interview: Interview, scope: DossierScope = "offboarding"
@@ -66,17 +121,14 @@ class LLMDossierGenerator(IDossierGenerator):
         Returns:
             A tuple of (summary, sections) to persist on the dossier.
         """
-        try:
-            return await asyncio.wait_for(
-                self._generate_via_mcp(interview, scope), timeout=self._timeout_seconds
-            )
-        except Exception:
-            logger.warning(
-                "mcp-server dossier generation failed, falling back to %s",
-                type(self._fallback).__name__,
-                exc_info=True,
-            )
-            return await self._fallback.generate(interview, scope)
+        return await DossierGenerationOperation(
+            self._metrics,
+            lambda: self._generate_via_mcp(interview, scope),
+            self._timeout_seconds,
+            self._fallback,
+            interview,
+            scope,
+        ).run()
 
     async def _generate_via_mcp(
         self, interview: Interview, scope: DossierScope
