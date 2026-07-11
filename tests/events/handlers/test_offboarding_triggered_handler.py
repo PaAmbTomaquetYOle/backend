@@ -46,7 +46,12 @@ class TestOffboardingTriggeredHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         await OffboardingTriggeredHandler().handle(event, context)
 
         facade.create_offboarding.assert_awaited_once()
@@ -75,7 +80,12 @@ class TestOffboardingTriggeredHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         await OffboardingTriggeredHandler().handle(event, context)
 
         facade.create_offboarding.assert_not_awaited()

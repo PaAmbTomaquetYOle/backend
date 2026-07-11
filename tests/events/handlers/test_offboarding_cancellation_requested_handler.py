@@ -31,7 +31,12 @@ class TestOffboardingCancellationRequestedHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         await OffboardingCancellationRequestedHandler().handle(event, context)
 
         facade.cancel_offboarding.assert_awaited_once()

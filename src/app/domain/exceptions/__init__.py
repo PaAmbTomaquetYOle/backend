@@ -36,6 +36,8 @@ from .offboarding import (
     ProcessNotFoundError,
 )
 from .sops import (
+    InvalidSopCandidateTransitionError,
+    SopCandidateNotFoundError,
     SopDomainError,
     SopNotFoundError,
 )
@@ -57,11 +59,13 @@ __all__ = [
     "InvalidDossierStateTransitionError",
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
+    "InvalidSopCandidateTransitionError",
     "InvalidStateTransitionError",
     "KnowledgeGraphDomainError",
     "OffboardingDomainError",
     "PersonNotFoundInGraphError",
     "ProcessNotFoundError",
+    "SopCandidateNotFoundError",
     "SopDomainError",
     "SopNotFoundError",
     "TopicNotFoundInGraphError",

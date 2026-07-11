@@ -22,6 +22,9 @@ from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingInterviewFacade,
     IOffboardingProcessFacade,
 )
+from app.application.service_interfaces.sop_candidate_service_interface import (
+    ISopCandidateService,
+)
 from app.application.service_interfaces.sop_service_interface import ISopService
 from app.application.services.dossier_service import DossierService
 from app.application.services.interview_service import InterviewService
@@ -39,6 +42,7 @@ from app.infrastructure.adapters.repositories.offboarding_process import (
 from app.infrastructure.composition import (
     build_knowledge_graph_service,
     build_offboarding_facade,
+    build_sop_candidate_service,
     build_sop_service,
 )
 from app.infrastructure.config.settings import Settings, get_settings
@@ -138,6 +142,13 @@ def sop_service_dependency(
     publisher = getattr(request.app.state, "event_publisher", None)
     dialect_name = session.get_bind().dialect.name
     return build_sop_service(session, publisher, dialect_name=dialect_name)
+
+
+def sop_candidate_service_dependency(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ISopCandidateService:
+    """Provide a SOP candidate service wired with its repository."""
+    return build_sop_candidate_service(session)
 
 
 def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphService:

@@ -26,7 +26,10 @@ class TestKnowledgeChannelActivityRegisteredHandler:
     async def test_handle_registers_channel_activity(self) -> None:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
-            offboarding=AsyncMock(), sops=AsyncMock(), knowledge_graph=knowledge_graph
+            offboarding=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
             event_type=KNOWLEDGE_CHANNEL_ACTIVITY_REGISTERED,

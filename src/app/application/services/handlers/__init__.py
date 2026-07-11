@@ -9,6 +9,9 @@ from app.application.services.handlers.interview_completed_handler import (
 from app.application.services.handlers.interview_started_handler import (
     InterviewStartedHandler,
 )
+from app.application.services.handlers.interview_turn_recorded_handler import (
+    InterviewTurnRecordedHandler,
+)
 from app.application.services.handlers.knowledge_channel_activity_registered_handler import (
     KnowledgeChannelActivityRegisteredHandler,
 )
@@ -24,6 +27,12 @@ from app.application.services.handlers.offboarding_cancellation_requested_handle
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
+from app.application.services.handlers.sop_candidate_decided_handler import (
+    SopCandidateDecidedHandler,
+)
+from app.application.services.handlers.sop_candidate_offered_handler import (
+    SopCandidateOfferedHandler,
+)
 from app.application.services.handlers.sop_creation_requested_handler import (
     SopCreationRequestedHandler,
 )
@@ -32,10 +41,13 @@ __all__ = [
     "DossierGenerationRequestedHandler",
     "InterviewCompletedHandler",
     "InterviewStartedHandler",
+    "InterviewTurnRecordedHandler",
     "KnowledgeChannelActivityRegisteredHandler",
     "KnowledgeDocumentRegisteredHandler",
     "KnowledgeInteractionRegisteredHandler",
     "OffboardingCancellationRequestedHandler",
     "OffboardingTriggeredHandler",
+    "SopCandidateDecidedHandler",
+    "SopCandidateOfferedHandler",
     "SopCreationRequestedHandler",
 ]
