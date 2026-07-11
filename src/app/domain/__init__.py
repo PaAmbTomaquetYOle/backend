@@ -164,6 +164,7 @@ from .offboarding import (
     PendingRevisionState,
     ProcessId,
 )
+from .review_scheduling import EmployeeReviewSnapshot, ReviewSchedulingPolicy
 from .sops import (
     AuthorId,
     ChannelId,
@@ -288,6 +289,9 @@ __all__: list[str] = [
     "OffboardingTask",
     "PendingRevisionState",
     "ProcessId",
+    # Review scheduling domain
+    "EmployeeReviewSnapshot",
+    "ReviewSchedulingPolicy",
     # SOP domain
     "AuthorId",
     "ChannelId",
