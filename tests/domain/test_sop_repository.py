@@ -42,9 +42,14 @@ def repository_fixture(session):
     return SopRepository(session, dialect_name="sqlite")
 
 
-def make_sop(content: str = "How to rotate secrets", tags: list[str] | None = None) -> Sop:
+def make_sop(
+    content: str = "How to rotate secrets",
+    tags: list[str] | None = None,
+    title: str = "Rotating secrets",
+) -> Sop:
     return Sop(
         sop_id=SopId(),
+        title=title,
         content=content,
         author=AuthorId("U1"),
         tags=tags or [],
@@ -61,6 +66,7 @@ class TestSaveAndFindById:
 
         found = await repository.find_by_id(sop.sop_id)
         assert found is not None
+        assert found.title == sop.title
         assert found.content == sop.content
         assert found.tags == ["security"]
 
@@ -95,19 +101,33 @@ class TestSoftDelete:
         await repository.save(sop)
 
         items, total = await repository.search(text=None, tags=None, page=1, size=20)
-        assert sop.sop_id.get_id() not in {i.sop_id.get_id() for i in items}
+        assert sop.sop_id.get_id() not in {i.sop.sop_id.get_id() for i in items}
         assert total == 0
 
 
 @pytest.mark.anyio
 class TestSearch:
-    async def test_text_filter_matches_substring(self, repository):
+    async def test_text_filter_matches_content_substring(self, repository):
         await repository.save(make_sop(content="How to rotate secrets"))
         await repository.save(make_sop(content="How to onboard a new hire"))
 
         items, total = await repository.search(text="rotate", tags=None, page=1, size=20)
         assert total == 1
-        assert "rotate" in items[0].content.lower()
+        assert "rotate" in items[0].sop.content.lower()
+
+    async def test_text_filter_matches_title_substring(self, repository):
+        await repository.save(make_sop(title="Rotating secrets", content="unrelated body"))
+        await repository.save(make_sop(title="Onboarding a new hire", content="unrelated body"))
+
+        items, total = await repository.search(text="rotating", tags=None, page=1, size=20)
+        assert total == 1
+        assert "rotating" in items[0].sop.title.lower()
+
+    async def test_sqlite_search_hit_has_no_snippet(self, repository):
+        await repository.save(make_sop(content="How to rotate secrets"))
+
+        items, _ = await repository.search(text="rotate", tags=None, page=1, size=20)
+        assert items[0].snippet is None
 
     async def test_tag_filter_requires_all_tags(self, repository):
         await repository.save(make_sop(content="a", tags=["security", "urgent"]))
@@ -117,7 +137,7 @@ class TestSearch:
             text=None, tags=["security", "urgent"], page=1, size=20
         )
         assert total == 1
-        assert items[0].content == "a"
+        assert items[0].sop.content == "a"
 
     async def test_text_and_tags_combine_with_and(self, repository):
         await repository.save(make_sop(content="rotate secrets", tags=["security"]))
@@ -136,8 +156,8 @@ class TestSearch:
         assert total == 5
         assert len(page1) == 2
         assert len(page2) == 2
-        assert {s.sop_id.get_id() for s in page1}.isdisjoint(
-            {s.sop_id.get_id() for s in page2}
+        assert {s.sop.sop_id.get_id() for s in page1}.isdisjoint(
+            {s.sop.sop_id.get_id() for s in page2}
         )
 
     async def test_empty_search_returns_all_non_deleted(self, repository):

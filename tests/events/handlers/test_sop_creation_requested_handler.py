@@ -30,6 +30,7 @@ class TestSopCreationRequestedHandler:
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={
+                "title": "Rotating secrets",
                 "content": "How to rotate secrets",
                 "author": "U1",
                 "origin_channel": "C1",
@@ -41,6 +42,7 @@ class TestSopCreationRequestedHandler:
 
         sops.create_sop.assert_awaited_once()
         _, kwargs = sops.create_sop.call_args
+        assert kwargs["title"] == "Rotating secrets"
         assert kwargs["content"] == "How to rotate secrets"
         assert kwargs["author"].is_equal("U1")
         assert kwargs["origin_channel"].is_equal("C1")
@@ -58,7 +60,7 @@ class TestSopCreationRequestedHandler:
         )
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
-            payload={"content": "x", "author": "U1", "origin_channel": "C1"},
+            payload={"title": "x", "content": "x", "author": "U1", "origin_channel": "C1"},
         )
 
         await SopCreationRequestedHandler().handle(event, context)

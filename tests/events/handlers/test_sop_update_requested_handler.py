@@ -52,6 +52,24 @@ class TestSopUpdateRequestedHandler:
         assert kwargs["origin_channel"].is_equal("C1")
         assert kwargs["content"] == "revised content"
         assert kwargs["tags"] == ["security"]
+        assert kwargs["title"] is None
+
+    @pytest.mark.anyio
+    async def test_handle_forwards_title_when_present(self) -> None:
+        sops = AsyncMock(spec=ISopService)
+        context = InboundContext(
+            offboarding=AsyncMock(),
+            sops=sops,
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
+        sop_id = str(uuid4())
+
+        await SopUpdateRequestedHandler().handle(_event(sop_id, title="New title"), context)
+
+        _, kwargs = sops.update_sop.call_args
+        assert kwargs["title"] == "New title"
 
     @pytest.mark.anyio
     async def test_handle_defaults_content_and_tags_to_none(self) -> None:
@@ -74,6 +92,7 @@ class TestSopUpdateRequestedHandler:
         _, kwargs = sops.update_sop.call_args
         assert kwargs["content"] is None
         assert kwargs["tags"] is None
+        assert kwargs["title"] is None
 
     @pytest.mark.anyio
     async def test_drops_when_sop_not_found_instead_of_raising(self) -> None:
