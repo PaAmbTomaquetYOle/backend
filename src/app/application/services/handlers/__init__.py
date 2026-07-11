@@ -24,6 +24,9 @@ from app.application.services.handlers.knowledge_interaction_registered_handler 
 from app.application.services.handlers.offboarding_cancellation_requested_handler import (
     OffboardingCancellationRequestedHandler,
 )
+from app.application.services.handlers.offboarding_tasks_extracted_handler import (
+    OffboardingTasksExtractedHandler,
+)
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
@@ -46,6 +49,7 @@ __all__ = [
     "KnowledgeDocumentRegisteredHandler",
     "KnowledgeInteractionRegisteredHandler",
     "OffboardingCancellationRequestedHandler",
+    "OffboardingTasksExtractedHandler",
     "OffboardingTriggeredHandler",
     "SopCandidateDecidedHandler",
     "SopCandidateOfferedHandler",

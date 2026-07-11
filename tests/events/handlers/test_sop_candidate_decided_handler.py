@@ -39,6 +39,7 @@ class TestSopCandidateDecidedHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
 
@@ -58,6 +59,7 @@ class TestSopCandidateDecidedHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
 
@@ -71,6 +73,7 @@ class TestSopCandidateDecidedHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
 

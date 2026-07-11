@@ -26,6 +26,7 @@ class TestKnowledgeDocumentRegisteredHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
@@ -60,6 +61,7 @@ class TestKnowledgeDocumentRegisteredHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(

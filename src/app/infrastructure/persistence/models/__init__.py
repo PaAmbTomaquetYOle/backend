@@ -19,6 +19,7 @@ from .dossier_section import (
 from .interview import InterviewModel as InterviewModel
 from .interview import InterviewTurnModel as InterviewTurnModel
 from .offboarding_process import OffboardingProcessModel as OffboardingProcessModel
+from .offboarding_task import OffboardingTaskModel as OffboardingTaskModel
 from .process import ProcessModel as ProcessModel
 from .sop import SopModel as SopModel
 from .sop_candidate import SopCandidateModel as SopCandidateModel

@@ -35,6 +35,7 @@ class TestOffboardingCancellationRequestedHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await OffboardingCancellationRequestedHandler().handle(event, context)

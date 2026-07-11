@@ -71,6 +71,7 @@ class TestInterviewCompletedHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await InterviewCompletedHandler().handle(event, context)
@@ -107,6 +108,7 @@ class TestInterviewCompletedHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await InterviewCompletedHandler().handle(event, context)
