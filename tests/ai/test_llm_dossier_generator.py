@@ -114,6 +114,23 @@ class TestLLMDossierGenerator:
         tool_name, arguments = session.calls[0]
         assert tool_name == "generate_dossier"
         assert "Lead the backend team" in arguments["interview_transcript"]
+        assert arguments["review_scope"] == "offboarding"
+
+    @pytest.mark.anyio
+    async def test_forwards_review_scope_to_the_tool(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        empty_result = json.dumps({"summary": None, "sections": []})
+        session = _FakeClientSession(_FakeCallToolResult(empty_result))
+        _patch_mcp(monkeypatch, session)
+        generator = LLMDossierGenerator(
+            mcp_server_url="http://localhost:8000/mcp", fallback=FakeDossierGenerator()
+        )
+
+        await generator.generate(_interview(), "annual")
+
+        _, arguments = session.calls[0]
+        assert arguments["review_scope"] == "annual"
 
     @pytest.mark.anyio
     async def test_falls_back_when_tool_call_reports_error(
