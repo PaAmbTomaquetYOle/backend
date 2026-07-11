@@ -328,54 +328,72 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         ]
 
     async def find_all_topics(self, page: int = 1, size: int = 50) -> tuple[list[TopicNode], int]:
-        """List all topics in the graph, paginated."""
+        """List all topics in the graph, paginated.
+
+        Uses two uncorrelated ``CALL {}`` subqueries (count + collected data
+        page) so a single round-trip yields exactly one row with both
+        ``total`` and ``rows`` — unlike a single linear query, ``total``
+        survives even when ``skip`` is past the end of the result set.
+        """
         skip = (page - 1) * size
-        count_records = await self._graph_db.execute_query(
-            "MATCH (t:Topic) RETURN count(t) AS total"
-        )
-        total = count_records[0]["total"] if count_records else 0
         records = await self._graph_db.execute_query(
             """
-            MATCH (t:Topic)
-            RETURN t.name AS name, t.description AS description
-            ORDER BY t.name
-            SKIP $skip LIMIT $size
+            CALL { MATCH (t:Topic) RETURN count(t) AS total }
+            CALL {
+                MATCH (t:Topic)
+                WITH t ORDER BY t.name
+                SKIP $skip LIMIT $size
+                RETURN collect({name: t.name, description: t.description}) AS rows
+            }
+            RETURN total, rows
             """,
             {"skip": skip, "size": size},
         )
+        if not records:
+            return [], 0
+        record = records[0]
         topics = [
-            TopicNode(name=record["name"], description=record.get("description"))
-            for record in records
+            TopicNode(name=row["name"], description=row.get("description"))
+            for row in record["rows"]
         ]
-        return topics, total
+        return topics, record["total"]
 
     async def find_all_persons(
         self, page: int = 1, size: int = 50
     ) -> tuple[list[PersonNode], int]:
-        """List all persons in the graph, paginated."""
+        """List all persons in the graph, paginated.
+
+        See ``find_all_topics`` for why the count and data page are combined
+        via two uncorrelated ``CALL {}`` subqueries in a single query.
+        """
         skip = (page - 1) * size
-        count_records = await self._graph_db.execute_query(
-            "MATCH (p:Person) RETURN count(p) AS total"
-        )
-        total = count_records[0]["total"] if count_records else 0
         records = await self._graph_db.execute_query(
             """
-            MATCH (p:Person)
-            RETURN p.person_id AS person_id, p.name AS name, p.department AS department
-            ORDER BY p.name
-            SKIP $skip LIMIT $size
+            CALL { MATCH (p:Person) RETURN count(p) AS total }
+            CALL {
+                MATCH (p:Person)
+                WITH p ORDER BY p.name
+                SKIP $skip LIMIT $size
+                RETURN collect({
+                    person_id: p.person_id, name: p.name, department: p.department
+                }) AS rows
+            }
+            RETURN total, rows
             """,
             {"skip": skip, "size": size},
         )
+        if not records:
+            return [], 0
+        record = records[0]
         persons = [
             PersonNode(
-                person_id=record["person_id"],
-                name=record["name"],
-                department=record.get("department"),
+                person_id=row["person_id"],
+                name=row["name"],
+                department=row.get("department"),
             )
-            for record in records
+            for row in record["rows"]
         ]
-        return persons, total
+        return persons, record["total"]
 
     # --- Graph analytics (read, GDS-backed, SA-19) ---
 
