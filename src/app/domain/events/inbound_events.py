@@ -11,6 +11,7 @@ OFFBOARDING_CANCELLATION_REQUESTED = "offboarding.cancellation_requested"
 INTERVIEW_STARTED = "interview.started"
 INTERVIEW_COMPLETED = "interview.completed"
 INTERVIEW_TURN_RECORDED = "interview.turn_recorded"
+TASKS_EXTRACTED = "tasks.extracted"
 DOSSIER_GENERATION_REQUESTED = "dossier.generation_requested"
 SOP_CREATION_REQUESTED = "sop.creation_requested"
 SOP_CANDIDATE_OFFERED = "sop.candidate_offered"
@@ -25,6 +26,7 @@ INBOUND_EVENT_TYPES = (
     INTERVIEW_STARTED,
     INTERVIEW_COMPLETED,
     INTERVIEW_TURN_RECORDED,
+    TASKS_EXTRACTED,
     DOSSIER_GENERATION_REQUESTED,
     SOP_CREATION_REQUESTED,
     SOP_CANDIDATE_OFFERED,

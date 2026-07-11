@@ -29,6 +29,7 @@ class TestKnowledgeChannelActivityRegisteredHandler:
             offboarding=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(

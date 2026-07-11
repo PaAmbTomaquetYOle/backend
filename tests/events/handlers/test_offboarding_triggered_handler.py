@@ -50,6 +50,7 @@ class TestOffboardingTriggeredHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await OffboardingTriggeredHandler().handle(event, context)
@@ -84,6 +85,7 @@ class TestOffboardingTriggeredHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await OffboardingTriggeredHandler().handle(event, context)

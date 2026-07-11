@@ -20,6 +20,7 @@ from app.application.services.interview_service import InterviewService
 from app.application.services.knowledge_graph_service import KnowledgeGraphService
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
+from app.application.services.offboarding_task_service import OffboardingTaskService
 from app.application.services.sop_candidate_service import SopCandidateService
 from app.application.services.sop_service import SopService
 from app.infrastructure.adapters.graph.knowledge_graph_repository import (
@@ -30,6 +31,7 @@ from app.infrastructure.adapters.repositories.interview import InterviewReposito
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
+from app.infrastructure.adapters.repositories.offboarding_task import OffboardingTaskRepository
 from app.infrastructure.adapters.repositories.sop import SopRepository
 from app.infrastructure.adapters.repositories.sop_candidate import SopCandidateRepository
 
@@ -91,6 +93,18 @@ def build_sop_candidate_service(session: AsyncSession) -> SopCandidateService:
     return SopCandidateService(SopCandidateRepository(session))
 
 
+def build_task_service(session: AsyncSession) -> OffboardingTaskService:
+    """Assemble a fully wired OffboardingTaskService from a session.
+
+    Args:
+        session: The active SQLModel session used by the offboarding task repository.
+
+    Returns:
+        OffboardingTaskService: A fully wired offboarding task service instance.
+    """
+    return OffboardingTaskService(OffboardingTaskRepository(session))
+
+
 def build_knowledge_graph_service(
     graph_db: IGraphDatabasePort,
     event_publisher: IEventPublisher | None = None,
@@ -135,5 +149,6 @@ def build_inbound_context(
         offboarding=build_offboarding_facade(session, event_publisher, dossier_generator),
         sops=build_sop_service(session, event_publisher, dialect_name=dialect_name),
         sop_candidates=build_sop_candidate_service(session),
+        tasks=build_task_service(session),
         knowledge_graph=build_knowledge_graph_service(graph_db, event_publisher),
     )

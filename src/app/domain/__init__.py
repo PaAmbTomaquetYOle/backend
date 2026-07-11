@@ -50,6 +50,7 @@ from .enums import (
     ProcessStateEnum,
     SopCandidateStatus,
     SpeakerRoleEnum,
+    TaskSourceEnum,
 )
 from .events import (
     DomainEvent,
@@ -118,6 +119,7 @@ from .offboarding import (
     OffboardingProcess,
     OffboardingProcessId,
     OffboardingProcessState,
+    OffboardingTask,
     PendingRevisionState,
     ProcessId,
 )
@@ -165,6 +167,7 @@ __all__: list[str] = [
     "ProcessStateEnum",
     "SopCandidateStatus",
     "SpeakerRoleEnum",
+    "TaskSourceEnum",
     # Exceptions
     "DomainException",
     "DossierAlreadyExistsForProcessError",
@@ -220,6 +223,7 @@ __all__: list[str] = [
     "OffboardingProcess",
     "OffboardingProcessId",
     "OffboardingProcessState",
+    "OffboardingTask",
     "PendingRevisionState",
     "ProcessId",
     # SOP domain

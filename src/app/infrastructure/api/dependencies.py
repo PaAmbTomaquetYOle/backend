@@ -22,6 +22,9 @@ from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingInterviewFacade,
     IOffboardingProcessFacade,
 )
+from app.application.service_interfaces.offboarding_task_service_interface import (
+    IOffboardingTaskService,
+)
 from app.application.service_interfaces.sop_candidate_service_interface import (
     ISopCandidateService,
 )
@@ -44,6 +47,7 @@ from app.infrastructure.composition import (
     build_offboarding_facade,
     build_sop_candidate_service,
     build_sop_service,
+    build_task_service,
 )
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
@@ -149,6 +153,13 @@ def sop_candidate_service_dependency(
 ) -> ISopCandidateService:
     """Provide a SOP candidate service wired with its repository."""
     return build_sop_candidate_service(session)
+
+
+def task_service_dependency(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> IOffboardingTaskService:
+    """Provide an offboarding task service wired with its repository."""
+    return build_task_service(session)
 
 
 def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphService:

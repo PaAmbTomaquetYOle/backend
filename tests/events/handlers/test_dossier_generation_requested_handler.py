@@ -34,6 +34,7 @@ class TestDossierGenerationRequestedHandler:
             offboarding=facade,
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         await DossierGenerationRequestedHandler().handle(event, context)

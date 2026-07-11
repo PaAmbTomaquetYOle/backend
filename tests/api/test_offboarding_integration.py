@@ -24,14 +24,17 @@ from app.domain import (
     OffboardingProcessId,
     ScheduledInterviewState,
 )
+from app.domain.enums import TaskSourceEnum
 from app.domain.offboarding.id import EmployeeId, InterviewId, ManagerId
 from app.domain.offboarding.state.not_started import NotStartedState
+from app.domain.offboarding.task import OffboardingTask
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
+from app.infrastructure.adapters.repositories.offboarding_task import OffboardingTaskRepository
 from app.infrastructure.persistence import models as _models  # noqa: F401
 from app.infrastructure.persistence.database import get_session
 from app.main import create_app
@@ -148,6 +151,13 @@ class TestProcessReads:
             assert item["state"] == "not_started"
 
 
+async def _seed_tasks(
+    engine, process_id: OffboardingProcessId, tasks: list[OffboardingTask]
+) -> None:
+    async with AsyncSession(engine) as session:
+        await OffboardingTaskRepository(session).replace_for_process(process_id, tasks)
+
+
 # ---------------------------------------------------------------------------
 # Interview reads
 # ---------------------------------------------------------------------------
@@ -193,3 +203,43 @@ class TestDossierReads:
         r = await client.get(f"/api/v1/offboarding/{process.process_id.get_id()}/dossier")
 
         assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Task reads (SA-18)
+# ---------------------------------------------------------------------------
+
+class TestTaskReads:
+    async def test_get_tasks_returns_extracted_tasks(
+        self, client: httpx.AsyncClient, engine
+    ) -> None:
+        process = await _seed_process(engine)
+        await _seed_tasks(engine, process.process_id, [
+            OffboardingTask(
+                process_id=process.process_id,
+                task_id="PROJ-1",
+                title="Fix the thing",
+                source=TaskSourceEnum.JIRA,
+                status="in_progress",
+                url="https://jira/PROJ-1",
+                description="desc",
+            ),
+        ])
+
+        r = await client.get(f"/api/v1/offboarding/{process.process_id.get_id()}/tasks")
+
+        assert r.status_code == 200
+        items = r.json()["items"]
+        assert len(items) == 1
+        assert items[0]["id"] == "PROJ-1"
+        assert items[0]["source"] == "jira"
+
+    async def test_get_tasks_returns_empty_list_when_none_extracted(
+        self, client: httpx.AsyncClient, engine
+    ) -> None:
+        process = await _seed_process(engine)
+
+        r = await client.get(f"/api/v1/offboarding/{process.process_id.get_id()}/tasks")
+
+        assert r.status_code == 200
+        assert r.json()["items"] == []

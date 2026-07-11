@@ -24,6 +24,7 @@ class TestSopCreationRequestedHandler:
             offboarding=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         event = DomainEvent(
@@ -52,6 +53,7 @@ class TestSopCreationRequestedHandler:
             offboarding=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
         event = DomainEvent(
