@@ -25,6 +25,7 @@ from app.application.services.monthly_review_process_service import MonthlyRevie
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
 from app.application.services.offboarding_task_service import OffboardingTaskService
+from app.application.services.review_scheduling_service import ReviewSchedulingService
 from app.application.services.sop_candidate_service import SopCandidateService
 from app.application.services.sop_service import SopService
 from app.infrastructure.adapters.graph.knowledge_graph_repository import (
@@ -115,6 +116,32 @@ def build_annual_review_facade(
         dossier_service=DossierService(DossierRepository(session)),
         event_publisher=event_publisher,
         dossier_generator=dossier_generator,
+    )
+
+
+def build_review_scheduling_service(
+    session: AsyncSession,
+    event_publisher: IEventPublisher | None = None,
+    dossier_generator: IDossierGenerator | None = None,
+) -> ReviewSchedulingService:
+    """Assemble a fully wired ReviewSchedulingService from a session (BE-24).
+
+    Args:
+        session: The active SQLModel session shared across the composed services.
+        event_publisher: Optional event publisher for domain event dispatching.
+        dossier_generator: Optional generator used by generate_dossier.
+
+    Returns:
+        ReviewSchedulingService: A fully wired scheduling service instance.
+    """
+    return ReviewSchedulingService(
+        offboarding_facade=build_offboarding_facade(session, event_publisher, dossier_generator),
+        monthly_review_facade=build_monthly_review_facade(
+            session, event_publisher, dossier_generator
+        ),
+        annual_review_facade=build_annual_review_facade(
+            session, event_publisher, dossier_generator
+        ),
     )
 
 
