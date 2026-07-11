@@ -84,6 +84,11 @@ class Settings(BaseSettings):
     review_scheduling_enabled: bool = False
     review_scheduling_hour_utc: int = 3
 
+    # Structured metrics for failures caught and handled rather than
+    # propagated (BE-20) — see IMetricsPort. Defaults to off so local
+    # dev/tests are unaffected; enable to expose GET /metrics.
+    metrics_enabled: bool = False
+
     @property
     def database_url(self) -> str:
         """Assemble the async PostgreSQL connection URL from individual components.

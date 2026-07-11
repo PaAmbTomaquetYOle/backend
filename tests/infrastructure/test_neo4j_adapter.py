@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from neo4j import AsyncDriver, Record
+from neo4j.exceptions import ServiceUnavailable
 
 from app.infrastructure.adapters.graph.neo4j_adapter import Neo4jAdapter
 from app.infrastructure.adapters.graph.noop_graph_adapter import NoOpGraphAdapter
@@ -28,7 +29,7 @@ async def test_neo4j_adapter_verify_connectivity_success(mock_driver: AsyncMock)
 @pytest.mark.anyio
 async def test_neo4j_adapter_verify_connectivity_failure(mock_driver: AsyncMock) -> None:
     adapter = Neo4jAdapter(mock_driver)
-    mock_driver.verify_connectivity.side_effect = Exception("Connection refused")
+    mock_driver.verify_connectivity.side_effect = ServiceUnavailable("Connection refused")
 
     result = await adapter.verify_connectivity()
 

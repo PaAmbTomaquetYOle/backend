@@ -1,10 +1,11 @@
 """Facade service composing the three domain services for annual review processes."""
 
-import logging
 from datetime import datetime, timezone
 
+from app.application.observability.event_publish_operation import EventPublishOperation
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.metrics import IMetricsPort
 from app.application.service_interfaces.annual_review_facade_interface import (
     IAnnualReviewServiceFacade,
 )
@@ -25,9 +26,10 @@ from app.domain import (
 )
 from app.domain.events.offboarding_events import DossierGenerated, InterviewCompleted
 from app.domain.events.review_events import AnnualReviewCompleted, AnnualReviewStateChanged
-from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
-
-logger = logging.getLogger(__name__)
+from app.domain.exceptions.dossier import (
+    DossierAlreadyExistsForProcessError,
+    DossierNotFoundError,
+)
 
 
 class AnnualReviewFacadeService(IAnnualReviewServiceFacade):
@@ -45,19 +47,18 @@ class AnnualReviewFacadeService(IAnnualReviewServiceFacade):
             dossier_service: IDossierService,
             event_publisher: IEventPublisher | None = None,
             dossier_generator: IDossierGenerator | None = None,
+            metrics: IMetricsPort | None = None,
     ) -> None:
         self._process_service = process_service
         self._interview_service = interview_service
         self._dossier_service = dossier_service
         self._event_publisher = event_publisher
         self._dossier_generator = dossier_generator
+        self._metrics = metrics
 
     async def _publish(self, event) -> None:
         if self._event_publisher is not None:
-            try:
-                await self._event_publisher.publish(event)
-            except Exception:
-                logger.warning("Failed to publish event %s", event.event_type, exc_info=True)
+            await EventPublishOperation(self._metrics, self._event_publisher, event).run()
 
     async def create_review(
             self,
@@ -193,8 +194,8 @@ class AnnualReviewFacadeService(IAnnualReviewServiceFacade):
         existing = None
         try:
             existing = await self._dossier_service.get_process_dossier(process_id)
-        except Exception:
-            pass
+        except DossierNotFoundError:
+            pass  # expected control flow: no dossier yet is not a failure
         if existing is not None:
             raise DossierAlreadyExistsForProcessError(str(process_id.get_id()))
 
