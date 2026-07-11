@@ -43,6 +43,16 @@ from app.infrastructure.persistence.database import create_db_and_tables, init_e
 logger = logging.getLogger(__name__)
 
 
+async def _initialize_neo4j_schema(graph_db: Neo4jAdapter) -> None:
+    """Initialize the Neo4j schema in the background without blocking startup."""
+
+    try:
+        await initialize_knowledge_graph_schema(graph_db)
+        logger.info("Neo4j schema initialized")
+    except Exception:
+        logger.warning("Failed to initialize Neo4j schema", exc_info=True)
+
+
 def _kafka_connection_kwargs(settings: Settings) -> dict:
     """Build the security-related kwargs shared by the Kafka producer and consumer.
 
@@ -117,10 +127,7 @@ async def lifespan(app: FastAPI):
             auth=(settings.neo4j_user, settings.neo4j_password)
         )
         app.state.graph_db = Neo4jAdapter(neo4j_driver)
-        await asyncio.wait_for(
-            initialize_knowledge_graph_schema(app.state.graph_db),
-            timeout=10.0,
-        )
+        asyncio.create_task(_initialize_neo4j_schema(app.state.graph_db))
         logger.info("Neo4j driver initialized")
     except Exception:
         if neo4j_driver is not None:
