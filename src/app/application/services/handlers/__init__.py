@@ -1,5 +1,17 @@
 """Inbound Kafka event handlers, one per event_type consumed from slack-agent."""
 
+from app.application.services.handlers.annual_review_cancellation_requested_handler import (
+    AnnualReviewCancellationRequestedHandler,
+)
+from app.application.services.handlers.annual_review_dossier_generation_requested_handler import (
+    AnnualReviewDossierGenerationRequestedHandler,
+)
+from app.application.services.handlers.annual_review_interview_completed_handler import (
+    AnnualReviewInterviewCompletedHandler,
+)
+from app.application.services.handlers.annual_review_triggered_handler import (
+    AnnualReviewTriggeredHandler,
+)
 from app.application.services.handlers.dossier_generation_requested_handler import (
     DossierGenerationRequestedHandler,
 )
@@ -20,6 +32,18 @@ from app.application.services.handlers.knowledge_document_registered_handler imp
 )
 from app.application.services.handlers.knowledge_interaction_registered_handler import (
     KnowledgeInteractionRegisteredHandler,
+)
+from app.application.services.handlers.monthly_review_cancellation_requested_handler import (
+    MonthlyReviewCancellationRequestedHandler,
+)
+from app.application.services.handlers.monthly_review_dossier_generation_requested_handler import (
+    MonthlyReviewDossierGenerationRequestedHandler,
+)
+from app.application.services.handlers.monthly_review_interview_completed_handler import (
+    MonthlyReviewInterviewCompletedHandler,
+)
+from app.application.services.handlers.monthly_review_triggered_handler import (
+    MonthlyReviewTriggeredHandler,
 )
 from app.application.services.handlers.offboarding_cancellation_requested_handler import (
     OffboardingCancellationRequestedHandler,
@@ -47,6 +71,10 @@ from app.application.services.handlers.sop_update_requested_handler import (
 )
 
 __all__ = [
+    "AnnualReviewCancellationRequestedHandler",
+    "AnnualReviewDossierGenerationRequestedHandler",
+    "AnnualReviewInterviewCompletedHandler",
+    "AnnualReviewTriggeredHandler",
     "DossierGenerationRequestedHandler",
     "InterviewCompletedHandler",
     "InterviewStartedHandler",
@@ -54,6 +82,10 @@ __all__ = [
     "KnowledgeChannelActivityRegisteredHandler",
     "KnowledgeDocumentRegisteredHandler",
     "KnowledgeInteractionRegisteredHandler",
+    "MonthlyReviewCancellationRequestedHandler",
+    "MonthlyReviewDossierGenerationRequestedHandler",
+    "MonthlyReviewInterviewCompletedHandler",
+    "MonthlyReviewTriggeredHandler",
     "OffboardingCancellationRequestedHandler",
     "OffboardingTasksExtractedHandler",
     "OffboardingTriggeredHandler",
