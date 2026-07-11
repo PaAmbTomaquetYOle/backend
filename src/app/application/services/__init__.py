@@ -38,6 +38,7 @@ from .monthly_review_facade_service import MonthlyReviewFacadeService
 from .monthly_review_process_service import MonthlyReviewProcessService
 from .offboarding_facade_service import OffboardingFacadeService
 from .offboarding_process_service import OffboardingProcessService
+from .review_scheduling_service import ReviewSchedulingService
 
 __all__: list[str] = [
     "AnnualReviewFacadeService",
@@ -48,4 +49,5 @@ __all__: list[str] = [
     "MonthlyReviewProcessService",
     "OffboardingFacadeService",
     "OffboardingProcessService",
+    "ReviewSchedulingService",
 ]

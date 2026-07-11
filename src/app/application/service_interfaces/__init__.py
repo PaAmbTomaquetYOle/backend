@@ -41,6 +41,7 @@ from .offboarding_facade_interface import (
 )
 from .offboarding_process_service_interface import IOffboardingProcessService
 from .process_service_interface import IProcessService
+from .review_scheduling_service_interface import IReviewSchedulingService, ReviewSchedulingResult
 
 __all__: list[str] = [
     "IAnnualReviewProcessService",
@@ -55,4 +56,6 @@ __all__: list[str] = [
     "IOffboardingServiceFacade",
     "IOffboardingProcessService",
     "IProcessService",
+    "IReviewSchedulingService",
+    "ReviewSchedulingResult",
 ]
