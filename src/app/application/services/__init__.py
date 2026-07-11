@@ -30,14 +30,22 @@ Empty for now. As services are added, export them here and list them in
 ``__all__``.
 """
 
+from .annual_review_facade_service import AnnualReviewFacadeService
+from .annual_review_process_service import AnnualReviewProcessService
 from .dossier_service import DossierService
 from .interview_service import InterviewService
+from .monthly_review_facade_service import MonthlyReviewFacadeService
+from .monthly_review_process_service import MonthlyReviewProcessService
 from .offboarding_facade_service import OffboardingFacadeService
 from .offboarding_process_service import OffboardingProcessService
 
 __all__: list[str] = [
+    "AnnualReviewFacadeService",
+    "AnnualReviewProcessService",
     "DossierService",
     "InterviewService",
+    "MonthlyReviewFacadeService",
+    "MonthlyReviewProcessService",
     "OffboardingFacadeService",
     "OffboardingProcessService",
 ]
