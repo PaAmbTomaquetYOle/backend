@@ -21,8 +21,10 @@ from .interview import (
     InterviewTurnOrderError,
 )
 from .invalid_state_transition import (
+    InvalidAnnualReviewProcessStateTransitionError,
     InvalidDossierStateTransitionError,
     InvalidInterviewStateTransitionError,
+    InvalidMonthlyReviewProcessStateTransitionError,
     InvalidOffboardingProcessStateTransitionError,
     InvalidStateTransitionError,
 )
@@ -55,9 +57,11 @@ __all__ = [
     "InterviewNotFoundError",
     "InterviewNotInProgressError",
     "InterviewTurnOrderError",
+    "InvalidAnnualReviewProcessStateTransitionError",
     "InvalidCredentialsError",
     "InvalidDossierStateTransitionError",
     "InvalidInterviewStateTransitionError",
+    "InvalidMonthlyReviewProcessStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
     "InvalidSopCandidateTransitionError",
     "InvalidStateTransitionError",

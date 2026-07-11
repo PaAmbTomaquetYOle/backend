@@ -18,7 +18,7 @@ class ProcessModel(SQLModel, table=True):
     __tablename__ = "processes"
     __table_args__ = (
         CheckConstraint(
-            "type IN ('offboarding')",
+            "type IN ('offboarding','monthly_review','annual_review')",
             name="ck_processes_type",
         ),
     )
