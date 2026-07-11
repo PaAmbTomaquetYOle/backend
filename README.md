@@ -22,6 +22,7 @@ Backend API for the **BrainTrust** offboarding agent — consumes Kafka events p
 - [🔑 Authentication](#-authentication)
 - [📨 Kafka topics](#-kafka-topics)
 - [🤖 AI dossier generation](#-ai-dossier-generation)
+- [🗓 Periodic review scheduling](#-periodic-review-scheduling)
 - [📜 AsyncAPI contract](#-asyncapi-contract)
 - [🧪 Testing](#-testing)
 
@@ -196,6 +197,21 @@ This writes broker keystore/truststore material and a client CA (`certs/ca.pem`)
   **Error handling**: the whole mcp-server round trip (connection, tool call, and the generation it runs) is wrapped in a timeout (`DOSSIER_LLM_TIMEOUT_SECONDS`) and a broad `except Exception`. A connection failure, a tool error, or a malformed JSON answer all fall back to `FakeDossierGenerator` — the Kafka consumer's flow never breaks.
 
 Wiring (`src/app/main.py`, lifespan) is feature-flagged: set `DOSSIER_LLM_ENABLED=true` to use `LLMDossierGenerator` (pointed at `MCP_SERVER_URL`); otherwise it stays on `FakeDossierGenerator`. See `.env.example` for `DOSSIER_LLM_*` / `MCP_SERVER_URL`. Running mcp-server locally (`uv run mcp-server` in that repo, with its own `MCP_SERVER_ANTHROPIC_API_KEY` set) exposes the streamable-HTTP endpoint at `MCP_SERVER_URL` (default `/mcp` path).
+
+## 🗓 Periodic review scheduling
+
+BE-24: alongside offboarding (user-triggered from Slack), the backend automatically creates `MonthlyReviewProcess`/`AnnualReviewProcess` instances for active employees/volunteers — proactive knowledge retention, not just capture-on-departure.
+
+**Approach**: an in-process [APScheduler](https://apscheduler.readthedocs.io/) job (`ReviewScheduler`, `src/app/infrastructure/scheduling/review_scheduler.py`), started/stopped in the FastAPI lifespan next to the Kafka producer/consumer and Neo4j driver — not an externally-triggered CronJob. Rationale (full writeup in the module's docstring): this project deploys a single FastAPI process with no other scheduled infrastructure, and an HTTP-triggered endpoint would need its own auth for a caller that only exists to talk to itself. The job runs once a day (`REVIEW_SCHEDULING_HOUR_UTC`, default 03:00 UTC); a missed run (e.g. a restart) self-heals on the next day's sweep since eligibility is re-evaluated from scratch each time.
+
+**Selection criteria** (`ReviewSchedulingPolicy`, `src/app/domain/review_scheduling.py`) — this backend has no separate employee/volunteer roster, so both "who's active" and "when did they join" are derived from processes already on record:
+- **Eligible**: any `employee_id` seen on any process, as long as they don't have a FINISHED `OffboardingProcess` (i.e. haven't actually left) and don't already have an active (non-terminal) review process of that type.
+- **Monthly cadence**: every 30 days, anchored on their last FINISHED `MonthlyReviewProcess`, or on the earliest process ever recorded for them if they've never had one.
+- **Annual cadence**: every 365 days, same anchoring logic against `AnnualReviewProcess`.
+
+A due review is created and started via the exact same `MonthlyReviewFacadeService`/`AnnualReviewFacadeService` (`IReviewSchedulingService` → `ReviewSchedulingService`) that the Kafka handlers use — so an automatically-scheduled review publishes the same `monthly_review.state_changed`/`annual_review.state_changed` events defined in BE-23, indistinguishable to slack-agent from a manual trigger.
+
+Feature-flagged like the other optional integrations: set `REVIEW_SCHEDULING_ENABLED=true` to turn it on (defaults to `false`). See `.env.example` for `REVIEW_SCHEDULING_*`.
 
 ## 📜 AsyncAPI contract
 
