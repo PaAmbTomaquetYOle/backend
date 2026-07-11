@@ -9,6 +9,9 @@ from app.application.services.handlers.interview_completed_handler import (
 from app.application.services.handlers.interview_started_handler import (
     InterviewStartedHandler,
 )
+from app.application.services.handlers.interview_turn_recorded_handler import (
+    InterviewTurnRecordedHandler,
+)
 from app.application.services.handlers.knowledge_channel_activity_registered_handler import (
     KnowledgeChannelActivityRegisteredHandler,
 )
@@ -32,6 +35,7 @@ __all__ = [
     "DossierGenerationRequestedHandler",
     "InterviewCompletedHandler",
     "InterviewStartedHandler",
+    "InterviewTurnRecordedHandler",
     "KnowledgeChannelActivityRegisteredHandler",
     "KnowledgeDocumentRegisteredHandler",
     "KnowledgeInteractionRegisteredHandler",
