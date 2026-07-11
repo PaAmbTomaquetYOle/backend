@@ -70,7 +70,8 @@ class TestSaveAndFindById:
     async def test_find_by_id_returns_none_when_soft_deleted(self, repository):
         sop = make_sop()
         await repository.save(sop)
-        await repository.soft_delete(sop.sop_id)
+        sop.mark_deleted()
+        await repository.save(sop)
 
         assert await repository.find_by_id(sop.sop_id) is None
 
@@ -87,13 +88,11 @@ class TestSaveAndFindById:
 
 @pytest.mark.anyio
 class TestSoftDelete:
-    async def test_soft_delete_is_noop_for_unknown_id(self, repository):
-        await repository.soft_delete(SopId())  # must not raise
-
     async def test_soft_deleted_sop_excluded_from_search(self, repository):
         sop = make_sop()
         await repository.save(sop)
-        await repository.soft_delete(sop.sop_id)
+        sop.mark_deleted()
+        await repository.save(sop)
 
         items, total = await repository.search(text=None, tags=None, page=1, size=20)
         assert sop.sop_id.get_id() not in {i.sop_id.get_id() for i in items}

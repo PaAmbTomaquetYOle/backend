@@ -113,15 +113,6 @@ class SopRepository(ISopRepository):
             )
         return col(SopModel.content).ilike(f"%{text}%")
 
-    async def soft_delete(self, sop_id: SopId) -> None:
-        """Mark the SOP with the given ID as deleted (no-op if not found)."""
-        model = await self._session.get(SopModel, sop_id.get_id())
-        if model is None:
-            return
-        sop = await self._to_domain(model)
-        sop.mark_deleted()
-        await self.save(sop)
-
     async def _to_domain(self, model: SopModel) -> Sop:
         """Reconstruct a domain Sop from its persistence model, including tags."""
         tag_rows = (

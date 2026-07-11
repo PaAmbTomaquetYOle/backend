@@ -1,14 +1,15 @@
 """HTTP endpoints for SOP (Standard Operating Procedure) management.
 
-Creation is Kafka-only (``sop.creation_requested``, matching the offboarding
-write-convergence policy) — see ``domain/events/inbound_events.py``. Update
-and soft-delete have no Kafka equivalent and remain on REST.
+The full SOP write lifecycle (creation, update, soft-delete) is Kafka-only —
+``sop.creation_requested``, ``sop.update_requested``, ``sop.deletion_requested``
+(see ``domain/events/inbound_events.py``). This router only exposes read
+endpoints, matching the "REST is read-only" policy.
 """
 
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from app.application.service_interfaces.sop_service_interface import ISopService
 from app.domain.sops.id import SopId
@@ -18,7 +19,6 @@ from app.infrastructure.api.schemas.common import ErrorResponse
 from app.infrastructure.api.schemas.sop import (
     SopPageResponse,
     SopResponse,
-    UpdateSopRequest,
     sop_page_response,
     sop_to_response,
 )
@@ -65,33 +65,3 @@ async def get_sop(
     """Retrieve a specific SOP by its ID."""
     sop = await service.get_sop(SopId(sop_id))
     return sop_to_response(sop)
-
-
-@router.patch(
-    "/{sop_id}",
-    response_model=SopResponse,
-    responses=_404,
-    summary="Partially update a SOP (bumps its version)",
-)
-async def update_sop(
-        sop_id: UUID,
-        body: UpdateSopRequest,
-        service: Annotated[ISopService, Depends(sop_service_dependency)],
-) -> SopResponse:
-    """Apply a partial revision to a SOP, incrementing its version."""
-    sop = await service.update_sop(SopId(sop_id), content=body.content, tags=body.tags)
-    return sop_to_response(sop)
-
-
-@router.delete(
-    "/{sop_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses=_404,
-    summary="Soft-delete a SOP",
-)
-async def delete_sop(
-        sop_id: UUID,
-        service: Annotated[ISopService, Depends(sop_service_dependency)],
-) -> None:
-    """Soft-delete a SOP by its ID."""
-    await service.delete_sop(SopId(sop_id))

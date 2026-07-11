@@ -1,9 +1,9 @@
 """Integration tests for SOP endpoints — full stack with async in-memory SQLite DB.
 
-SOP creation is Kafka-only (``sop.creation_requested``), so test data is
-seeded directly via ``SopRepository`` — mirroring what the Kafka handler
-would persist — instead of through REST. This module exercises the
-surviving REST endpoints (search, get, update, delete).
+The full SOP write lifecycle (create/update/delete) is Kafka-only (BE-21), so
+test data is seeded directly via ``SopRepository`` — mirroring what the Kafka
+handlers would persist — instead of through REST. This module exercises the
+surviving read-only REST endpoints (search, get).
 """
 
 from __future__ import annotations
@@ -83,37 +83,6 @@ class TestSopCRUD:
         r = await client.get(f"/api/v1/sops/{uuid4()}")
         assert r.status_code == 404
 
-    async def test_patch_bumps_version(self, client: httpx.AsyncClient, engine) -> None:
-        sop = await _seed_sop(engine)
-
-        r = await client.patch(
-            f"/api/v1/sops/{sop.sop_id.get_id()}", json={"content": "updated content"}
-        )
-
-        assert r.status_code == 200
-        body = r.json()
-        assert body["content"] == "updated content"
-        assert body["version"] == 2
-
-    async def test_patch_404_unknown_id(self, client: httpx.AsyncClient) -> None:
-        r = await client.patch(f"/api/v1/sops/{uuid4()}", json={"content": "x"})
-        assert r.status_code == 404
-
-    async def test_delete_returns_204_and_soft_deletes(
-        self, client: httpx.AsyncClient, engine
-    ) -> None:
-        sop = await _seed_sop(engine)
-
-        r = await client.delete(f"/api/v1/sops/{sop.sop_id.get_id()}")
-        assert r.status_code == 204
-
-        r2 = await client.get(f"/api/v1/sops/{sop.sop_id.get_id()}")
-        assert r2.status_code == 404
-
-    async def test_delete_404_unknown_id(self, client: httpx.AsyncClient) -> None:
-        r = await client.delete(f"/api/v1/sops/{uuid4()}")
-        assert r.status_code == 404
-
 
 class TestSopSearch:
     async def test_search_all_paginated(self, client: httpx.AsyncClient, engine) -> None:
@@ -154,7 +123,9 @@ class TestSopSearch:
         self, client: httpx.AsyncClient, engine
     ) -> None:
         sop = await _seed_sop(engine)
-        await client.delete(f"/api/v1/sops/{sop.sop_id.get_id()}")
+        sop.mark_deleted()
+        async with AsyncSession(engine) as session:
+            await SopRepository(session, dialect_name="sqlite").save(sop)
 
         r = await client.get("/api/v1/sops")
 

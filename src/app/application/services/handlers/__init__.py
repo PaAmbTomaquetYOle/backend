@@ -39,6 +39,12 @@ from app.application.services.handlers.sop_candidate_offered_handler import (
 from app.application.services.handlers.sop_creation_requested_handler import (
     SopCreationRequestedHandler,
 )
+from app.application.services.handlers.sop_deletion_requested_handler import (
+    SopDeletionRequestedHandler,
+)
+from app.application.services.handlers.sop_update_requested_handler import (
+    SopUpdateRequestedHandler,
+)
 
 __all__ = [
     "DossierGenerationRequestedHandler",
@@ -54,4 +60,6 @@ __all__ = [
     "SopCandidateDecidedHandler",
     "SopCandidateOfferedHandler",
     "SopCreationRequestedHandler",
+    "SopDeletionRequestedHandler",
+    "SopUpdateRequestedHandler",
 ]

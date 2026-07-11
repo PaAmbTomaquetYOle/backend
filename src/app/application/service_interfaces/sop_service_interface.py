@@ -41,18 +41,25 @@ class ISopService(ABC):
     async def update_sop(
         self,
         sop_id: SopId,
+        editor: AuthorId,
+        origin_channel: ChannelId,
         content: str | None = None,
         tags: list[str] | None = None,
     ) -> Sop:
-        """Apply a partial revision to a SOP, incrementing its version.
+        """Apply a partial revision to a SOP, incrementing its version and publishing SOPUpdated.
 
         Raises:
             SopNotFoundError: If no non-deleted SOP with the given ID exists.
         """
 
     @abstractmethod
-    async def delete_sop(self, sop_id: SopId) -> None:
-        """Soft-delete a SOP.
+    async def delete_sop(
+        self,
+        sop_id: SopId,
+        requester: AuthorId,
+        origin_channel: ChannelId,
+    ) -> None:
+        """Soft-delete a SOP and publish SOPDeleted.
 
         Raises:
             SopNotFoundError: If no non-deleted SOP with the given ID exists.

@@ -1,8 +1,8 @@
 """Unit tests for SOP API endpoints — mock service, test HTTP layer only.
 
-SOP creation is Kafka-only (``sop.creation_requested``) — see
-``tests/events/handlers/test_sop_creation_requested_handler.py``. This module
-only covers the surviving REST endpoints (search, get, update, delete).
+The full SOP write lifecycle (create/update/delete) is Kafka-only (BE-21) —
+see ``tests/events/handlers/`` for the handler tests. This module only
+covers the surviving read-only REST endpoints (search, get).
 """
 
 from __future__ import annotations
@@ -111,51 +111,3 @@ class TestGetSop:
     def test_422_invalid_uuid(self, client: TestClient) -> None:
         r = client.get("/api/v1/sops/not-a-uuid")
         assert r.status_code == 422
-
-
-class TestUpdateSop:
-    def test_200_returns_updated_sop(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sop = _make_sop(content="revised")
-        mock_service.update_sop.return_value = sop
-
-        r = client.patch(f"/api/v1/sops/{uuid4()}", json={"content": "revised"})
-
-        assert r.status_code == 200
-        assert r.json()["content"] == "revised"
-
-    def test_404_not_found(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sid = uuid4()
-        mock_service.update_sop.side_effect = SopNotFoundError(str(sid))
-
-        r = client.patch(f"/api/v1/sops/{sid}", json={"content": "x"})
-
-        assert r.status_code == 404
-
-    def test_partial_update_omits_unset_fields(
-        self, client: TestClient, mock_service: AsyncMock
-    ) -> None:
-        mock_service.update_sop.return_value = _make_sop()
-
-        r = client.patch(f"/api/v1/sops/{uuid4()}", json={"tags": ["new"]})
-
-        assert r.status_code == 200
-        _, kwargs = mock_service.update_sop.call_args
-        assert kwargs["content"] is None
-        assert kwargs["tags"] == ["new"]
-
-
-class TestDeleteSop:
-    def test_204_on_success(self, client: TestClient, mock_service: AsyncMock) -> None:
-        mock_service.delete_sop.return_value = None
-
-        r = client.delete(f"/api/v1/sops/{uuid4()}")
-
-        assert r.status_code == 204
-
-    def test_404_not_found(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sid = uuid4()
-        mock_service.delete_sop.side_effect = SopNotFoundError(str(sid))
-
-        r = client.delete(f"/api/v1/sops/{sid}")
-
-        assert r.status_code == 404

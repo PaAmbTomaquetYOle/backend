@@ -14,6 +14,8 @@ INTERVIEW_TURN_RECORDED = "interview.turn_recorded"
 TASKS_EXTRACTED = "tasks.extracted"
 DOSSIER_GENERATION_REQUESTED = "dossier.generation_requested"
 SOP_CREATION_REQUESTED = "sop.creation_requested"
+SOP_UPDATE_REQUESTED = "sop.update_requested"
+SOP_DELETION_REQUESTED = "sop.deletion_requested"
 SOP_CANDIDATE_OFFERED = "sop.candidate_offered"
 SOP_CANDIDATE_DECIDED = "sop.candidate_decided"
 KNOWLEDGE_INTERACTION_REGISTERED = "knowledge_graph.interaction_registered"
@@ -29,6 +31,8 @@ INBOUND_EVENT_TYPES = (
     TASKS_EXTRACTED,
     DOSSIER_GENERATION_REQUESTED,
     SOP_CREATION_REQUESTED,
+    SOP_UPDATE_REQUESTED,
+    SOP_DELETION_REQUESTED,
     SOP_CANDIDATE_OFFERED,
     SOP_CANDIDATE_DECIDED,
     KNOWLEDGE_INTERACTION_REGISTERED,

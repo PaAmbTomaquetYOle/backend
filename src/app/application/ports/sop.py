@@ -38,7 +38,3 @@ class ISopRepository(ABC):
             tuple[list[Sop], int]: The page of matching SOPs and the total
                 count of matches across all pages.
         """
-
-    @abstractmethod
-    async def soft_delete(self, sop_id: SopId) -> None:
-        """Mark the SOP with the given ID as deleted (no-op if not found)."""

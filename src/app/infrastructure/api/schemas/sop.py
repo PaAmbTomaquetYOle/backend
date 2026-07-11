@@ -18,13 +18,6 @@ class CreateSopRequest(BaseModel):
     tags: list[str] = []
 
 
-class UpdateSopRequest(BaseModel):
-    """Request body for partially updating a SOP. Omitted fields are unchanged."""
-
-    content: str | None = None
-    tags: list[str] | None = None
-
-
 class SopResponse(BaseModel):
     """Response body representing a SOP."""
 

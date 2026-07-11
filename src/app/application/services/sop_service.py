@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.sop import ISopRepository
 from app.application.service_interfaces.sop_service_interface import ISopService
-from app.domain.events.sop_events import SOPCreated
+from app.domain.events.sop_events import SOPCreated, SOPDeleted, SOPUpdated
 from app.domain.exceptions.sops import SopNotFoundError
 from app.domain.sops.id import AuthorId, ChannelId, SopId
 from app.domain.sops.sop import Sop
@@ -125,13 +125,17 @@ class SopService(ISopService):
     async def update_sop(
         self,
         sop_id: SopId,
+        editor: AuthorId,
+        origin_channel: ChannelId,
         content: str | None = None,
         tags: list[str] | None = None,
     ) -> Sop:
-        """Apply a partial revision to a SOP and persist it.
+        """Apply a partial revision to a SOP, persist it, and publish SOPUpdated.
 
         Args:
             sop_id: Identifier of the SOP to revise.
+            editor: Identifier of the Slack user requesting the revision.
+            origin_channel: Identifier of the Slack channel the request came from.
             content: New content, if being changed. Defaults to None (unchanged).
             tags: New tag list, if being changed. Defaults to None (unchanged).
 
@@ -144,16 +148,38 @@ class SopService(ISopService):
         sop = await self.get_sop(sop_id)
         sop.revise(content=content, tags=tags)
         await self._repo.save(sop)
+        await self._publish(SOPUpdated(
+            sop_id=sop.sop_id.get_id(),
+            editor=editor.get_id(),
+            origin_channel=origin_channel.get_id(),
+            tags=sop.tags,
+            version=sop.version,
+            updated_at=sop.updated_at,
+        ))
         return sop
 
-    async def delete_sop(self, sop_id: SopId) -> None:
-        """Soft-delete a SOP.
+    async def delete_sop(
+        self,
+        sop_id: SopId,
+        requester: AuthorId,
+        origin_channel: ChannelId,
+    ) -> None:
+        """Soft-delete a SOP and publish SOPDeleted.
 
         Args:
             sop_id: Identifier of the SOP to delete.
+            requester: Identifier of the Slack user requesting the deletion.
+            origin_channel: Identifier of the Slack channel the request came from.
 
         Raises:
             SopNotFoundError: If no non-deleted SOP with the given ID exists.
         """
-        await self.get_sop(sop_id)
-        await self._repo.soft_delete(sop_id)
+        sop = await self.get_sop(sop_id)
+        sop.mark_deleted()
+        await self._repo.save(sop)
+        await self._publish(SOPDeleted(
+            sop_id=sop.sop_id.get_id(),
+            requester=requester.get_id(),
+            origin_channel=origin_channel.get_id(),
+            deleted_at=sop.deleted_at,
+        ))
