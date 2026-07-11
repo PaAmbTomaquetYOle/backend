@@ -194,18 +194,56 @@ async def test_find_person_knowledge_profile_maps_topics_and_documents(
 async def test_find_all_topics_returns_page_and_total(
     repo: Neo4jKnowledgeGraphRepository, graph_db: AsyncMock
 ) -> None:
-    graph_db.execute_query.side_effect = [
-        [{"total": 2}],
-        [
-            {"name": "kubernetes", "description": None},
-            {"name": "terraform", "description": None},
-        ],
+    graph_db.execute_query.return_value = [
+        {
+            "total": 2,
+            "rows": [
+                {"name": "kubernetes", "description": None},
+                {"name": "terraform", "description": None},
+            ],
+        }
     ]
 
     topics, total = await repo.find_all_topics(page=1, size=50)
 
     assert total == 2
     assert [t.name for t in topics] == ["kubernetes", "terraform"]
+    assert graph_db.execute_query.call_count == 1
+
+
+@pytest.mark.anyio
+async def test_find_all_topics_preserves_total_on_out_of_range_page(
+    repo: Neo4jKnowledgeGraphRepository, graph_db: AsyncMock
+) -> None:
+    graph_db.execute_query.return_value = [{"total": 2, "rows": []}]
+
+    topics, total = await repo.find_all_topics(page=99, size=50)
+
+    assert (topics, total) == ([], 2)
+
+
+@pytest.mark.anyio
+async def test_find_all_persons_returns_page_and_total(
+    repo: Neo4jKnowledgeGraphRepository, graph_db: AsyncMock
+) -> None:
+    graph_db.execute_query.return_value = [
+        {
+            "total": 2,
+            "rows": [
+                {"person_id": "U1", "name": "Alice", "department": "SRE"},
+                {"person_id": "U2", "name": "Bob", "department": None},
+            ],
+        }
+    ]
+
+    persons, total = await repo.find_all_persons(page=1, size=50)
+
+    assert total == 2
+    assert [(p.person_id, p.name, p.department) for p in persons] == [
+        ("U1", "Alice", "SRE"),
+        ("U2", "Bob", None),
+    ]
+    assert graph_db.execute_query.call_count == 1
 
 
 class TestComputePersonAnalytics:
