@@ -1,5 +1,6 @@
 """Application entrypoint and composition root."""
 
+import asyncio
 import logging
 import ssl
 from contextlib import asynccontextmanager
@@ -109,15 +110,21 @@ async def lifespan(app: FastAPI):
         logger.info("Using LLMDossierGenerator (mcp_server=%s)", settings.mcp_server_url)
     else:
         app.state.dossier_generator = fake_dossier_generator
+    neo4j_driver = None
     try:
         neo4j_driver = AsyncGraphDatabase.driver(
             settings.neo4j_uri,
             auth=(settings.neo4j_user, settings.neo4j_password)
         )
         app.state.graph_db = Neo4jAdapter(neo4j_driver)
-        await initialize_knowledge_graph_schema(app.state.graph_db)
+        await asyncio.wait_for(
+            initialize_knowledge_graph_schema(app.state.graph_db),
+            timeout=10.0,
+        )
         logger.info("Neo4j driver initialized")
     except Exception:
+        if neo4j_driver is not None:
+            await neo4j_driver.close()
         logger.warning("Failed to initialize Neo4j driver, using NoOpGraphAdapter", exc_info=True)
         app.state.graph_db = NoOpGraphAdapter()
 
