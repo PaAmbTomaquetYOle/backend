@@ -5,8 +5,10 @@ from abc import ABC, abstractmethod
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 
@@ -45,6 +47,25 @@ class IKnowledgeGraphService(ABC):
         self, topic: str, limit: int = 20
     ) -> list[DocumentNode]:
         """Return documents that reference the given topic."""
+
+    @abstractmethod
+    async def get_person_analytics(self) -> list[PersonAnalytics]:
+        """Return per-person community/influence/broker-risk analytics.
+
+        Backed by Neo4j GDS (Louvain + PageRank + betweenness). Returns an
+        empty list when GDS is unavailable — this is a normal, expected
+        degradation, not an error.
+        """
+
+    @abstractmethod
+    async def get_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Return persons best positioned to cover for the given person.
+
+        Backed by Neo4j GDS Node Similarity. Returns an empty list when GDS
+        is unavailable.
+        """
 
     # --- Write use cases (driven by inbound Kafka events) ---
 

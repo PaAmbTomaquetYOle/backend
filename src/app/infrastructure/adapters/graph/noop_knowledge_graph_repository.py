@@ -8,8 +8,10 @@ from app.application.ports.knowledge_graph import IKnowledgeGraphRepository
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 
@@ -138,3 +140,15 @@ class NoOpKnowledgeGraphRepository(IKnowledgeGraphRepository):
         """Always returns an empty page."""
         logger.warning("NoOpKnowledgeGraphRepository.find_all_persons called")
         return [], 0
+
+    async def compute_person_analytics(self) -> list[PersonAnalytics]:
+        """Always returns an empty list."""
+        logger.warning("NoOpKnowledgeGraphRepository.compute_person_analytics called")
+        return []
+
+    async def find_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Always returns an empty list."""
+        logger.warning("NoOpKnowledgeGraphRepository.find_successor_candidates called")
+        return []
