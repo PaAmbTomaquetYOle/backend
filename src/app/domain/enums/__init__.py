@@ -6,6 +6,7 @@ from .dossier_state import DossierStateEnum
 from .interview_state import InterviewStateEnum
 from .offboarding_state import OffboardingProcessStateEnum
 from .process_state import ProcessStateEnum
+from .sop_candidate_status import SopCandidateStatus
 from .speaker_role import SpeakerRoleEnum
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     'InterviewStateEnum',
     'OffboardingProcessStateEnum',
     'ProcessStateEnum',
+    'SopCandidateStatus',
     'SpeakerRoleEnum',
 ]

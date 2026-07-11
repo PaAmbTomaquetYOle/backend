@@ -23,7 +23,10 @@ class TestKnowledgeDocumentRegisteredHandler:
     async def test_handle_registers_document(self) -> None:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
-            offboarding=AsyncMock(), sops=AsyncMock(), knowledge_graph=knowledge_graph
+            offboarding=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
             event_type=KNOWLEDGE_DOCUMENT_REGISTERED,
@@ -54,7 +57,10 @@ class TestKnowledgeDocumentRegisteredHandler:
     async def test_handle_defaults_optional_fields_to_none(self) -> None:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
-            offboarding=AsyncMock(), sops=AsyncMock(), knowledge_graph=knowledge_graph
+            offboarding=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
             event_type=KNOWLEDGE_DOCUMENT_REGISTERED,

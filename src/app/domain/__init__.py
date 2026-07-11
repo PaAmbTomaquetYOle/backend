@@ -48,6 +48,7 @@ from .enums import (
     InterviewStateEnum,
     OffboardingProcessStateEnum,
     ProcessStateEnum,
+    SopCandidateStatus,
     SpeakerRoleEnum,
 )
 from .events import (
@@ -74,11 +75,13 @@ from .exceptions import (
     InvalidDossierStateTransitionError,
     InvalidInterviewStateTransitionError,
     InvalidOffboardingProcessStateTransitionError,
+    InvalidSopCandidateTransitionError,
     InvalidStateTransitionError,
     KnowledgeGraphDomainError,
     OffboardingDomainError,
     PersonNotFoundInGraphError,
     ProcessNotFoundError,
+    SopCandidateNotFoundError,
     SopDomainError,
     SopNotFoundError,
     TopicNotFoundInGraphError,
@@ -122,6 +125,8 @@ from .sops import (
     AuthorId,
     ChannelId,
     Sop,
+    SopCandidate,
+    SopCandidateId,
     SopId,
 )
 
@@ -158,6 +163,7 @@ __all__: list[str] = [
     "InterviewStateEnum",
     "OffboardingProcessStateEnum",
     "ProcessStateEnum",
+    "SopCandidateStatus",
     "SpeakerRoleEnum",
     # Exceptions
     "DomainException",
@@ -174,11 +180,13 @@ __all__: list[str] = [
     "InvalidDossierStateTransitionError",
     "InvalidInterviewStateTransitionError",
     "InvalidOffboardingProcessStateTransitionError",
+    "InvalidSopCandidateTransitionError",
     "InvalidStateTransitionError",
     "KnowledgeGraphDomainError",
     "OffboardingDomainError",
     "PersonNotFoundInGraphError",
     "ProcessNotFoundError",
+    "SopCandidateNotFoundError",
     "SopDomainError",
     "SopNotFoundError",
     "TopicNotFoundInGraphError",
@@ -218,5 +226,7 @@ __all__: list[str] = [
     "AuthorId",
     "ChannelId",
     "Sop",
+    "SopCandidate",
+    "SopCandidateId",
     "SopId",
 ]

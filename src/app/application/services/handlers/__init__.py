@@ -27,6 +27,12 @@ from app.application.services.handlers.offboarding_cancellation_requested_handle
 from app.application.services.handlers.offboarding_triggered_handler import (
     OffboardingTriggeredHandler,
 )
+from app.application.services.handlers.sop_candidate_decided_handler import (
+    SopCandidateDecidedHandler,
+)
+from app.application.services.handlers.sop_candidate_offered_handler import (
+    SopCandidateOfferedHandler,
+)
 from app.application.services.handlers.sop_creation_requested_handler import (
     SopCreationRequestedHandler,
 )
@@ -41,5 +47,7 @@ __all__ = [
     "KnowledgeInteractionRegisteredHandler",
     "OffboardingCancellationRequestedHandler",
     "OffboardingTriggeredHandler",
+    "SopCandidateDecidedHandler",
+    "SopCandidateOfferedHandler",
     "SopCreationRequestedHandler",
 ]

@@ -21,5 +21,6 @@ from .interview import InterviewTurnModel as InterviewTurnModel
 from .offboarding_process import OffboardingProcessModel as OffboardingProcessModel
 from .process import ProcessModel as ProcessModel
 from .sop import SopModel as SopModel
+from .sop_candidate import SopCandidateModel as SopCandidateModel
 from .tag import SopTagLink as SopTagLink
 from .tag import TagModel as TagModel

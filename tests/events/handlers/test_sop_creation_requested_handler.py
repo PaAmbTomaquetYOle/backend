@@ -20,7 +20,12 @@ class TestSopCreationRequestedHandler:
     @pytest.mark.anyio
     async def test_handle_creates_sop(self) -> None:
         sops = AsyncMock(spec=ISopService)
-        context = InboundContext(offboarding=AsyncMock(), sops=sops, knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=AsyncMock(),
+            sops=sops,
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={
@@ -43,7 +48,12 @@ class TestSopCreationRequestedHandler:
     @pytest.mark.anyio
     async def test_handle_defaults_tags_to_none(self) -> None:
         sops = AsyncMock(spec=ISopService)
-        context = InboundContext(offboarding=AsyncMock(), sops=sops, knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=AsyncMock(),
+            sops=sops,
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={"content": "x", "author": "U1", "origin_channel": "C1"},

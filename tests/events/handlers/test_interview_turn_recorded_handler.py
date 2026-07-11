@@ -77,7 +77,12 @@ class TestInterviewTurnRecordedHandler:
         facade.start_interview.return_value = _interview(process_id, InProgressInterviewState())
 
         event = _event(process_id, [0])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 
@@ -98,7 +103,12 @@ class TestInterviewTurnRecordedHandler:
         facade.start_interview.return_value = _interview(process_id, InProgressInterviewState())
 
         event = _event(process_id, [0])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 
@@ -115,7 +125,12 @@ class TestInterviewTurnRecordedHandler:
         )
 
         event = _event(process_id, [0, 1])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 
@@ -133,7 +148,12 @@ class TestInterviewTurnRecordedHandler:
         )
 
         event = _event(process_id, [0])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 
@@ -147,7 +167,12 @@ class TestInterviewTurnRecordedHandler:
         facade.get_interview.return_value = _interview(process_id, CompletedInterviewState())
 
         event = _event(process_id, [5])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 
@@ -160,7 +185,12 @@ class TestInterviewTurnRecordedHandler:
         process_id = uuid4()
 
         event = _event(process_id, [])
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
 
         await InterviewTurnRecordedHandler().handle(event, context)
 

@@ -14,6 +14,9 @@ from app.application.service_interfaces.knowledge_graph_service_interface import
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingServiceFacade,
 )
+from app.application.service_interfaces.sop_candidate_service_interface import (
+    ISopCandidateService,
+)
 from app.application.service_interfaces.sop_service_interface import ISopService
 
 
@@ -23,4 +26,5 @@ class InboundContext:
 
     offboarding: IOffboardingServiceFacade
     sops: ISopService
+    sop_candidates: ISopCandidateService
     knowledge_graph: IKnowledgeGraphService
