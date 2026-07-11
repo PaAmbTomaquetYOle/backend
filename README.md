@@ -35,6 +35,26 @@ The backend relies on several core services, orchestrated via Docker Compose:
 - **Apache Kafka (Confluent 7.8.0)**: Event streaming using KRaft mode (no Zookeeper).
 - **Kafka UI**: Web interface for inspecting topics and messages.
 
+### 🧠 Knowledge graph (SA-19)
+
+`GET /api/v1/knowledge-graph/*` (JWT-guarded, read-only — writes arrive via Kafka, see above) exposes:
+
+- `persons`, `topics`, `experts`, `topics/{name}/related`, `topics/{name}/documents`, `persons/{id}` — the base graph reads.
+- Relationship `created_at`/`last_seen_at` timestamps (surfaced on `experts` as `first_seen`/`last_seen`) — recorded
+  from this change forward; edges written before it have neither (`null`), which the frontend's temporal timeline
+  treats as "always present".
+- `GET /analytics` — per-person **Louvain community**, **weighted PageRank influence**, and **betweenness broker
+  score**, computed by Neo4j **Graph Data Science (GDS)** over a person-to-person projection (two persons linked
+  when they share a topic). Broker score is the headline offboarding signal: a person who bridges otherwise
+  disconnected communities is the riskiest to lose.
+- `GET /persons/{id}/successors` — GDS **Node Similarity** (Jaccard over shared topics): who else already knows
+  what this person knows, i.e. who could plausibly cover for them.
+- **GDS is optional at runtime.** The `graph-data-science` plugin (Community Edition, free) is enabled in
+  `docker-compose.yml`; if it's ever unavailable (or Neo4j itself is down, via `NoOpGraphAdapter`), both endpoints
+  degrade to `200 []` instead of erroring — see `Neo4jKnowledgeGraphRepository.compute_person_analytics`/
+  `find_successor_candidates`. GDS projections run in JVM heap; see `NEO4J_HEAP_*` in `.env.example` and the
+  board issue tracking production sizing.
+
 ## 🚀 Getting Started
 
 We provide scripts to spin up the entire local development environment effortlessly.

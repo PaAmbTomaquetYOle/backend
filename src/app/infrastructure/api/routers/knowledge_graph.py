@@ -17,14 +17,18 @@ from app.infrastructure.api.dependencies import knowledge_graph_service_dependen
 from app.infrastructure.api.schemas.knowledge_graph import (
     DocumentResponse,
     ExpertResponse,
+    PersonAnalyticsResponse,
     PersonKnowledgeProfileResponse,
     PersonPageResponse,
+    SuccessorCandidateResponse,
     TopicPageResponse,
     TopicResponse,
     document_to_response,
     expert_to_response,
+    person_analytics_to_response,
     person_page_response,
     profile_to_response,
+    successor_candidate_to_response,
     topic_page_response,
     topic_to_response,
 )
@@ -140,3 +144,36 @@ async def get_topic_documents(
     """Find documents that reference the given topic."""
     documents = await service.get_documents_by_topic(topic_name, limit=limit)
     return [document_to_response(d) for d in documents]
+
+
+@router.get(
+    "/analytics",
+    response_model=list[PersonAnalyticsResponse],
+    summary="Graph analytics (community, influence, broker risk) per person",
+)
+async def get_person_analytics(service: Service) -> list[PersonAnalyticsResponse]:
+    """Return each person's Louvain community, PageRank influence, and betweenness broker score.
+
+    Backed by Neo4j GDS. Returns an empty list — not an error — when the GDS
+    plugin is unavailable; treat that as "analytics not available".
+    """
+    analytics = await service.get_person_analytics()
+    return [person_analytics_to_response(a) for a in analytics]
+
+
+@router.get(
+    "/persons/{person_id}/successors",
+    response_model=list[SuccessorCandidateResponse],
+    summary="Find persons who could cover for the given person",
+)
+async def get_successor_candidates(
+        person_id: str,
+        service: Service,
+        limit: Annotated[int, Query(ge=1, le=100, description="Maximum candidates to return")] = 5,
+) -> list[SuccessorCandidateResponse]:
+    """Rank persons by topic-overlap similarity to the given person (GDS Node Similarity).
+
+    Returns an empty list when the GDS plugin is unavailable.
+    """
+    candidates = await service.get_successor_candidates(person_id, limit=limit)
+    return [successor_candidate_to_response(c) for c in candidates]

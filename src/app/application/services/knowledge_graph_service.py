@@ -12,8 +12,10 @@ from app.domain.exceptions.knowledge_graph import PersonNotFoundInGraphError
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 
@@ -88,6 +90,16 @@ class KnowledgeGraphService(IKnowledgeGraphService):
     async def get_documents_by_topic(self, topic: str, limit: int = 20) -> list[DocumentNode]:
         """Return documents that reference the given topic."""
         return await self._repo.find_documents_by_topic(topic, limit=limit)
+
+    async def get_person_analytics(self) -> list[PersonAnalytics]:
+        """Return per-person community/influence/broker-risk analytics."""
+        return await self._repo.compute_person_analytics()
+
+    async def get_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Return persons best positioned to cover for the given person."""
+        return await self._repo.find_successor_candidates(person_id, limit=limit)
 
     async def register_interaction(
         self,

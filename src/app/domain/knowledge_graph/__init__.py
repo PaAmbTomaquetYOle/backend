@@ -7,7 +7,12 @@ from state transitions on a single entity.
 """
 
 from .entities import ChannelNode, DocumentNode, PersonNode, TopicNode
-from .query_results import ExpertResult, PersonKnowledgeProfile
+from .query_results import (
+    ExpertResult,
+    PersonAnalytics,
+    PersonKnowledgeProfile,
+    SuccessorCandidate,
+)
 from .relationships import (
     ACTIVE_IN,
     ANSWERED_ABOUT,
@@ -24,6 +29,8 @@ __all__ = [
     "TopicNode",
     "ExpertResult",
     "PersonKnowledgeProfile",
+    "PersonAnalytics",
+    "SuccessorCandidate",
     "ACTIVE_IN",
     "ANSWERED_ABOUT",
     "KNOWS_ABOUT",

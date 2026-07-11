@@ -11,8 +11,10 @@ from abc import ABC, abstractmethod
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 
@@ -120,4 +122,40 @@ class IKnowledgeGraphRepository(ABC):
 
         Returns:
             tuple[list[PersonNode], int]: The page of persons and the total count.
+        """
+
+    # --- Graph analytics (read, GDS-backed, SA-19) ---
+
+    @abstractmethod
+    async def compute_person_analytics(self) -> list[PersonAnalytics]:
+        """Run community detection and centrality over the person network.
+
+        Projects a person-to-person graph (two persons linked when they share
+        a topic) and runs Louvain (community), weighted PageRank (influence),
+        and betweenness centrality (broker_score) over it in a single pass.
+
+        Returns:
+            list[PersonAnalytics]: One entry per person with graph data.
+                Empty if the GDS plugin is unavailable — callers must treat
+                that as "analytics not available", not an error.
+        """
+
+    @abstractmethod
+    async def find_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Find persons whose topic footprint most overlaps with the given person.
+
+        Uses GDS Node Similarity (Jaccard over shared topics) to answer "who
+        else already knows what this person knows" — candidates to cover for
+        them during an offboarding.
+
+        Args:
+            person_id: External Slack user ID of the person leaving/being covered.
+            limit: Maximum number of candidates to return.
+
+        Returns:
+            list[SuccessorCandidate]: Ranked by similarity, descending. Empty
+                if the GDS plugin is unavailable or the person has no overlap
+                with anyone else.
         """
