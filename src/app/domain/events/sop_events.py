@@ -6,6 +6,7 @@ from .base import DomainEvent
 
 def SOPCreated(
     sop_id: UUID,
+    title: str,
     author: str,
     origin_channel: str,
     tags: list[str],
@@ -16,6 +17,7 @@ def SOPCreated(
         event_type="sop.created",
         payload={
             "sop_id": str(sop_id),
+            "title": title,
             "author": author,
             "origin_channel": origin_channel,
             "tags": tags,
@@ -27,6 +29,7 @@ def SOPCreated(
 
 def SOPUpdated(
     sop_id: UUID,
+    title: str,
     editor: str,
     origin_channel: str,
     tags: list[str],
@@ -37,6 +40,7 @@ def SOPUpdated(
         event_type="sop.updated",
         payload={
             "sop_id": str(sop_id),
+            "title": title,
             "editor": editor,
             "origin_channel": origin_channel,
             "tags": tags,

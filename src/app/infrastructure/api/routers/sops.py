@@ -39,7 +39,10 @@ _404 = {404: {"model": ErrorResponse, "description": "SOP not found"}}
 )
 async def search_sops(
         service: Annotated[ISopService, Depends(sop_service_dependency)],
-        q: Annotated[str | None, Query(description="Free-text search over SOP content")] = None,
+        q: Annotated[
+            str | None,
+            Query(description="Free-text search over SOP title and content, ranked by relevance"),
+        ] = None,
         tags: Annotated[
             list[str] | None,
             Query(description="Tags a SOP must ALL have (repeat for multiple)"),
@@ -48,8 +51,8 @@ async def search_sops(
         size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
 ) -> SopPageResponse:
     """Search non-deleted SOPs, optionally filtered by text and/or tags."""
-    sops, total = await service.search_sops(text=q, tags=tags, page=page, size=size)
-    return sop_page_response(sops, page=page, size=size, total=total)
+    hits, total = await service.search_sops(text=q, tags=tags, page=page, size=size)
+    return sop_page_response(hits, page=page, size=size, total=total)
 
 
 @router.get(
