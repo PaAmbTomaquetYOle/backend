@@ -1,6 +1,5 @@
 """Application entrypoint and composition root."""
 
-import asyncio
 import logging
 import ssl
 from contextlib import asynccontextmanager
@@ -76,16 +75,6 @@ from app.infrastructure.startup_steps import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-async def _initialize_neo4j_schema(graph_db: Neo4jAdapter) -> None:
-    """Initialize the Neo4j schema in the background without blocking startup."""
-
-    try:
-        await initialize_knowledge_graph_schema(graph_db)
-        logger.info("Neo4j schema initialized")
-    except Exception:
-        logger.warning("Failed to initialize Neo4j schema", exc_info=True)
 
 
 def _kafka_connection_kwargs(settings: Settings) -> dict:
