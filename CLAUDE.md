@@ -56,6 +56,13 @@ Every REST endpoint except `POST /auth/token` and `GET /health*` requires a JWT 
 
 The canonical contract (topics, envelopes, payload schemas) is `docs/asyncapi/asyncapi.yml` (AsyncAPI 3.0.0) — **if this and the code ever disagree, the spec wins**. Regenerate/validate/visualize from `docs/asyncapi/` (`npm run validate` / `npm run html` / `npm run models:py` / `npm run models:ts`).
 
+### Interview turns and SOP candidates persist incrementally (SA-16)
+
+slack-agent used to hold in-flight interview turns and offered-but-undecided SOP candidates only in its own process memory, losing them on a restart. Two new inbound topics close that gap without introducing Redis or any new datastore — the backend stays the sole writer, Kafka stays the only write path:
+
+- **`interview.turn_recorded`** (`InterviewTurnRecordedHandler`) appends turns into the **existing** `interview_turns` table as slack-agent's in-memory session accumulates them, instead of only receiving the full turn list at `interview.completed` (which still exists, unchanged, as the reconciliation backstop). Kafka delivery across topics is unordered, so the handler creates/starts the interview defensively and dedups by `turn_order` to stay idempotent under at-least-once redelivery.
+- **`sop.candidate_offered`/`sop.candidate_decided`** (`SopCandidateOfferedHandler`/`SopCandidateDecidedHandler`) persist a new `SopCandidate` aggregate (`domain/sops/candidate.py`, `sop_candidates` table) tracking a candidate message's own offered → accepted/rejected lifecycle. The SOP itself is still only created, on acceptance, via the existing `sop.creation_requested` flow — these events exist purely so slack-agent can rehydrate pending candidates (`GET /sop-candidates`, read-only) after a restart instead of an author's Yes/No click silently resolving to nothing.
+
 ### AI dossier generation is pluggable
 
 `IDossierGenerator` decouples dossier content from the rest of the flow. `FakeDossierGenerator` (deterministic, always available) is the fallback; `LLMDossierGenerator` is a thin MCP client that calls mcp-server's `generate_dossier` tool (the LLM itself runs in mcp-server, not here). Feature-flagged via `DOSSIER_LLM_ENABLED` in `main.py`'s lifespan. The whole round trip is wrapped in a timeout + broad `except Exception` — any failure (connection, tool error, malformed JSON) falls back to `FakeDossierGenerator` rather than breaking the Kafka consumer.

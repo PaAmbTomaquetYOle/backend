@@ -140,9 +140,12 @@ Prefix: `slack-agent` (`KAFKA_INBOUND_TOPIC_PREFIX`). Consumer group: `offboardm
 | `slack-agent.offboarding.triggered` | `offboarding.triggered` | `employee_id, manager_id, employee_name?, manager_name?` | Gets or creates the offboarding process for the employee and starts it (idempotent — reuses an existing active process instead of duplicating it) |
 | `slack-agent.offboarding.cancellation_requested` | `offboarding.cancellation_requested` | `process_id` | Cancels the offboarding process |
 | `slack-agent.interview.started` | `interview.started` | `process_id` | Creates the interview if needed and marks it in progress (idempotent — skipped if already past `SCHEDULED`) |
+| `slack-agent.interview.turn_recorded` | `interview.turn_recorded` | `process_id, turns[]` (same shape as `interview.completed`'s turns) | **(SA-16)** Appends the new turns to the interview incrementally instead of replacing the full set. Defensive against out-of-order delivery (creates/starts the interview if needed) and dedups by turn order |
 | `slack-agent.interview.completed` | `interview.completed` | `process_id, turns[]` (`turn_type, speaker_role, timestamp, content, order, topic?, sentiment?, answer_text?`) | Saves the collected answers, completes the interview, submits the process for review |
 | `slack-agent.dossier.generation_requested` | `dossier.generation_requested` | `process_id` | Generates and persists the dossier (interview is read from the DB), then completes the offboarding process |
 | `slack-agent.sop.creation_requested` | `sop.creation_requested` | `content, author, origin_channel, tags?` | Creates a SOP from a Slack-originated request |
+| `slack-agent.sop.candidate_offered` | `sop.candidate_offered` | `channel_id, author_id, message_ts, content` | **(SA-16)** Persists that a candidate message was offered to its author as a possible SOP (new `SopCandidate` aggregate), so a slack-agent restart before the author responds doesn't lose it |
+| `slack-agent.sop.candidate_decided` | `sop.candidate_decided` | `channel_id, message_ts, accepted` | **(SA-16)** Records the author's accept/reject decision for a previously offered candidate. The SOP itself is still only created, on acceptance, via `sop.creation_requested` |
 
 ### Outbound — produced by backend (consumed by slack-agent)
 
