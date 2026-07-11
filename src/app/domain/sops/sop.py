@@ -17,6 +17,7 @@ class Sop:
     """
 
     __sop_id: SopId
+    __title: str
     __content: str
     __author: AuthorId
     __tags: list[str]
@@ -29,6 +30,7 @@ class Sop:
     def __init__(
             self,
             sop_id: SopId,
+            title: str,
             content: str,
             author: AuthorId,
             tags: list[str],
@@ -42,6 +44,7 @@ class Sop:
 
         Args:
             sop_id: Unique identifier for this SOP.
+            title: Short human-authored title, used for search and display.
             content: The operational knowledge text.
             author: Identifier of the Slack user who authored the SOP.
             tags: Free-form categorization tags.
@@ -52,6 +55,7 @@ class Sop:
             deleted_at: Timestamp when the SOP was soft-deleted, or None if active.
         """
         self.__sop_id = sop_id
+        self.__title = title
         self.__content = content
         self.__author = author
         self.__tags = list(tags)
@@ -65,6 +69,11 @@ class Sop:
     def sop_id(self) -> SopId:
         """The unique identifier of this SOP."""
         return self.__sop_id
+
+    @property
+    def title(self) -> str:
+        """The short human-authored title, used for search and display."""
+        return self.__title
 
     @property
     def content(self) -> str:
@@ -111,7 +120,12 @@ class Sop:
         """Whether this SOP has been soft-deleted."""
         return self.__deleted_at is not None
 
-    def revise(self, content: str | None = None, tags: list[str] | None = None) -> None:
+    def revise(
+        self,
+        content: str | None = None,
+        tags: list[str] | None = None,
+        title: str | None = None,
+    ) -> None:
         """Apply a partial revision to the SOP, bumping its version.
 
         Only the fields provided are changed; omitted fields keep their
@@ -121,11 +135,14 @@ class Sop:
         Args:
             content: New content, if being changed. Defaults to None (unchanged).
             tags: New tag list, if being changed. Defaults to None (unchanged).
+            title: New title, if being changed. Defaults to None (unchanged).
         """
         if content is not None:
             self.__content = content
         if tags is not None:
             self.__tags = list(tags)
+        if title is not None:
+            self.__title = title
         self.__version += 1
         self.__updated_at = datetime.now(timezone.utc)
 

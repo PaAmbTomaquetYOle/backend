@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.sop import ISopRepository
+from app.application.read_models.sop_search_hit import SopSearchHit
 from app.application.service_interfaces.sop_service_interface import ISopService
 from app.domain.events.sop_events import SOPCreated, SOPDeleted, SOPUpdated
 from app.domain.exceptions.sops import SopNotFoundError
@@ -50,6 +51,7 @@ class SopService(ISopService):
 
     async def create_sop(
         self,
+        title: str,
         content: str,
         author: AuthorId,
         origin_channel: ChannelId,
@@ -58,6 +60,7 @@ class SopService(ISopService):
         """Create and persist a new SOP, then publish SOPCreated.
 
         Args:
+            title: Short human-authored title, used for search and display.
             content: The operational knowledge text.
             author: Identifier of the Slack user who authored the SOP.
             origin_channel: Identifier of the Slack channel the SOP originated from.
@@ -68,6 +71,7 @@ class SopService(ISopService):
         """
         sop = Sop(
             sop_id=SopId(),
+            title=title,
             content=content,
             author=author,
             tags=tags or [],
@@ -77,6 +81,7 @@ class SopService(ISopService):
         await self._repo.save(sop)
         await self._publish(SOPCreated(
             sop_id=sop.sop_id.get_id(),
+            title=sop.title,
             author=sop.author.get_id(),
             origin_channel=sop.origin_channel.get_id(),
             tags=sop.tags,
@@ -108,7 +113,7 @@ class SopService(ISopService):
         tags: list[str] | None = None,
         page: int = 1,
         size: int = 20,
-    ) -> tuple[list[Sop], int]:
+    ) -> tuple[list[SopSearchHit], int]:
         """Return a page of SOPs matching the given text/tag filters plus the total count.
 
         Args:
@@ -129,6 +134,7 @@ class SopService(ISopService):
         origin_channel: ChannelId,
         content: str | None = None,
         tags: list[str] | None = None,
+        title: str | None = None,
     ) -> Sop:
         """Apply a partial revision to a SOP, persist it, and publish SOPUpdated.
 
@@ -138,6 +144,7 @@ class SopService(ISopService):
             origin_channel: Identifier of the Slack channel the request came from.
             content: New content, if being changed. Defaults to None (unchanged).
             tags: New tag list, if being changed. Defaults to None (unchanged).
+            title: New title, if being changed. Defaults to None (unchanged).
 
         Returns:
             The updated Sop with its version incremented.
@@ -146,10 +153,11 @@ class SopService(ISopService):
             SopNotFoundError: If no non-deleted SOP with the given ID exists.
         """
         sop = await self.get_sop(sop_id)
-        sop.revise(content=content, tags=tags)
+        sop.revise(content=content, tags=tags, title=title)
         await self._repo.save(sop)
         await self._publish(SOPUpdated(
             sop_id=sop.sop_id.get_id(),
+            title=sop.title,
             editor=editor.get_id(),
             origin_channel=origin_channel.get_id(),
             tags=sop.tags,

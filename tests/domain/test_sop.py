@@ -8,9 +8,14 @@ from app.domain.sops.id import AuthorId, ChannelId, SopId
 from app.domain.sops.sop import Sop
 
 
-def make_sop(content: str = "How to rotate secrets", tags: list[str] | None = None) -> Sop:
+def make_sop(
+    content: str = "How to rotate secrets",
+    tags: list[str] | None = None,
+    title: str = "Rotating secrets",
+) -> Sop:
     return Sop(
         sop_id=SopId(),
+        title=title,
         content=content,
         author=AuthorId("U123"),
         tags=tags or ["security", "onboarding"],
@@ -65,6 +70,13 @@ class TestRevise:
         sop.revise(content="v2")
         sop.revise(content="v3")
         assert sop.version == 3
+
+    def test_revise_title_only_leaves_content_unchanged(self) -> None:
+        sop = make_sop(content="original", title="Original title")
+        sop.revise(title="New title")
+        assert sop.title == "New title"
+        assert sop.content == "original"
+        assert sop.version == 2
 
 
 class TestMarkDeleted:

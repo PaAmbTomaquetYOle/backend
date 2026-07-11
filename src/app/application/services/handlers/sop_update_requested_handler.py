@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class SopUpdateRequestedHandler(IInboundEventHandler):
     """Applies a partial revision to a SOP.
 
-    Expected payload: sop_id, editor, origin_channel, content?, tags?
+    Expected payload: sop_id, editor, origin_channel, content?, tags?, title?
 
     A request targeting a SOP that no longer exists (e.g. already deleted)
     is logged and dropped rather than sent to the DLQ, since Kafka's
@@ -45,6 +45,7 @@ class SopUpdateRequestedHandler(IInboundEventHandler):
                 origin_channel=ChannelId(payload["origin_channel"]),
                 content=payload.get("content"),
                 tags=payload.get("tags"),
+                title=payload.get("title"),
             )
         except SopNotFoundError:
             logger.warning(

@@ -138,6 +138,7 @@ class TestConsumerIntegration:
         await dispatch(DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={
+                "title": "Rotating secrets",
                 "content": "How to rotate secrets",
                 "author": "U1",
                 "origin_channel": "C1",
@@ -150,7 +151,8 @@ class TestConsumerIntegration:
             sops_service = build_inbound_context(session, graph_db, publisher, generator).sops
             sops, total = await sops_service.search_sops()
         assert total == 1
-        assert sops[0].content == "How to rotate secrets"
+        assert sops[0].sop.content == "How to rotate secrets"
+        assert sops[0].sop.title == "Rotating secrets"
 
         # Response events were published for each step
         published_types = [e.event_type for e in publisher.events]

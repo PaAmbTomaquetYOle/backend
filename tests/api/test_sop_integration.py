@@ -56,9 +56,12 @@ async def client(engine):
         yield ac
 
 
-async def _seed_sop(engine, content: str = "How to rotate secrets", tags=None) -> Sop:
+async def _seed_sop(
+    engine, content: str = "How to rotate secrets", tags=None, title: str = "Rotating secrets"
+) -> Sop:
     sop = Sop(
         sop_id=SopId(),
+        title=title,
         content=content,
         author=AuthorId("U1"),
         tags=tags or ["security"],
@@ -78,6 +81,7 @@ class TestSopCRUD:
 
         assert r.status_code == 200
         assert r.json()["id"] == str(sop.sop_id.get_id())
+        assert r.json()["title"] == sop.title
 
     async def test_get_404_unknown_id(self, client: httpx.AsyncClient) -> None:
         r = await client.get(f"/api/v1/sops/{uuid4()}")
@@ -107,6 +111,18 @@ class TestSopSearch:
         body = r.json()
         assert body["total"] == 1
         assert "rotate" in body["items"][0]["content"].lower()
+        assert body["items"][0]["snippet"] is None  # sqlite has no ts_headline support
+
+    async def test_search_by_title(self, client: httpx.AsyncClient, engine) -> None:
+        await _seed_sop(engine, title="Rotating secrets", content="unrelated body")
+        await _seed_sop(engine, title="Onboarding a new hire", content="unrelated body")
+
+        r = await client.get("/api/v1/sops?q=rotating")
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body["total"] == 1
+        assert "rotating" in body["items"][0]["title"].lower()
 
     async def test_search_by_tags_match_all(self, client: httpx.AsyncClient, engine) -> None:
         await _seed_sop(engine, content="a", tags=["security", "urgent"])

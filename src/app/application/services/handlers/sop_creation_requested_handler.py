@@ -10,7 +10,7 @@ from app.domain.sops.id import AuthorId, ChannelId
 class SopCreationRequestedHandler(IInboundEventHandler):
     """Creates a SOP from a Slack-originated request.
 
-    Expected payload: content, author, origin_channel, tags?
+    Expected payload: title, content, author, origin_channel, tags?
     """
 
     @property
@@ -27,6 +27,7 @@ class SopCreationRequestedHandler(IInboundEventHandler):
         """
         payload = event.payload
         await context.sops.create_sop(
+            title=payload["title"],
             content=payload["content"],
             author=AuthorId(payload["author"]),
             origin_channel=ChannelId(payload["origin_channel"]),

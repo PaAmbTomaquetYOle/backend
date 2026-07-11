@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 
+from app.application.read_models.sop_search_hit import SopSearchHit
 from app.domain.sops.id import AuthorId, ChannelId, SopId
 from app.domain.sops.sop import Sop
 
@@ -12,6 +13,7 @@ class ISopService(ABC):
     @abstractmethod
     async def create_sop(
         self,
+        title: str,
         content: str,
         author: AuthorId,
         origin_channel: ChannelId,
@@ -34,7 +36,7 @@ class ISopService(ABC):
         tags: list[str] | None = None,
         page: int = 1,
         size: int = 20,
-    ) -> tuple[list[Sop], int]:
+    ) -> tuple[list[SopSearchHit], int]:
         """Return a page of SOPs matching the given text/tag filters plus the total count."""
 
     @abstractmethod
@@ -45,6 +47,7 @@ class ISopService(ABC):
         origin_channel: ChannelId,
         content: str | None = None,
         tags: list[str] | None = None,
+        title: str | None = None,
     ) -> Sop:
         """Apply a partial revision to a SOP, incrementing its version and publishing SOPUpdated.
 
