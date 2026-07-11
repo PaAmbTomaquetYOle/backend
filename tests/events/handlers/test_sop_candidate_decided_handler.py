@@ -37,6 +37,8 @@ class TestSopCandidateDecidedHandler:
         sop_candidates = AsyncMock(spec=ISopCandidateService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
             tasks=AsyncMock(),
@@ -57,6 +59,8 @@ class TestSopCandidateDecidedHandler:
         sop_candidates.record_decision.side_effect = SopCandidateNotFoundError("C1", "ts")
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
             tasks=AsyncMock(),
@@ -71,6 +75,8 @@ class TestSopCandidateDecidedHandler:
         sop_candidates.record_decision.side_effect = InvalidSopCandidateTransitionError("accepted")
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
             tasks=AsyncMock(),

@@ -12,6 +12,10 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app.application.services.handlers import (
+    AnnualReviewCancellationRequestedHandler,
+    AnnualReviewDossierGenerationRequestedHandler,
+    AnnualReviewInterviewCompletedHandler,
+    AnnualReviewTriggeredHandler,
     DossierGenerationRequestedHandler,
     InterviewCompletedHandler,
     InterviewStartedHandler,
@@ -19,6 +23,10 @@ from app.application.services.handlers import (
     KnowledgeChannelActivityRegisteredHandler,
     KnowledgeDocumentRegisteredHandler,
     KnowledgeInteractionRegisteredHandler,
+    MonthlyReviewCancellationRequestedHandler,
+    MonthlyReviewDossierGenerationRequestedHandler,
+    MonthlyReviewInterviewCompletedHandler,
+    MonthlyReviewTriggeredHandler,
     OffboardingCancellationRequestedHandler,
     OffboardingTasksExtractedHandler,
     OffboardingTriggeredHandler,
@@ -172,6 +180,14 @@ async def lifespan(app: FastAPI):
                 KnowledgeInteractionRegisteredHandler(),
                 KnowledgeDocumentRegisteredHandler(),
                 KnowledgeChannelActivityRegisteredHandler(),
+                MonthlyReviewTriggeredHandler(),
+                MonthlyReviewCancellationRequestedHandler(),
+                MonthlyReviewInterviewCompletedHandler(),
+                MonthlyReviewDossierGenerationRequestedHandler(),
+                AnnualReviewTriggeredHandler(),
+                AnnualReviewCancellationRequestedHandler(),
+                AnnualReviewInterviewCompletedHandler(),
+                AnnualReviewDossierGenerationRequestedHandler(),
             ])
             event_consumer = KafkaEventConsumer(
                 consumer=kafka_consumer,

@@ -33,6 +33,8 @@ class TestOffboardingCancellationRequestedHandler:
 
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),

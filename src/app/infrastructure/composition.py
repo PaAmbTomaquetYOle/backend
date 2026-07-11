@@ -14,10 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.application.services.annual_review_facade_service import AnnualReviewFacadeService
+from app.application.services.annual_review_process_service import AnnualReviewProcessService
 from app.application.services.dossier_service import DossierService
 from app.application.services.inbound_context import InboundContext
 from app.application.services.interview_service import InterviewService
 from app.application.services.knowledge_graph_service import KnowledgeGraphService
+from app.application.services.monthly_review_facade_service import MonthlyReviewFacadeService
+from app.application.services.monthly_review_process_service import MonthlyReviewProcessService
 from app.application.services.offboarding_facade_service import OffboardingFacadeService
 from app.application.services.offboarding_process_service import OffboardingProcessService
 from app.application.services.offboarding_task_service import OffboardingTaskService
@@ -26,8 +30,14 @@ from app.application.services.sop_service import SopService
 from app.infrastructure.adapters.graph.knowledge_graph_repository import (
     Neo4jKnowledgeGraphRepository,
 )
+from app.infrastructure.adapters.repositories.annual_review_process import (
+    AnnualReviewProcessRepository,
+)
 from app.infrastructure.adapters.repositories.dossier import DossierRepository
 from app.infrastructure.adapters.repositories.interview import InterviewRepository
+from app.infrastructure.adapters.repositories.monthly_review_process import (
+    MonthlyReviewProcessRepository,
+)
 from app.infrastructure.adapters.repositories.offboarding_process import (
     OffboardingProcessRepository,
 )
@@ -53,6 +63,54 @@ def build_offboarding_facade(
     """
     return OffboardingFacadeService(
         process_service=OffboardingProcessService(OffboardingProcessRepository(session)),
+        interview_service=InterviewService(InterviewRepository(session)),
+        dossier_service=DossierService(DossierRepository(session)),
+        event_publisher=event_publisher,
+        dossier_generator=dossier_generator,
+    )
+
+
+def build_monthly_review_facade(
+    session: AsyncSession,
+    event_publisher: IEventPublisher | None = None,
+    dossier_generator: IDossierGenerator | None = None,
+) -> MonthlyReviewFacadeService:
+    """Assemble a fully wired MonthlyReviewFacadeService from a session.
+
+    Args:
+        session: The active SQLModel session shared across the composed services.
+        event_publisher: Optional event publisher for domain event dispatching.
+        dossier_generator: Optional generator used by generate_dossier.
+
+    Returns:
+        MonthlyReviewFacadeService: A fully wired facade instance.
+    """
+    return MonthlyReviewFacadeService(
+        process_service=MonthlyReviewProcessService(MonthlyReviewProcessRepository(session)),
+        interview_service=InterviewService(InterviewRepository(session)),
+        dossier_service=DossierService(DossierRepository(session)),
+        event_publisher=event_publisher,
+        dossier_generator=dossier_generator,
+    )
+
+
+def build_annual_review_facade(
+    session: AsyncSession,
+    event_publisher: IEventPublisher | None = None,
+    dossier_generator: IDossierGenerator | None = None,
+) -> AnnualReviewFacadeService:
+    """Assemble a fully wired AnnualReviewFacadeService from a session.
+
+    Args:
+        session: The active SQLModel session shared across the composed services.
+        event_publisher: Optional event publisher for domain event dispatching.
+        dossier_generator: Optional generator used by generate_dossier.
+
+    Returns:
+        AnnualReviewFacadeService: A fully wired facade instance.
+    """
+    return AnnualReviewFacadeService(
+        process_service=AnnualReviewProcessService(AnnualReviewProcessRepository(session)),
         interview_service=InterviewService(InterviewRepository(session)),
         dossier_service=DossierService(DossierRepository(session)),
         event_publisher=event_publisher,
@@ -147,6 +205,8 @@ def build_inbound_context(
     dialect_name = session.get_bind().dialect.name
     return InboundContext(
         offboarding=build_offboarding_facade(session, event_publisher, dossier_generator),
+        monthly_review=build_monthly_review_facade(session, event_publisher, dossier_generator),
+        annual_review=build_annual_review_facade(session, event_publisher, dossier_generator),
         sops=build_sop_service(session, event_publisher, dialect_name=dialect_name),
         sop_candidates=build_sop_candidate_service(session),
         tasks=build_task_service(session),
