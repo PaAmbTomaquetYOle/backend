@@ -1,9 +1,10 @@
 """Concrete implementation of the SOP service."""
 
-import logging
 from datetime import UTC, datetime
 
+from app.application.observability.event_publish_operation import EventPublishOperation
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.metrics import IMetricsPort
 from app.application.ports.sop import ISopRepository
 from app.application.read_models.sop_search_hit import SopSearchHit
 from app.application.service_interfaces.sop_service_interface import ISopService
@@ -11,8 +12,6 @@ from app.domain.events.sop_events import SOPCreated, SOPDeleted, SOPUpdated
 from app.domain.exceptions.sops import SopNotFoundError
 from app.domain.sops.id import AuthorId, ChannelId, SopId
 from app.domain.sops.sop import Sop
-
-logger = logging.getLogger(__name__)
 
 
 class SopService(ISopService):
@@ -26,6 +25,7 @@ class SopService(ISopService):
         self,
         repo: ISopRepository,
         event_publisher: IEventPublisher | None = None,
+        metrics: IMetricsPort | None = None,
     ) -> None:
         """Set up the service with a repository and an optional event publisher.
 
@@ -33,21 +33,21 @@ class SopService(ISopService):
             repo: The repository used to persist and retrieve SOPs.
             event_publisher: Optional publisher for domain events. If None,
                 events are not published.
+            metrics: Optional port for recording a failed event publish. If
+                None, the failure is still logged but not counted (BE-20).
         """
         self._repo = repo
         self._event_publisher = event_publisher
+        self._metrics = metrics
 
     async def _publish(self, event) -> None:
-        """Publish a domain event, logging a warning if publishing fails.
+        """Publish a domain event via EventPublishOperation, never raising on failure.
 
         Args:
             event: The domain event to publish.
         """
         if self._event_publisher is not None:
-            try:
-                await self._event_publisher.publish(event)
-            except Exception:
-                logger.warning("Failed to publish event %s", event.event_type, exc_info=True)
+            await EventPublishOperation(self._metrics, self._event_publisher, event).run()
 
     async def create_sop(
         self,

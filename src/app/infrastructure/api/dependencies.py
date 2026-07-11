@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.application.ports.metrics import IMetricsPort
 from app.application.ports.service_credential_repository import IServiceCredentialRepository
 from app.application.ports.token_issuer import ITokenIssuer
 from app.application.service_interfaces.knowledge_graph_service_interface import (
@@ -110,13 +111,19 @@ def event_publisher_dependency(request: Request) -> IEventPublisher:
     return request.app.state.event_publisher
 
 
+def metrics_dependency(request: Request) -> IMetricsPort | None:
+    """Retrieve the metrics port from application state, if one was wired."""
+    return getattr(request.app.state, "metrics", None)
+
+
 def offboarding_process_facade_dependency(
     session: Annotated[AsyncSession, Depends(get_session)],
     request: Request,
 ) -> IOffboardingProcessFacade:
     """Provide the facade narrowed to IOffboardingProcessFacade for the process router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_offboarding_facade(session, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, metrics=metrics)
 
 
 def offboarding_interview_facade_dependency(
@@ -125,7 +132,8 @@ def offboarding_interview_facade_dependency(
 ) -> IOffboardingInterviewFacade:
     """Provide the facade narrowed to IOffboardingInterviewFacade for the interview router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_offboarding_facade(session, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, metrics=metrics)
 
 
 def offboarding_dossier_facade_dependency(
@@ -135,7 +143,8 @@ def offboarding_dossier_facade_dependency(
     """Provide the facade narrowed to IOffboardingDossierFacade for the dossier router."""
     publisher = getattr(request.app.state, "event_publisher", None)
     generator = getattr(request.app.state, "dossier_generator", None)
-    return build_offboarding_facade(session, publisher, generator)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, generator, metrics)
 
 
 def sop_service_dependency(
@@ -144,8 +153,9 @@ def sop_service_dependency(
 ) -> ISopService:
     """Provide a SOP service wired with its repository and the event publisher."""
     publisher = getattr(request.app.state, "event_publisher", None)
+    metrics = getattr(request.app.state, "metrics", None)
     dialect_name = session.get_bind().dialect.name
-    return build_sop_service(session, publisher, dialect_name=dialect_name)
+    return build_sop_service(session, publisher, dialect_name=dialect_name, metrics=metrics)
 
 
 def sop_candidate_service_dependency(
@@ -166,7 +176,8 @@ def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphServi
     """Provide a knowledge graph service wired with its Neo4j-backed repository."""
     graph_db = request.app.state.graph_db
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_knowledge_graph_service(graph_db, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_knowledge_graph_service(graph_db, publisher, metrics)
 
 
 def service_credential_repository_dependency(

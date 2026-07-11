@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from aiokafka.errors import KafkaError
 
 from app.domain.events.offboarding_events import OffboardingStateChanged
 from app.infrastructure.adapters.events.kafka_event_publisher import KafkaEventPublisher
@@ -67,7 +68,7 @@ class TestKafkaEventPublisher:
     @pytest.mark.anyio
     async def test_publish_does_not_raise_on_kafka_error(self) -> None:
         mock_producer = AsyncMock()
-        mock_producer.send_and_wait.side_effect = Exception("Kafka unavailable")
+        mock_producer.send_and_wait.side_effect = KafkaError("Kafka unavailable")
         publisher = KafkaEventPublisher(mock_producer)
         event = OffboardingStateChanged(
             process_id=uuid4(),
