@@ -64,6 +64,7 @@ from app.infrastructure.persistence import (
     models as _models,  # noqa: F401 — registers SQLModel tables
 )
 from app.infrastructure.persistence.database import get_engine, init_engine
+from app.infrastructure.scheduling import ReviewScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,16 @@ async def lifespan(app: FastAPI):
         logger.info("Using LLMDossierGenerator (mcp_server=%s)", settings.mcp_server_url)
     else:
         app.state.dossier_generator = fake_dossier_generator
+
+    app.state.review_scheduler = None
+    if settings.review_scheduling_enabled:
+        app.state.review_scheduler = ReviewScheduler(
+            hour_utc=settings.review_scheduling_hour_utc,
+            event_publisher=app.state.event_publisher,
+            dossier_generator=app.state.dossier_generator,
+        )
+        app.state.review_scheduler.start()
+
     try:
         neo4j_driver = AsyncGraphDatabase.driver(
             settings.neo4j_uri,
@@ -205,6 +216,10 @@ async def lifespan(app: FastAPI):
             app.state.event_consumer = None
 
     yield
+
+    review_scheduler = getattr(app.state, "review_scheduler", None)
+    if review_scheduler is not None:
+        review_scheduler.stop()
 
     event_consumer = getattr(app.state, "event_consumer", None)
     if event_consumer is not None:

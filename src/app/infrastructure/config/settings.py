@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     dossier_llm_timeout_seconds: float = 45.0
     mcp_server_url: str = "http://localhost:8000/mcp"
 
+    # Periodic review scheduling (BE-24) — see ReviewScheduler for the
+    # in-process-vs-external-CronJob decision.
+    review_scheduling_enabled: bool = False
+    review_scheduling_hour_utc: int = 3
+
     @property
     def database_url(self) -> str:
         """Assemble the async PostgreSQL connection URL from individual components.
