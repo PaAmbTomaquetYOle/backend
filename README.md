@@ -145,6 +145,8 @@ Prefix: `slack-agent` (`KAFKA_INBOUND_TOPIC_PREFIX`). Consumer group: `offboardm
 | `slack-agent.tasks.extracted` | `tasks.extracted` | `process_id, tasks[]` (`id, title, source, status, url?, description?`) | **(SA-18)** Replaces the full set of Jira/Trello tasks stored for the process with the given tasks (new `OffboardingTask` aggregate, keyed by process_id) |
 | `slack-agent.dossier.generation_requested` | `dossier.generation_requested` | `process_id` | Generates and persists the dossier (interview is read from the DB), then completes the offboarding process |
 | `slack-agent.sop.creation_requested` | `sop.creation_requested` | `content, author, origin_channel, tags?` | Creates a SOP from a Slack-originated request |
+| `slack-agent.sop.update_requested` | `sop.update_requested` | `sop_id, editor, origin_channel, content?, tags?` | **(BE-21)** Applies a partial revision to a SOP, bumping its version. Replaces the former `PATCH /sops/{sop_id}` REST endpoint |
+| `slack-agent.sop.deletion_requested` | `sop.deletion_requested` | `sop_id, requester, origin_channel` | **(BE-21)** Soft-deletes a SOP. Replaces the former `DELETE /sops/{sop_id}` REST endpoint |
 | `slack-agent.sop.candidate_offered` | `sop.candidate_offered` | `channel_id, author_id, message_ts, content` | **(SA-16)** Persists that a candidate message was offered to its author as a possible SOP (new `SopCandidate` aggregate), so a slack-agent restart before the author responds doesn't lose it |
 | `slack-agent.sop.candidate_decided` | `sop.candidate_decided` | `channel_id, message_ts, accepted` | **(SA-16)** Records the author's accept/reject decision for a previously offered candidate. The SOP itself is still only created, on acceptance, via `sop.creation_requested` |
 
@@ -159,6 +161,8 @@ Prefix: `offboarding` (`KAFKA_TOPIC_PREFIX`).
 | `offboarding.dossier.generated` | `dossier.generated` | `dossier_id, process_id, interview_id` |
 | `offboarding.offboarding.completed` | `offboarding.completed` | `process_id, employee_id, manager_id, dossier_id` |
 | `offboarding.sop.created` | `sop.created` | `sop_id, author, origin_channel, tags[], version, created_at` |
+| `offboarding.sop.updated` | `sop.updated` | `sop_id, editor, origin_channel, tags[], version, updated_at` |
+| `offboarding.sop.deleted` | `sop.deleted` | `sop_id, requester, origin_channel, deleted_at` |
 
 > [!NOTE]
 > `interview.completed` exists on **both** sides with different payloads: the inbound version carries the raw `turns[]` collected during the interview, while the outbound version is a lightweight notification (`interview_id, process_id, completed_at`) that the backend finished persisting it.
@@ -168,7 +172,7 @@ Prefix: `offboarding` (`KAFKA_TOPIC_PREFIX`).
 Malformed messages or handler failures are published to `offboarding.dlq` (`KAFKA_DLQ_TOPIC`) with `source_topic` and `error` headers, and the offset is committed — a bad message never blocks or crashes the consumer.
 
 > [!NOTE]
-> Writes (create, cancel, lifecycle transitions, dossier generation, SOP creation) are **Kafka-only**. The REST API (`/api/v1/...`) is **read-only** — `GET`/list/search endpoints plus `POST /auth/token`. slack-agent and mcp-server must produce/consume the events above rather than calling REST write endpoints.
+> Writes (create, cancel, lifecycle transitions, dossier generation, SOP creation/update/deletion) are **Kafka-only**. The REST API (`/api/v1/...`) is **read-only** — `GET`/list/search endpoints plus `POST /auth/token`. slack-agent and mcp-server must produce/consume the events above rather than calling REST write endpoints. **(BE-21)** SOP `PATCH`/`DELETE` used to be the sole exception to this rule; they've been migrated to `sop.update_requested`/`sop.deletion_requested` so the invariant now holds with no exceptions.
 
 ### 🔐 Kafka transport security
 
