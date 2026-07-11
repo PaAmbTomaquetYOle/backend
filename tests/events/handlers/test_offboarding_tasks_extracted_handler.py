@@ -50,6 +50,8 @@ class TestOffboardingTasksExtractedHandler:
         )
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=tasks_service,

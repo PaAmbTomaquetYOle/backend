@@ -22,6 +22,8 @@ class TestSopCreationRequestedHandler:
         sops = AsyncMock(spec=ISopService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -53,6 +55,8 @@ class TestSopCreationRequestedHandler:
         sops = AsyncMock(spec=ISopService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),

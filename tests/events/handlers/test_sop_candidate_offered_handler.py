@@ -35,6 +35,8 @@ class TestSopCandidateOfferedHandler:
         )
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=sop_candidates,
             tasks=AsyncMock(),

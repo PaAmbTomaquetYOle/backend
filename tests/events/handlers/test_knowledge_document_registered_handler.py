@@ -24,6 +24,8 @@ class TestKnowledgeDocumentRegisteredHandler:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -59,6 +61,8 @@ class TestKnowledgeDocumentRegisteredHandler:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),

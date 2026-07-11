@@ -1,4 +1,4 @@
-"""Tests for OffboardingTriggeredHandler."""
+"""Tests for MonthlyReviewTriggeredHandler."""
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock
@@ -6,37 +6,37 @@ from uuid import uuid4
 
 import pytest
 
-from app.application.service_interfaces.offboarding_facade_interface import (
-    IOffboardingServiceFacade,
+from app.application.service_interfaces.monthly_review_facade_interface import (
+    IMonthlyReviewServiceFacade,
 )
-from app.application.services.handlers.offboarding_triggered_handler import (
-    OffboardingTriggeredHandler,
+from app.application.services.handlers.monthly_review_triggered_handler import (
+    MonthlyReviewTriggeredHandler,
 )
 from app.application.services.inbound_context import InboundContext
-from app.domain import EmployeeId, ManagerId, OffboardingProcess, OffboardingProcessId
+from app.domain import EmployeeId, ManagerId, MonthlyReviewProcess, MonthlyReviewProcessId
 from app.domain.events.base import DomainEvent
-from app.domain.events.inbound_events import OFFBOARDING_TRIGGERED
-from app.domain.offboarding.state.not_started import NotStartedState
+from app.domain.events.inbound_events import MONTHLY_REVIEW_TRIGGERED
+from app.domain.monthly_review.state.not_started import NotStartedState
 
 
-class TestOffboardingTriggeredHandler:
+class TestMonthlyReviewTriggeredHandler:
     def test_event_type(self) -> None:
-        assert OffboardingTriggeredHandler().event_type == OFFBOARDING_TRIGGERED
+        assert MonthlyReviewTriggeredHandler().event_type == MONTHLY_REVIEW_TRIGGERED
 
     @pytest.mark.anyio
     async def test_handle_creates_and_starts_process(self) -> None:
-        facade = AsyncMock(spec=IOffboardingServiceFacade)
-        facade.list_offboardings.return_value = []
-        process = OffboardingProcess(
-            process_id=OffboardingProcessId(),
+        facade = AsyncMock(spec=IMonthlyReviewServiceFacade)
+        facade.list_reviews.return_value = []
+        process = MonthlyReviewProcess(
+            process_id=MonthlyReviewProcessId(),
             state=NotStartedState(),
             employee_id=EmployeeId("U1"),
             manager_id=ManagerId("U2"),
             created_at=datetime.now(UTC),
         )
-        facade.create_offboarding.return_value = process
+        facade.create_review.return_value = process
         event = DomainEvent(
-            event_type=OFFBOARDING_TRIGGERED,
+            event_type=MONTHLY_REVIEW_TRIGGERED,
             payload={
                 "employee_id": "U1",
                 "manager_id": "U2",
@@ -47,52 +47,52 @@ class TestOffboardingTriggeredHandler:
         )
 
         context = InboundContext(
-            offboarding=facade,
-            monthly_review=AsyncMock(),
+            offboarding=AsyncMock(),
+            monthly_review=facade,
             annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
-        await OffboardingTriggeredHandler().handle(event, context)
+        await MonthlyReviewTriggeredHandler().handle(event, context)
 
-        facade.create_offboarding.assert_awaited_once()
-        _, kwargs = facade.create_offboarding.call_args
+        facade.create_review.assert_awaited_once()
+        _, kwargs = facade.create_review.call_args
         assert kwargs["employee_id"].is_equal("U1")
         assert kwargs["manager_id"].is_equal("U2")
         assert kwargs["employee_name"] == "Alice"
         assert kwargs["manager_name"] == "Bob"
-        facade.start_offboarding.assert_awaited_once_with(process.process_id)
+        facade.start_review.assert_awaited_once_with(process.process_id)
 
     @pytest.mark.anyio
     async def test_handle_reuses_existing_active_process(self) -> None:
         """Redelivery of the same event must not create a duplicate process."""
-        facade = AsyncMock(spec=IOffboardingServiceFacade)
-        existing = OffboardingProcess(
-            process_id=OffboardingProcessId(),
+        facade = AsyncMock(spec=IMonthlyReviewServiceFacade)
+        existing = MonthlyReviewProcess(
+            process_id=MonthlyReviewProcessId(),
             state=NotStartedState(),
             employee_id=EmployeeId("U1"),
             manager_id=ManagerId("U2"),
             created_at=datetime.now(UTC),
         )
-        facade.list_offboardings.return_value = [existing]
+        facade.list_reviews.return_value = [existing]
         event = DomainEvent(
-            event_type=OFFBOARDING_TRIGGERED,
+            event_type=MONTHLY_REVIEW_TRIGGERED,
             payload={"employee_id": "U1", "manager_id": "U2"},
             event_id=uuid4(),
         )
 
         context = InboundContext(
-            offboarding=facade,
-            monthly_review=AsyncMock(),
+            offboarding=AsyncMock(),
+            monthly_review=facade,
             annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
             knowledge_graph=AsyncMock(),
         )
-        await OffboardingTriggeredHandler().handle(event, context)
+        await MonthlyReviewTriggeredHandler().handle(event, context)
 
-        facade.create_offboarding.assert_not_awaited()
-        facade.start_offboarding.assert_awaited_once_with(existing.process_id)
+        facade.create_review.assert_not_awaited()
+        facade.start_review.assert_awaited_once_with(existing.process_id)

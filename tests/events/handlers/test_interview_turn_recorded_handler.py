@@ -79,6 +79,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [0])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -106,6 +108,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [0])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -129,6 +133,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [0, 1])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -153,6 +159,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [0])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -173,6 +181,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [5])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -192,6 +202,8 @@ class TestInterviewTurnRecordedHandler:
         event = _event(process_id, [])
         context = InboundContext(
             offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=AsyncMock(),
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),

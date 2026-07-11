@@ -31,6 +31,8 @@ class TestSopDeletionRequestedHandler:
         sops = AsyncMock(spec=ISopService)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
@@ -53,6 +55,8 @@ class TestSopDeletionRequestedHandler:
         sops.delete_sop.side_effect = SopNotFoundError(sop_id)
         context = InboundContext(
             offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
             sops=sops,
             sop_candidates=AsyncMock(),
             tasks=AsyncMock(),
