@@ -17,4 +17,11 @@ class IDeadLetterQueue(ABC):
             raw_value: The original, undeserialized message payload.
             source_topic: The topic the message was originally consumed from.
             error: The exception raised while parsing or handling the message.
+
+        Raises:
+            Exception: If the send to the dead-letter destination itself
+                fails (BE-20). Implementations must let this propagate
+                rather than swallow it: the caller relies on the failure to
+                decide not to commit the source offset, so a failed DLQ send
+                does not silently drop the original message.
         """

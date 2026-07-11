@@ -13,6 +13,7 @@ from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_consumer import IEventConsumer
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.application.ports.metrics import IMetricsPort
 from app.application.services.inbound_event_dispatcher import InboundEventDispatcher
 from app.infrastructure.adapters.events.event_deserializer import (
     EventDeserializationError,
@@ -44,6 +45,7 @@ class KafkaEventConsumer(IEventConsumer):
         graph_db: IGraphDatabasePort,
         event_publisher: IEventPublisher | None = None,
         dossier_generator: IDossierGenerator | None = None,
+        metrics: IMetricsPort | None = None,
     ) -> None:
         self._consumer = consumer
         self._dispatcher = dispatcher
@@ -51,6 +53,7 @@ class KafkaEventConsumer(IEventConsumer):
         self._graph_db = graph_db
         self._event_publisher = event_publisher
         self._dossier_generator = dossier_generator
+        self._metrics = metrics
         self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
@@ -83,14 +86,17 @@ class KafkaEventConsumer(IEventConsumer):
             logger.warning(
                 "Malformed event on topic %s, routing to DLQ", message.topic, exc_info=True
             )
-            await self._dlq.send(message.value, message.topic, exc)
-            await self._consumer.commit()
+            await self._route_to_dlq_and_commit(message, exc)
             return
 
         try:
             async with AsyncSession(get_engine()) as session:
                 context = build_inbound_context(
-                    session, self._graph_db, self._event_publisher, self._dossier_generator
+                    session,
+                    self._graph_db,
+                    self._event_publisher,
+                    self._dossier_generator,
+                    self._metrics,
                 )
                 await self._dispatcher.dispatch(event, context)
         except Exception as exc:
@@ -100,6 +106,22 @@ class KafkaEventConsumer(IEventConsumer):
                 message.topic,
                 exc_info=True,
             )
-            await self._dlq.send(message.value, message.topic, exc)
+            await self._route_to_dlq_and_commit(message, exc)
+            return
 
+        await self._consumer.commit()
+
+    async def _route_to_dlq_and_commit(self, message: ConsumerRecord, error: Exception) -> None:
+        """Send a message to the DLQ and commit its offset only once that succeeds.
+
+        If the DLQ send itself fails, the offset must NOT be committed —
+        committing anyway would silently drop the message, since it would
+        never be redelivered and was never parked anywhere either (BE-20).
+        The DLQ send failure is already logged at `critical` by
+        `DlqSendOperation`; here we just make sure it skips the commit.
+        """
+        try:
+            await self._dlq.send(message.value, message.topic, error)
+        except Exception:
+            return
         await self._consumer.commit()
