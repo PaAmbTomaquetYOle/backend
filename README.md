@@ -14,6 +14,8 @@
 
 Backend API for the **BrainTrust** offboarding agent — consumes Kafka events published by **slack-agent**, orchestrates the offboarding lifecycle (interview → dossier → completion), and delegates dossier writing to **mcp-server**'s `generate_dossier` tool. Built with FastAPI and hexagonal architecture.
 
+The live development stack is composed from the separate `infra/` repository. That stack provides PostgreSQL, Neo4j, Kafka, Kafka UI, and the Cloudflare tunnel used for the public `kire.ovh` endpoints, while this repo stays focused on the backend service itself.
+
 ### 📚 Contents
 
 - [🏗 Infrastructure](#-infrastructure)
@@ -32,6 +34,13 @@ The backend relies on several core services, orchestrated via Docker Compose:
 - **Neo4j 5**: Graph persistence for complex relationships and dossier context.
 - **Apache Kafka (Confluent 7.8.0)**: Event streaming using KRaft mode (no Zookeeper).
 - **Kafka UI**: Web interface for inspecting topics and messages.
+
+For the shared development environment, `infra/docker-compose.yml` injects the service-level runtime values and enables Neo4j GDS with:
+
+- `NEO4J_PLUGINS=["apoc","graph-data-science"]`
+- `NEO4J_dbms_security_procedures_unrestricted=gds.*,apoc.*`
+- `NEO4J_HEAP_INITIAL_SIZE=512m`
+- `NEO4J_HEAP_MAX_SIZE=1G`
 
 ## 🚀 Getting Started
 
@@ -67,6 +76,13 @@ The script will build the Docker images and wait until all healthchecks pass. On
 - 🌐 **API Documentation**: [http://localhost:8888/docs](http://localhost:8888/docs)
 - 📊 **Kafka UI**: [http://localhost:8080](http://localhost:8080)
 - 🔵 **Neo4j Browser**: [http://localhost:7474](http://localhost:7474)
+
+In the current shared dev deployment, the public equivalents are exposed through Cloudflare Tunnel under `kire.ovh`:
+
+- `braintrust-api.kire.ovh`
+- `braintrust-mcp.kire.ovh`
+- `braintrust-kafka.kire.ovh`
+- `braintrust-neo4j.kire.ovh`
 
 > [!TIP]
 > The ports above are defaults. You can change them by modifying `API_PORT`, `KAFKA_UI_PORT`, `NEO4J_BROWSER_PORT`, and `DB_PORT` in your `.env` file. The start scripts will automatically adapt to your configured ports.
