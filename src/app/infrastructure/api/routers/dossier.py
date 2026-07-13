@@ -3,15 +3,18 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import dossier_service_dependency
+from app.infrastructure.api.rate_limiter import limiter
 from app.infrastructure.api.schemas.dossier import (
     DossierSearchListResponse,
     dossier_search_result_to_response,
 )
+
+from app.infrastructure.config.settings import get_settings
 
 router = APIRouter(
     prefix="/dossiers",
@@ -25,7 +28,9 @@ router = APIRouter(
     response_model=DossierSearchListResponse,
     summary="Search dossiers by employee name and/or process ID",
 )
+@limiter.limit(lambda: get_settings().rate_limit_search)
 async def search_dossiers(
+        request: Request,
         service: Annotated[IDossierService, Depends(dossier_service_dependency)],
         employee_name: Annotated[
             str | None, Query(description="Partial, case-insensitive employee name to search for")
