@@ -1,8 +1,8 @@
 """Unit tests for SOP API endpoints — mock service, test HTTP layer only.
 
-SOP creation is Kafka-only (``sop.creation_requested``) — see
-``tests/events/handlers/test_sop_creation_requested_handler.py``. This module
-only covers the surviving REST endpoints (search, get, update, delete).
+The full SOP write lifecycle (create/update/delete) is Kafka-only (BE-21) —
+see ``tests/events/handlers/`` for the handler tests. This module only
+covers the surviving read-only REST endpoints (search, get).
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from app.application.read_models.sop_search_hit import SopSearchHit
 from app.application.services.sop_service import SopService
 from app.domain.exceptions.sops import SopNotFoundError
 from app.domain.sops.id import AuthorId, ChannelId, SopId
@@ -26,12 +27,17 @@ from app.main import create_app
 def _make_sop(content: str = "How to rotate secrets", tags: list[str] | None = None) -> Sop:
     return Sop(
         sop_id=SopId(),
+        title="Rotating secrets",
         content=content,
         author=AuthorId("U1"),
         tags=tags or ["security"],
         origin_channel=ChannelId("C1"),
         created_at=datetime.now(UTC),
     )
+
+
+def _make_hit(content: str = "How to rotate secrets", snippet: str | None = None) -> SopSearchHit:
+    return SopSearchHit(sop=_make_sop(content=content), snippet=snippet)
 
 
 @pytest.fixture
@@ -51,8 +57,8 @@ def client(mock_service: AsyncMock) -> TestClient:
 
 class TestSearchSops:
     def test_200_returns_page(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sops = [_make_sop(), _make_sop()]
-        mock_service.search_sops.return_value = (sops, 2)
+        hits = [_make_hit(snippet="How to <b>rotate</b> secrets"), _make_hit()]
+        mock_service.search_sops.return_value = (hits, 2)
 
         r = client.get("/api/v1/sops")
 
@@ -62,6 +68,9 @@ class TestSearchSops:
         assert len(body["items"]) == 2
         assert body["page"] == 1
         assert body["size"] == 20
+        assert body["items"][0]["title"] == "Rotating secrets"
+        assert body["items"][0]["snippet"] == "How to <b>rotate</b> secrets"
+        assert body["items"][1]["snippet"] is None
 
     def test_200_empty_results(self, client: TestClient, mock_service: AsyncMock) -> None:
         mock_service.search_sops.return_value = ([], 0)
@@ -98,6 +107,7 @@ class TestGetSop:
 
         assert r.status_code == 200
         assert r.json()["id"] == str(sop.sop_id.get_id())
+        assert r.json()["title"] == sop.title
 
     def test_404_not_found(self, client: TestClient, mock_service: AsyncMock) -> None:
         sid = uuid4()
@@ -111,51 +121,3 @@ class TestGetSop:
     def test_422_invalid_uuid(self, client: TestClient) -> None:
         r = client.get("/api/v1/sops/not-a-uuid")
         assert r.status_code == 422
-
-
-class TestUpdateSop:
-    def test_200_returns_updated_sop(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sop = _make_sop(content="revised")
-        mock_service.update_sop.return_value = sop
-
-        r = client.patch(f"/api/v1/sops/{uuid4()}", json={"content": "revised"})
-
-        assert r.status_code == 200
-        assert r.json()["content"] == "revised"
-
-    def test_404_not_found(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sid = uuid4()
-        mock_service.update_sop.side_effect = SopNotFoundError(str(sid))
-
-        r = client.patch(f"/api/v1/sops/{sid}", json={"content": "x"})
-
-        assert r.status_code == 404
-
-    def test_partial_update_omits_unset_fields(
-        self, client: TestClient, mock_service: AsyncMock
-    ) -> None:
-        mock_service.update_sop.return_value = _make_sop()
-
-        r = client.patch(f"/api/v1/sops/{uuid4()}", json={"tags": ["new"]})
-
-        assert r.status_code == 200
-        _, kwargs = mock_service.update_sop.call_args
-        assert kwargs["content"] is None
-        assert kwargs["tags"] == ["new"]
-
-
-class TestDeleteSop:
-    def test_204_on_success(self, client: TestClient, mock_service: AsyncMock) -> None:
-        mock_service.delete_sop.return_value = None
-
-        r = client.delete(f"/api/v1/sops/{uuid4()}")
-
-        assert r.status_code == 204
-
-    def test_404_not_found(self, client: TestClient, mock_service: AsyncMock) -> None:
-        sid = uuid4()
-        mock_service.delete_sop.side_effect = SopNotFoundError(str(sid))
-
-        r = client.delete(f"/api/v1/sops/{sid}")
-
-        assert r.status_code == 404

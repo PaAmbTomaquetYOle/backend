@@ -10,6 +10,7 @@ from .state import (
     OffboardingProcessState,
     PendingRevisionState,
 )
+from .task import OffboardingTask
 
 __all__ = [
     'DossierId',
@@ -19,6 +20,7 @@ __all__ = [
     'ManagerId',
     'OffboardingProcessId',
     'OffboardingProcess',
+    'OffboardingTask',
     'CancelledState',
     'FinishedState',
     'InProgressState',

@@ -18,6 +18,7 @@ from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import offboarding_process_facade_dependency
 from app.infrastructure.api.routers.offboarding_dossier import router as dossier_router
 from app.infrastructure.api.routers.offboarding_interview import router as interview_router
+from app.infrastructure.api.routers.offboarding_tasks import router as tasks_router
 from app.infrastructure.api.schemas.common import ErrorResponse
 from app.infrastructure.api.schemas.offboarding import (
     OffboardingListResponse,
@@ -32,6 +33,7 @@ router = APIRouter(
 )
 router.include_router(interview_router)
 router.include_router(dossier_router)
+router.include_router(tasks_router)
 
 _404 = {
     404:

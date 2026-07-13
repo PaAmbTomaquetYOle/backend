@@ -1,9 +1,9 @@
 """Concrete implementation of the knowledge graph service."""
 
-import logging
-
+from app.application.observability.event_publish_operation import EventPublishOperation
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.knowledge_graph import IKnowledgeGraphRepository
+from app.application.ports.metrics import IMetricsPort
 from app.application.service_interfaces.knowledge_graph_service_interface import (
     IKnowledgeGraphService,
 )
@@ -12,12 +12,12 @@ from app.domain.exceptions.knowledge_graph import PersonNotFoundInGraphError
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
-
-logger = logging.getLogger(__name__)
 
 KNOWS_INTERACTION = "knows"
 ANSWERED_INTERACTION = "answered"
@@ -35,6 +35,7 @@ class KnowledgeGraphService(IKnowledgeGraphService):
         self,
         repo: IKnowledgeGraphRepository,
         event_publisher: IEventPublisher | None = None,
+        metrics: IMetricsPort | None = None,
     ) -> None:
         """Set up the service with a repository and an optional event publisher.
 
@@ -42,21 +43,21 @@ class KnowledgeGraphService(IKnowledgeGraphService):
             repo: The repository used to read and write the knowledge graph.
             event_publisher: Optional publisher for domain events. If None,
                 events are not published.
+            metrics: Optional port for recording a failed event publish. If
+                None, the failure is still logged but not counted (BE-20).
         """
         self._repo = repo
         self._event_publisher = event_publisher
+        self._metrics = metrics
 
     async def _publish(self, event) -> None:
-        """Publish a domain event, logging a warning if publishing fails.
+        """Publish a domain event via EventPublishOperation, never raising on failure.
 
         Args:
             event: The domain event to publish.
         """
         if self._event_publisher is not None:
-            try:
-                await self._event_publisher.publish(event)
-            except Exception:
-                logger.warning("Failed to publish event %s", event.event_type, exc_info=True)
+            await EventPublishOperation(self._metrics, self._event_publisher, event).run()
 
     async def get_experts_by_topic(self, topic: str, limit: int = 10) -> list[ExpertResult]:
         """Return the persons most associated with a topic, ranked by score."""
@@ -88,6 +89,16 @@ class KnowledgeGraphService(IKnowledgeGraphService):
     async def get_documents_by_topic(self, topic: str, limit: int = 20) -> list[DocumentNode]:
         """Return documents that reference the given topic."""
         return await self._repo.find_documents_by_topic(topic, limit=limit)
+
+    async def get_person_analytics(self) -> list[PersonAnalytics]:
+        """Return per-person community/influence/broker-risk analytics."""
+        return await self._repo.compute_person_analytics()
+
+    async def get_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Return persons best positioned to cover for the given person."""
+        return await self._repo.find_successor_candidates(person_id, limit=limit)
 
     async def register_interaction(
         self,

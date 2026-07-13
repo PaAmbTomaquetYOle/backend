@@ -19,8 +19,10 @@ from app.domain.exceptions.knowledge_graph import PersonNotFoundInGraphError
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
@@ -149,3 +151,55 @@ class TestTopicDocuments:
 
         assert r.status_code == 200
         assert r.json()[0]["document_id"] == "D1"
+
+
+class TestPersonAnalytics:
+    def test_200_returns_analytics(self, client: TestClient, mock_service: AsyncMock) -> None:
+        mock_service.get_person_analytics.return_value = [
+            PersonAnalytics(person_id="U1", community_id=0, influence=1.5, broker_score=2.0)
+        ]
+
+        r = client.get("/api/v1/knowledge-graph/analytics")
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body[0]["person_id"] == "U1"
+        assert body[0]["community_id"] == 0
+        assert body[0]["influence"] == 1.5
+        assert body[0]["broker_score"] == 2.0
+
+    def test_200_returns_empty_list_when_gds_unavailable(
+        self, client: TestClient, mock_service: AsyncMock
+    ) -> None:
+        mock_service.get_person_analytics.return_value = []
+
+        r = client.get("/api/v1/knowledge-graph/analytics")
+
+        assert r.status_code == 200
+        assert r.json() == []
+
+
+class TestSuccessorCandidates:
+    def test_200_returns_candidates(self, client: TestClient, mock_service: AsyncMock) -> None:
+        mock_service.get_successor_candidates.return_value = [
+            SuccessorCandidate(
+                person=PersonNode(person_id="U2", name="Bob", department="SRE"), similarity=0.8
+            )
+        ]
+
+        r = client.get("/api/v1/knowledge-graph/persons/U1/successors")
+
+        assert r.status_code == 200
+        body = r.json()
+        assert body[0]["person"]["person_id"] == "U2"
+        assert body[0]["similarity"] == 0.8
+
+    def test_forwards_person_id_and_limit(
+        self, client: TestClient, mock_service: AsyncMock
+    ) -> None:
+        mock_service.get_successor_candidates.return_value = []
+
+        r = client.get("/api/v1/knowledge-graph/persons/U1/successors?limit=3")
+
+        assert r.status_code == 200
+        mock_service.get_successor_candidates.assert_awaited_once_with("U1", limit=3)

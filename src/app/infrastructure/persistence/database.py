@@ -2,29 +2,30 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
-from sqlalchemy import Engine, text
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlmodel import SQLModel
 
-_engine: Engine | None = None
+_engine: AsyncEngine | None = None
 
 
 def init_engine(url: str) -> None:
     """Initialize the SQLModel engine with the given database URL.
 
     Args:
-        url: SQLAlchemy-compatible database URL string.
+        url: SQLAlchemy-compatible async database URL string.
     """
     global _engine
-    _engine = create_engine(url)
+    _engine = create_async_engine(url)
 
 
-def get_engine() -> Engine:
+def get_engine() -> AsyncEngine:
     """Return the active SQLModel engine.
 
     Returns:
-        Engine: The initialized SQLAlchemy engine.
+        AsyncEngine: The initialized SQLAlchemy async engine.
 
     Raises:
         RuntimeError: If the engine has not been initialized yet.
@@ -34,17 +35,17 @@ def get_engine() -> Engine:
     return _engine
 
 
-def get_session() -> Generator[Session, None, None]:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield a SQLModel session for the current request, closing it when done.
 
     Yields:
-        Session: An active database session.
+        AsyncSession: An active database session.
     """
-    with Session(get_engine()) as session:
+    async with AsyncSession(get_engine()) as session:
         yield session
 
 
-def create_db_and_tables() -> None:
+async def create_db_and_tables() -> None:
     """Create all SQLModel-registered tables in the database if they do not already exist.
 
     Also creates the Postgres GIN full-text search index on ``sops.content``
@@ -53,9 +54,9 @@ def create_db_and_tables() -> None:
     to_tsvector/GIN support.
     """
     engine = get_engine()
-    SQLModel.metadata.create_all(engine)
-    if engine.dialect.name == "postgresql":
-        from app.infrastructure.persistence.models.sop import SOPS_CONTENT_FTS_INDEX_SQL
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+        if engine.dialect.name == "postgresql":
+            from app.infrastructure.persistence.models.sop import SOPS_CONTENT_FTS_INDEX_SQL
 
-        with engine.begin() as conn:
-            conn.execute(text(SOPS_CONTENT_FTS_INDEX_SQL))
+            await conn.execute(text(SOPS_CONTENT_FTS_INDEX_SQL))

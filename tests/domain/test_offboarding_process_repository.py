@@ -1,11 +1,12 @@
-"""Unit tests for OffboardingProcessRepository using in-memory SQLite."""
+"""Unit tests for OffboardingProcessRepository using in-memory async SQLite."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlmodel import SQLModel
 
 from app.domain.offboarding.id import EmployeeId, ManagerId, OffboardingProcessId
 from app.domain.offboarding.process import OffboardingProcess
@@ -18,16 +19,19 @@ from app.infrastructure.persistence import models as _models  # noqa: F401 — r
 
 
 @pytest.fixture(name="engine")
-def engine_fixture():
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
-    SQLModel.metadata.create_all(engine)
+async def engine_fixture():
+    engine = create_async_engine("sqlite+aiosqlite://")
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
     yield engine
-    SQLModel.metadata.drop_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+    await engine.dispose()
 
 
 @pytest.fixture(name="session")
-def session_fixture(engine):
-    with Session(engine) as session:
+async def session_fixture(engine):
+    async with AsyncSession(engine) as session:
         yield session
 
 
@@ -50,81 +54,86 @@ def make_process(
     )
 
 
+@pytest.mark.anyio
 class TestSave:
-    def test_save_and_find_by_id(self, repository):
+    async def test_save_and_find_by_id(self, repository):
         process = make_process()
-        repository.save(process)
+        await repository.save(process)
 
-        found = repository.find_by_id(process.process_id)
+        found = await repository.find_by_id(process.process_id)
         assert found is not None
         assert found.process_id.is_equal(process.process_id)
 
-    def test_save_twice_overwrites(self, repository):
+    async def test_save_twice_overwrites(self, repository):
         process = make_process()
-        repository.save(process)
+        await repository.save(process)
         process.start()
-        repository.save(process)
+        await repository.save(process)
 
-        found = repository.find_by_id(process.process_id)
+        found = await repository.find_by_id(process.process_id)
         assert found is not None
         from app.domain.enums import OffboardingProcessStateEnum
         assert found.state.get_state() == OffboardingProcessStateEnum.IN_PROGRESS
 
 
+@pytest.mark.anyio
 class TestFindById:
-    def test_returns_none_when_not_found(self, repository):
-        assert repository.find_by_id(OffboardingProcessId()) is None
+    async def test_returns_none_when_not_found(self, repository):
+        assert await repository.find_by_id(OffboardingProcessId()) is None
 
-    def test_state_round_trip(self, repository):
+    async def test_state_round_trip(self, repository):
         process = make_process(state=InProgressState())
-        repository.save(process)
+        await repository.save(process)
 
-        found = repository.find_by_id(process.process_id)
+        found = await repository.find_by_id(process.process_id)
         from app.domain.enums import OffboardingProcessStateEnum
         assert found.state.get_state() == OffboardingProcessStateEnum.IN_PROGRESS
 
 
+@pytest.mark.anyio
 class TestFindByEmployeeId:
-    def test_returns_processes_for_employee(self, repository):
+    async def test_returns_processes_for_employee(self, repository):
         employee = EmployeeId()
         p1 = make_process(employee_id=employee)
         p2 = make_process(employee_id=employee)
         other = make_process()
-        repository.save(p1)
-        repository.save(p2)
-        repository.save(other)
+        await repository.save(p1)
+        await repository.save(p2)
+        await repository.save(other)
 
-        results = repository.find_by_employee_id(employee)
+        results = await repository.find_by_employee_id(employee)
         ids = {r.process_id.get_id() for r in results}
         assert p1.process_id.get_id() in ids
         assert p2.process_id.get_id() in ids
         assert other.process_id.get_id() not in ids
 
-    def test_returns_empty_for_unknown_employee(self, repository):
-        assert repository.find_by_employee_id(EmployeeId()) == []
+    async def test_returns_empty_for_unknown_employee(self, repository):
+        assert await repository.find_by_employee_id(EmployeeId()) == []
 
 
+@pytest.mark.anyio
 class TestFindAll:
-    def test_empty_returns_empty_list(self, repository):
-        assert repository.find_all() == []
+    async def test_empty_returns_empty_list(self, repository):
+        assert await repository.find_all() == []
 
-    def test_returns_all_saved_processes(self, repository):
+    async def test_returns_all_saved_processes(self, repository):
         p1 = make_process()
         p2 = make_process()
-        repository.save(p1)
-        repository.save(p2)
+        await repository.save(p1)
+        await repository.save(p2)
 
-        results = repository.find_all()
+        results = await repository.find_all()
         assert len(results) == 2
 
 
+@pytest.mark.anyio
 class TestDelete:
-    def test_delete_existing_process(self, repository):
+    async def test_delete_existing_process(self, repository):
         process = make_process()
-        repository.save(process)
-        repository.delete(process.process_id)
+        await repository.save(process)
+        await repository.delete(process.process_id)
 
-        assert repository.find_by_id(process.process_id) is None
+        assert await repository.find_by_id(process.process_id) is None
 
-    def test_delete_nonexistent_is_noop(self, repository):
-        repository.delete(OffboardingProcessId())  # must not raise
+    async def test_delete_nonexistent_is_noop(self, repository):
+        await repository.delete(OffboardingProcessId())  # must not raise

@@ -12,8 +12,8 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlmodel import SQLModel
 
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.services.handlers import (
@@ -49,19 +49,21 @@ class _CapturingPublisher(IEventPublisher):
     async def publish_many(self, events: list[DomainEvent]) -> None:
         self.events.extend(events)
 
+    async def stop(self) -> None:
+        pass
 
-def _make_engine():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
+
+async def _make_engine():
+    engine = create_async_engine("sqlite+aiosqlite://")
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
     return engine
 
 
 @pytest.mark.anyio
 class TestConsumerIntegration:
     async def test_full_inbound_event_cycle(self) -> None:
-        engine = _make_engine()
+        engine = await _make_engine()
         publisher = _CapturingPublisher()
         generator = FakeDossierGenerator()
         graph_db = NoOpGraphAdapter()
@@ -73,7 +75,7 @@ class TestConsumerIntegration:
         ])
 
         async def dispatch(event: DomainEvent) -> None:
-            with Session(engine) as session:
+            async with AsyncSession(engine) as session:
                 context = build_inbound_context(session, graph_db, publisher, generator)
                 await dispatcher.dispatch(event, context)
 
@@ -84,7 +86,7 @@ class TestConsumerIntegration:
             event_id=uuid4(),
         ))
 
-        with Session(engine) as session:
+        async with AsyncSession(engine) as session:
             facade = build_offboarding_facade(session, publisher, generator)
             processes = await facade.list_offboardings(employee_id=EmployeeId("U1"))
         assert len(processes) == 1
@@ -109,7 +111,7 @@ class TestConsumerIntegration:
             event_id=uuid4(),
         ))
 
-        with Session(engine) as session:
+        async with AsyncSession(engine) as session:
             facade = build_offboarding_facade(session, publisher, generator)
             interview = await facade.get_interview(process_id)
             process = await facade.get_offboarding(process_id)
@@ -124,7 +126,7 @@ class TestConsumerIntegration:
             event_id=uuid4(),
         ))
 
-        with Session(engine) as session:
+        async with AsyncSession(engine) as session:
             facade = build_offboarding_facade(session, publisher, generator)
             dossier = await facade.get_dossier(process_id)
             process = await facade.get_offboarding(process_id)
@@ -136,6 +138,7 @@ class TestConsumerIntegration:
         await dispatch(DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={
+                "title": "Rotating secrets",
                 "content": "How to rotate secrets",
                 "author": "U1",
                 "origin_channel": "C1",
@@ -144,11 +147,12 @@ class TestConsumerIntegration:
             event_id=uuid4(),
         ))
 
-        with Session(engine) as session:
+        async with AsyncSession(engine) as session:
             sops_service = build_inbound_context(session, graph_db, publisher, generator).sops
             sops, total = await sops_service.search_sops()
         assert total == 1
-        assert sops[0].content == "How to rotate secrets"
+        assert sops[0].sop.content == "How to rotate secrets"
+        assert sops[0].sop.title == "Rotating secrets"
 
         # Response events were published for each step
         published_types = [e.event_type for e in publisher.events]
@@ -158,4 +162,6 @@ class TestConsumerIntegration:
         assert "offboarding.completed" in published_types
         assert "sop.created" in published_types
 
-        SQLModel.metadata.drop_all(engine)
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.drop_all)
+        await engine.dispose()

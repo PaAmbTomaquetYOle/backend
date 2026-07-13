@@ -12,3 +12,6 @@ class NoOpEventPublisher(IEventPublisher):
 
     async def publish_many(self, events: list[DomainEvent]) -> None:
         pass
+
+    async def stop(self) -> None:
+        pass

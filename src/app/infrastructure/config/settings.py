@@ -27,10 +27,30 @@ class Settings(BaseSettings):
     db_password: str  # No default — must be set in .env
 
     # JWT
-    jwt_secret: str = ""
+    jwt_secret: str  # No default — must be set in .env
     jwt_algorithm: str = "HS256"
     jwt_audience: str = "offboardme-backend"
     token_expiry_seconds: int = 300
+
+    # Rate limit applied to POST /auth/token (per client IP), to slow down
+    # credential brute-forcing against SERVICE_CREDENTIALS. See BE-17 for the
+    # tracked follow-up to roll rate limiting out to other endpoints.
+    auth_token_rate_limit: str = "10/minute"
+
+    # Global default rate limit applied to all endpoints via SlowAPI middleware.
+    # Individual endpoints can override this with @limiter.limit(...).
+    rate_limit_default: str = "60/minute"
+
+    # More relaxed limit for read-heavy search endpoints (GET /sops, GET /dossiers/search).
+    rate_limit_search: str = "120/minute"
+
+    # Knowledge-graph query endpoints — tighter because some queries (e.g.
+    # related-topics) involve multi-hop traversals.
+    rate_limit_knowledge_graph: str = "30/minute"
+
+    # GDS-backed analytics/successor endpoints — the most expensive, involving
+    # ephemeral graph projections and algorithm execution.
+    rate_limit_kg_analytics: str = "10/minute"
 
     # Client-credentials service accounts allowed to mint JWTs via /auth/token,
     # e.g. {"slack-agent": "<secret>", "mcp-server": "<secret>"}.
@@ -73,6 +93,16 @@ class Settings(BaseSettings):
     dossier_llm_enabled: bool = False
     dossier_llm_timeout_seconds: float = 45.0
     mcp_server_url: str = "http://localhost:8000/mcp"
+
+    # Periodic review scheduling (BE-24) — see ReviewScheduler for the
+    # in-process-vs-external-CronJob decision.
+    review_scheduling_enabled: bool = False
+    review_scheduling_hour_utc: int = 3
+
+    # Structured metrics for failures caught and handled rather than
+    # propagated (BE-20) — see IMetricsPort. Defaults to off so local
+    # dev/tests are unaffected; enable to expose GET /metrics.
+    metrics_enabled: bool = False
 
     @property
     def database_url(self) -> str:

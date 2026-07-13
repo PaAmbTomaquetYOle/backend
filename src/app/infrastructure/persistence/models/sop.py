@@ -1,4 +1,4 @@
-"""SQLModel persistence model for SOPs, with a full-text search index on content."""
+"""SQLModel persistence model for SOPs, with a full-text search index on title+content."""
 
 from __future__ import annotations
 
@@ -7,14 +7,15 @@ from datetime import datetime
 
 from sqlmodel import Field, SQLModel
 
-# The Postgres GIN full-text index on `content` (to_tsvector) is created
-# separately, outside SQLModel metadata, by
-# `infrastructure.persistence.database.create_db_and_tables` — SQLite (used
-# in tests) has no to_tsvector/GIN support, so it cannot be a declarative
-# Index here without breaking the SQLite-backed test suite.
+# The Postgres GIN full-text index on `title || ' ' || content` (to_tsvector)
+# is created separately, outside SQLModel metadata, by the Alembic baseline
+# migration (production) and by
+# `infrastructure.persistence.database.create_db_and_tables` (SQLite-backed
+# test fixtures have no to_tsvector/GIN support, so it cannot be a declarative
+# Index here without breaking the SQLite-backed test suite).
 SOPS_CONTENT_FTS_INDEX_SQL = (
     "CREATE INDEX IF NOT EXISTS ix_sops_content_fts "
-    "ON sops USING gin (to_tsvector('english', content))"
+    "ON sops USING gin (to_tsvector('english', title || ' ' || content))"
 )
 
 
@@ -29,6 +30,7 @@ class SopModel(SQLModel, table=True):
     __tablename__ = "sops"
 
     id: uuid.UUID = Field(primary_key=True)
+    title: str = Field(nullable=False, max_length=200)
     content: str = Field(nullable=False)
     author: str = Field(nullable=False, max_length=64)
     origin_channel: str = Field(nullable=False, max_length=64)

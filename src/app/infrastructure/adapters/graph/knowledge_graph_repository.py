@@ -3,17 +3,54 @@
 Composes IGraphDatabasePort (rather than talking to the Neo4j driver
 directly) so it reuses the existing driver lifecycle and automatically
 degrades to no-op behavior when Neo4j is unavailable (NoOpGraphAdapter).
+
+Cost guard strategy for multi-hop Cypher queries
+-------------------------------------------------
+Queries that traverse more than one hop (e.g. ``find_related_topics``:
+Topic ← Person → Topic) can become expensive if the intermediate
+result set is large. To bound the cost:
+
+1. **Intermediate LIMIT** – multi-hop queries use a ``WITH … LIMIT``
+   clause between hops to cap the number of intermediate rows the
+   planner must expand. The cap is ``_MAX_INTERMEDIATE_ROWS`` (200 by
+   default), chosen to be large enough to return accurate results on
+   hackathon-size graphs while preventing runaway traversals on
+   larger datasets.
+
+2. **Final LIMIT** – every read query already applies a caller-supplied
+   ``LIMIT`` on the final result set (typically 10–50).
+
+3. **Pagination** – ``find_all_topics`` and ``find_all_persons`` use
+   server-side ``SKIP``/``LIMIT``.
+
+4. **Pattern list comprehension limits** – ``find_person_knowledge_profile``
+   uses Cypher pattern comprehensions (``[(p)-[:REL]->(x) | …]``)
+   which are anchored to a single matched person node and therefore
+   bounded by the number of relationships of that person, not by
+   the total graph size. An explicit slice ``[0.._MAX_PROFILE_ITEMS]``
+   caps the returned items per comprehension to prevent pathologically
+   connected nodes from returning unbounded lists.
+
+These measures together ensure that no single read query can trigger
+a full-graph scan, regardless of graph size.
 """
 
 from __future__ import annotations
+
+import logging
+import uuid
+
+from neo4j.exceptions import Neo4jError
 
 from app.application.ports.graph_database import IGraphDatabasePort
 from app.application.ports.knowledge_graph import IKnowledgeGraphRepository
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 from app.domain.knowledge_graph.relationships import (
@@ -24,6 +61,38 @@ from app.domain.knowledge_graph.relationships import (
     REFERENCES,
     WROTE,
 )
+
+logger = logging.getLogger(__name__)
+
+# --- Cost guard constants ---
+# Maximum intermediate rows expanded between hops in multi-hop Cypher
+# queries (e.g. find_related_topics). Keeps the planner from doing a
+# full-graph traversal when a topic has many experts.
+_MAX_INTERMEDIATE_ROWS: int = 200
+
+# Maximum items returned per pattern comprehension in
+# find_person_knowledge_profile, guarding against pathologically
+# connected person nodes.
+_MAX_PROFILE_ITEMS: int = 200
+
+# Name prefix for the ephemeral person-to-person GDS projections used by the
+# analytics/successor queries below. Suffixed with a random token per call so
+# concurrent requests never collide on the same named graph.
+_PERSON_PROJECTION_PREFIX = "sa19-person-network"
+
+# Cypher fragment projecting a person-to-person graph: two persons are linked
+# (undirected, once) when they both know about or answered about the same
+# topic, weighted by how many topics they share. Running Louvain/PageRank/
+# betweenness over this monopartite view (instead of the raw bipartite
+# Person-Topic graph) is what makes "community"/"influence"/"broker" mean
+# "how this person relates to other people" rather than mixing in topics.
+_PERSON_NETWORK_NODE_QUERY = "MATCH (p:Person) RETURN id(p) AS id"
+_KNOWS_OR_ANSWERED = f"{KNOWS_ABOUT}|{ANSWERED_ABOUT}"
+_PERSON_NETWORK_REL_QUERY = f"""
+MATCH (p1:Person)-[:{_KNOWS_OR_ANSWERED}]->(t:Topic)<-[:{_KNOWS_OR_ANSWERED}]-(p2:Person)
+WHERE id(p1) < id(p2)
+RETURN id(p1) AS source, id(p2) AS target, count(DISTINCT t) AS weight
+"""
 
 
 class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
@@ -39,9 +108,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
 
     # --- Node operations (write) ---
 
-    async def upsert_person(
-        self, person_id: str, name: str, department: str | None = None
-    ) -> None:
+    async def upsert_person(self, person_id: str, name: str, department: str | None = None) -> None:
         """Create or update a Person node."""
         await self._graph_db.execute_query(
             """
@@ -97,8 +164,8 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             f"""
             MATCH (p:Person {{person_id: $person_id}}), (t:Topic {{name: $topic_name}})
             MERGE (p)-[r:{KNOWS_ABOUT}]->(t)
-            ON CREATE SET r.weight = $weight
-            ON MATCH SET r.weight = coalesce(r.weight, 0) + $weight
+            ON CREATE SET r.weight = $weight, r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.weight = coalesce(r.weight, 0) + $weight, r.last_seen_at = datetime()
             """,
             {"person_id": person_id, "topic_name": topic_name, "weight": weight},
         )
@@ -108,7 +175,9 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}}), (d:Document {{document_id: $document_id}})
-            MERGE (p)-[:{WROTE}]->(d)
+            MERGE (p)-[r:{WROTE}]->(d)
+            ON CREATE SET r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.last_seen_at = datetime()
             """,
             {"person_id": person_id, "document_id": document_id},
         )
@@ -118,7 +187,9 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}}), (t:Topic {{name: $topic_name}})
-            MERGE (p)-[:{ANSWERED_ABOUT}]->(t)
+            MERGE (p)-[r:{ANSWERED_ABOUT}]->(t)
+            ON CREATE SET r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.last_seen_at = datetime()
             """,
             {"person_id": person_id, "topic_name": topic_name},
         )
@@ -128,7 +199,9 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         await self._graph_db.execute_query(
             f"""
             MATCH (t:Topic {{name: $topic_name}}), (c:Channel {{channel_id: $channel_id}})
-            MERGE (t)-[:{MENTIONED_IN}]->(c)
+            MERGE (t)-[r:{MENTIONED_IN}]->(c)
+            ON CREATE SET r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.last_seen_at = datetime()
             """,
             {"topic_name": topic_name, "channel_id": channel_id},
         )
@@ -138,7 +211,9 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}}), (c:Channel {{channel_id: $channel_id}})
-            MERGE (p)-[:{ACTIVE_IN}]->(c)
+            MERGE (p)-[r:{ACTIVE_IN}]->(c)
+            ON CREATE SET r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.last_seen_at = datetime()
             """,
             {"person_id": person_id, "channel_id": channel_id},
         )
@@ -148,12 +223,25 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         await self._graph_db.execute_query(
             f"""
             MATCH (d:Document {{document_id: $document_id}}), (t:Topic {{name: $topic_name}})
-            MERGE (d)-[:{REFERENCES}]->(t)
+            MERGE (d)-[r:{REFERENCES}]->(t)
+            ON CREATE SET r.created_at = datetime(), r.last_seen_at = datetime()
+            ON MATCH SET r.last_seen_at = datetime()
             """,
             {"document_id": document_id, "topic_name": topic_name},
         )
 
     # --- Query operations (read) ---
+
+    @staticmethod
+    def _to_native_datetime(value: object) -> object:
+        """Normalize a Neo4j temporal value to a stdlib ``datetime`` (or pass through).
+
+        The driver returns ``neo4j.time.DateTime`` for Cypher ``datetime()``
+        values, which exposes ``to_native()``. Plain ``None``/strings (e.g. in
+        unit tests that mock the graph port directly) pass through unchanged.
+        """
+        to_native = getattr(value, "to_native", None)
+        return to_native() if callable(to_native) else value
 
     async def find_experts_by_topic(self, topic_name: str, limit: int = 10) -> list[ExpertResult]:
         """Find the persons most associated with a topic, ranked by score."""
@@ -162,7 +250,8 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             MATCH (p:Person)-[r:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(t:Topic {{name: $topic_name}})
             RETURN p.person_id AS person_id, p.name AS name, p.department AS department,
                    sum(CASE WHEN type(r) = '{KNOWS_ABOUT}' THEN coalesce(r.weight, 1.0)
-                            ELSE 1.0 END) AS score
+                            ELSE 1.0 END) AS score,
+                   min(r.created_at) AS first_seen, max(r.last_seen_at) AS last_seen
             ORDER BY score DESC
             LIMIT $limit
             """,
@@ -177,6 +266,8 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
                 ),
                 topic=topic_name,
                 score=record["score"],
+                first_seen=self._to_native_datetime(record.get("first_seen")),
+                last_seen=self._to_native_datetime(record.get("last_seen")),
             )
             for record in records
         ]
@@ -195,21 +286,21 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             for record in records
         ]
 
-    async def find_person_knowledge_profile(
-        self, person_id: str
-    ) -> PersonKnowledgeProfile | None:
+    async def find_person_knowledge_profile(self, person_id: str) -> PersonKnowledgeProfile | None:
         """Find a person's full knowledge profile (topics and authored documents)."""
         records = await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}})
             RETURN p.person_id AS person_id, p.name AS name, p.department AS department,
                    [(p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(t:Topic) |
-                       {{name: t.name, description: t.description}}] AS topics,
+                       {{name: t.name, description: t.description}}
+                   ][0..$_max_profile_items] AS topics,
                    [(p)-[:{WROTE}]->(d:Document) |
                        {{document_id: d.document_id, title: d.title,
-                         url: d.url, source: d.source}}] AS documents
+                         url: d.url, source: d.source}}
+                   ][0..$_max_profile_items] AS documents
             """,
-            {"person_id": person_id},
+            {"person_id": person_id, "_max_profile_items": _MAX_PROFILE_ITEMS},
         )
         if not records:
             return None
@@ -239,22 +330,25 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         """Find topics related to the given topic (via shared experts)."""
         records = await self._graph_db.execute_query(
             f"""
-            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(:Person)
-                  -[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
+            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(p:Person)
+            WITH p LIMIT $_max_intermediate_rows
+            MATCH (p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
             WHERE other.name <> $topic_name
             RETURN DISTINCT other.name AS name, other.description AS description
             LIMIT $limit
             """,
-            {"topic_name": topic_name, "limit": limit},
+            {
+                "topic_name": topic_name,
+                "limit": limit,
+                "_max_intermediate_rows": _MAX_INTERMEDIATE_ROWS,
+            },
         )
         return [
             TopicNode(name=record["name"], description=record.get("description"))
             for record in records
         ]
 
-    async def find_documents_by_topic(
-        self, topic_name: str, limit: int = 20
-    ) -> list[DocumentNode]:
+    async def find_documents_by_topic(self, topic_name: str, limit: int = 20) -> list[DocumentNode]:
         """Find documents that reference the given topic."""
         records = await self._graph_db.execute_query(
             f"""
@@ -276,51 +370,216 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         ]
 
     async def find_all_topics(self, page: int = 1, size: int = 50) -> tuple[list[TopicNode], int]:
-        """List all topics in the graph, paginated."""
-        skip = (page - 1) * size
-        count_records = await self._graph_db.execute_query(
-            "MATCH (t:Topic) RETURN count(t) AS total"
-        )
-        total = count_records[0]["total"] if count_records else 0
-        records = await self._graph_db.execute_query(
-            """
-            MATCH (t:Topic)
-            RETURN t.name AS name, t.description AS description
-            ORDER BY t.name
-            SKIP $skip LIMIT $size
-            """,
-            {"skip": skip, "size": size},
-        )
-        topics = [
-            TopicNode(name=record["name"], description=record.get("description"))
-            for record in records
-        ]
-        return topics, total
+        """List all topics in the graph, paginated.
 
-    async def find_all_persons(
-        self, page: int = 1, size: int = 50
-    ) -> tuple[list[PersonNode], int]:
-        """List all persons in the graph, paginated."""
+        Uses two uncorrelated ``CALL {}`` subqueries (count + collected data
+        page) so a single round-trip yields exactly one row with both
+        ``total`` and ``rows`` — unlike a single linear query, ``total``
+        survives even when ``skip`` is past the end of the result set.
+        """
         skip = (page - 1) * size
-        count_records = await self._graph_db.execute_query(
-            "MATCH (p:Person) RETURN count(p) AS total"
-        )
-        total = count_records[0]["total"] if count_records else 0
         records = await self._graph_db.execute_query(
             """
-            MATCH (p:Person)
-            RETURN p.person_id AS person_id, p.name AS name, p.department AS department
-            ORDER BY p.name
-            SKIP $skip LIMIT $size
+            CALL { MATCH (t:Topic) RETURN count(t) AS total }
+            CALL {
+                MATCH (t:Topic)
+                WITH t ORDER BY t.name
+                SKIP $skip LIMIT $size
+                RETURN collect({name: t.name, description: t.description}) AS rows
+            }
+            RETURN total, rows
             """,
             {"skip": skip, "size": size},
         )
+        if not records:
+            return [], 0
+        record = records[0]
+        topics = [
+            TopicNode(name=row["name"], description=row.get("description"))
+            for row in record["rows"]
+        ]
+        return topics, record["total"]
+
+    async def find_all_persons(self, page: int = 1, size: int = 50) -> tuple[list[PersonNode], int]:
+        """List all persons in the graph, paginated.
+
+        See ``find_all_topics`` for why the count and data page are combined
+        via two uncorrelated ``CALL {}`` subqueries in a single query.
+        """
+        skip = (page - 1) * size
+        records = await self._graph_db.execute_query(
+            """
+            CALL { MATCH (p:Person) RETURN count(p) AS total }
+            CALL {
+                MATCH (p:Person)
+                WITH p ORDER BY p.name
+                SKIP $skip LIMIT $size
+                RETURN collect({
+                    person_id: p.person_id, name: p.name, department: p.department
+                }) AS rows
+            }
+            RETURN total, rows
+            """,
+            {"skip": skip, "size": size},
+        )
+        if not records:
+            return [], 0
+        record = records[0]
         persons = [
             PersonNode(
-                person_id=record["person_id"],
-                name=record["name"],
-                department=record.get("department"),
+                person_id=row["person_id"],
+                name=row["name"],
+                department=row.get("department"),
             )
-            for record in records
+            for row in record["rows"]
         ]
-        return persons, total
+        return persons, record["total"]
+
+    # --- Graph analytics (read, GDS-backed, SA-19) ---
+
+    async def _project_person_network(self) -> str:
+        """Project an ephemeral person-to-person graph and return its handle name.
+
+        Drops any stale projection under the same name first (defensive —
+        should not happen since names are per-call, but a prior crash could
+        leave one behind) and lets the caller drop it in a ``finally``.
+        """
+        graph_name = f"{_PERSON_PROJECTION_PREFIX}-{uuid.uuid4().hex}"
+        await self._graph_db.execute_query(
+            """
+            CALL gds.graph.exists($graph_name) YIELD exists
+            WITH exists WHERE exists
+            CALL gds.graph.drop($graph_name) YIELD graphName
+            RETURN graphName
+            """,
+            {"graph_name": graph_name},
+        )
+        await self._graph_db.execute_query(
+            "CALL gds.graph.project.cypher($graph_name, $node_query, $rel_query) YIELD graphName",
+            {
+                "graph_name": graph_name,
+                "node_query": _PERSON_NETWORK_NODE_QUERY,
+                "rel_query": _PERSON_NETWORK_REL_QUERY,
+            },
+        )
+        return graph_name
+
+    async def _drop_projection(self, graph_name: str) -> None:
+        """Drop a named GDS graph projection, tolerating it already being gone."""
+        try:
+            await self._graph_db.execute_query(
+                "CALL gds.graph.drop($graph_name, false) YIELD graphName",
+                {"graph_name": graph_name},
+            )
+        except Neo4jError:
+            logger.warning("Failed to drop GDS projection %s", graph_name, exc_info=True)
+
+    async def compute_person_analytics(self) -> list[PersonAnalytics]:
+        """Run Louvain + weighted PageRank + betweenness over the person network.
+
+        Degrades to an empty list (rather than raising) when the GDS plugin
+        is not installed or any other GDS-side error occurs — analytics are
+        an enhancement, not a required capability (see IKnowledgeGraphRepository).
+        """
+        graph_name: str | None = None
+        try:
+            graph_name = await self._project_person_network()
+            records = await self._graph_db.execute_query(
+                """
+                CALL gds.louvain.stream($graph_name, {relationshipWeightProperty: 'weight'})
+                YIELD nodeId, communityId
+                WITH gds.util.asNode(nodeId) AS person, communityId
+                RETURN person.person_id AS person_id, communityId AS community_id
+                """,
+                {"graph_name": graph_name},
+            )
+            communities = {r["person_id"]: r["community_id"] for r in records}
+
+            pagerank_records = await self._graph_db.execute_query(
+                """
+                CALL gds.pageRank.stream($graph_name, {relationshipWeightProperty: 'weight'})
+                YIELD nodeId, score
+                WITH gds.util.asNode(nodeId) AS person, score
+                RETURN person.person_id AS person_id, score AS influence
+                """,
+                {"graph_name": graph_name},
+            )
+            influence = {r["person_id"]: r["influence"] for r in pagerank_records}
+
+            betweenness_records = await self._graph_db.execute_query(
+                """
+                CALL gds.betweenness.stream($graph_name)
+                YIELD nodeId, score
+                WITH gds.util.asNode(nodeId) AS person, score
+                RETURN person.person_id AS person_id, score AS broker_score
+                """,
+                {"graph_name": graph_name},
+            )
+            broker_scores = {r["person_id"]: r["broker_score"] for r in betweenness_records}
+
+            person_ids = communities.keys() | influence.keys() | broker_scores.keys()
+            return [
+                PersonAnalytics(
+                    person_id=person_id,
+                    community_id=communities.get(person_id, -1),
+                    influence=influence.get(person_id, 0.0),
+                    broker_score=broker_scores.get(person_id, 0.0),
+                )
+                for person_id in person_ids
+            ]
+        except Neo4jError:
+            logger.warning(
+                "GDS person analytics unavailable (plugin missing or query failed) — "
+                "degrading to an empty result",
+                exc_info=True,
+            )
+            return []
+        finally:
+            if graph_name is not None:
+                await self._drop_projection(graph_name)
+
+    async def find_successor_candidates(
+        self, person_id: str, limit: int = 5
+    ) -> list[SuccessorCandidate]:
+        """Find persons most similar to ``person_id`` via GDS Node Similarity.
+
+        Degrades to an empty list when GDS is unavailable, mirroring
+        ``compute_person_analytics``.
+        """
+        graph_name: str | None = None
+        try:
+            graph_name = await self._project_person_network()
+            records = await self._graph_db.execute_query(
+                """
+                CALL gds.nodeSimilarity.stream($graph_name, {relationshipWeightProperty: 'weight'})
+                YIELD node1, node2, similarity
+                WITH gds.util.asNode(node1) AS source, gds.util.asNode(node2) AS target, similarity
+                WHERE source.person_id = $person_id
+                RETURN target.person_id AS person_id, target.name AS name,
+                       target.department AS department, similarity
+                ORDER BY similarity DESC
+                LIMIT $limit
+                """,
+                {"graph_name": graph_name, "person_id": person_id, "limit": limit},
+            )
+            return [
+                SuccessorCandidate(
+                    person=PersonNode(
+                        person_id=record["person_id"],
+                        name=record["name"],
+                        department=record.get("department"),
+                    ),
+                    similarity=record["similarity"],
+                )
+                for record in records
+            ]
+        except Neo4jError:
+            logger.warning(
+                "GDS successor candidates unavailable (plugin missing or query failed) — "
+                "degrading to an empty result",
+                exc_info=True,
+            )
+            return []
+        finally:
+            if graph_name is not None:
+                await self._drop_projection(graph_name)

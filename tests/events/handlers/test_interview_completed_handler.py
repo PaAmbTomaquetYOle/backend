@@ -67,7 +67,15 @@ class TestInterviewCompletedHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         await InterviewCompletedHandler().handle(event, context)
 
         facade.upsert_interview.assert_awaited_once()
@@ -98,7 +106,15 @@ class TestInterviewCompletedHandler:
             event_id=uuid4(),
         )
 
-        context = InboundContext(offboarding=facade, sops=AsyncMock(), knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=facade,
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         await InterviewCompletedHandler().handle(event, context)
 
         facade.start_interview.assert_not_awaited()

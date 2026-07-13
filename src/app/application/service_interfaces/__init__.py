@@ -27,8 +27,12 @@ Empty for now. As contracts are added, export them here and list them in
 ``__all__``.
 """
 
+from .annual_review_facade_interface import IAnnualReviewServiceFacade
+from .annual_review_process_service_interface import IAnnualReviewProcessService
 from .dossier_service_interface import IDossierService
 from .interview_service_interface import IInterviewService
+from .monthly_review_facade_interface import IMonthlyReviewServiceFacade
+from .monthly_review_process_service_interface import IMonthlyReviewProcessService
 from .offboarding_facade_interface import (
     IOffboardingDossierFacade,
     IOffboardingInterviewFacade,
@@ -37,14 +41,21 @@ from .offboarding_facade_interface import (
 )
 from .offboarding_process_service_interface import IOffboardingProcessService
 from .process_service_interface import IProcessService
+from .review_scheduling_service_interface import IReviewSchedulingService, ReviewSchedulingResult
 
 __all__: list[str] = [
+    "IAnnualReviewProcessService",
+    "IAnnualReviewServiceFacade",
     "IDossierService",
     "IInterviewService",
+    "IMonthlyReviewProcessService",
+    "IMonthlyReviewServiceFacade",
     "IOffboardingDossierFacade",
     "IOffboardingInterviewFacade",
     "IOffboardingProcessFacade",
     "IOffboardingServiceFacade",
     "IOffboardingProcessService",
     "IProcessService",
+    "IReviewSchedulingService",
+    "ReviewSchedulingResult",
 ]

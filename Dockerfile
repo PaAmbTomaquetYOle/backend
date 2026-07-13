@@ -9,6 +9,6 @@ COPY src ./src
 
 RUN pip install --no-cache-dir .
 
-EXPOSE 8001
+EXPOSE 8888
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8888"]

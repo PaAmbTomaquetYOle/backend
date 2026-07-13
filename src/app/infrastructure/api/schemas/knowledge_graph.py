@@ -1,14 +1,17 @@
 """Request/response schemas for knowledge graph endpoints."""
 
 import math
+from datetime import datetime
 
 from pydantic import BaseModel
 
 from app.domain.knowledge_graph import (
     DocumentNode,
     ExpertResult,
+    PersonAnalytics,
     PersonKnowledgeProfile,
     PersonNode,
+    SuccessorCandidate,
     TopicNode,
 )
 
@@ -43,6 +46,24 @@ class ExpertResponse(BaseModel):
     person: PersonResponse
     topic: str
     score: float
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+
+
+class PersonAnalyticsResponse(BaseModel):
+    """Response body representing a person's graph-analytics profile (SA-19)."""
+
+    person_id: str
+    community_id: int
+    influence: float
+    broker_score: float
+
+
+class SuccessorCandidateResponse(BaseModel):
+    """Response body representing a candidate to cover for another person."""
+
+    person: PersonResponse
+    similarity: float
 
 
 class PersonKnowledgeProfileResponse(BaseModel):
@@ -98,7 +119,30 @@ def document_to_response(document: DocumentNode) -> DocumentResponse:
 def expert_to_response(expert: ExpertResult) -> ExpertResponse:
     """Convert a domain ExpertResult to its API response schema."""
     return ExpertResponse(
-        person=person_to_response(expert.person), topic=expert.topic, score=expert.score
+        person=person_to_response(expert.person),
+        topic=expert.topic,
+        score=expert.score,
+        first_seen=expert.first_seen,
+        last_seen=expert.last_seen,
+    )
+
+
+def person_analytics_to_response(analytics: PersonAnalytics) -> PersonAnalyticsResponse:
+    """Convert a domain PersonAnalytics to its API response schema."""
+    return PersonAnalyticsResponse(
+        person_id=analytics.person_id,
+        community_id=analytics.community_id,
+        influence=analytics.influence,
+        broker_score=analytics.broker_score,
+    )
+
+
+def successor_candidate_to_response(
+    candidate: SuccessorCandidate,
+) -> SuccessorCandidateResponse:
+    """Convert a domain SuccessorCandidate to its API response schema."""
+    return SuccessorCandidateResponse(
+        person=person_to_response(candidate.person), similarity=candidate.similarity
     )
 
 

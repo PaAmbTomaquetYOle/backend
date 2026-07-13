@@ -8,11 +8,23 @@ inbound flow means adding a field here, not changing the handler port.
 
 from dataclasses import dataclass
 
+from app.application.service_interfaces.annual_review_facade_interface import (
+    IAnnualReviewServiceFacade,
+)
 from app.application.service_interfaces.knowledge_graph_service_interface import (
     IKnowledgeGraphService,
 )
+from app.application.service_interfaces.monthly_review_facade_interface import (
+    IMonthlyReviewServiceFacade,
+)
 from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingServiceFacade,
+)
+from app.application.service_interfaces.offboarding_task_service_interface import (
+    IOffboardingTaskService,
+)
+from app.application.service_interfaces.sop_candidate_service_interface import (
+    ISopCandidateService,
 )
 from app.application.service_interfaces.sop_service_interface import ISopService
 
@@ -22,5 +34,9 @@ class InboundContext:
     """Bundles the use-case services available to inbound event handlers."""
 
     offboarding: IOffboardingServiceFacade
+    monthly_review: IMonthlyReviewServiceFacade
+    annual_review: IAnnualReviewServiceFacade
     sops: ISopService
+    sop_candidates: ISopCandidateService
+    tasks: IOffboardingTaskService
     knowledge_graph: IKnowledgeGraphService

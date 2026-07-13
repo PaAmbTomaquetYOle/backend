@@ -63,7 +63,7 @@ class OffboardingProcessService(IOffboardingProcessService):
             employee_name=employee_name,
             manager_name=manager_name,
         )
-        self._repo.save(process)
+        await self._repo.save(process)
         return process
 
     async def get_process(self, process_id: ProcessId) -> OffboardingProcess:
@@ -78,7 +78,7 @@ class OffboardingProcessService(IOffboardingProcessService):
         Raises:
             ProcessNotFoundError: If no process with the given ID exists.
         """
-        process = self._repo.find_by_id(OffboardingProcessId(process_id.get_id()))
+        process = await self._repo.find_by_id(OffboardingProcessId(process_id.get_id()))
         if process is None:
             raise ProcessNotFoundError(str(process_id.get_id()))
         return process
@@ -107,9 +107,9 @@ class OffboardingProcessService(IOffboardingProcessService):
             Iterable of OffboardingProcess objects matching all specified filters.
         """
         if employee_id is not None:
-            processes = self._repo.find_by_employee_id(employee_id)
+            processes = await self._repo.find_by_employee_id(employee_id)
         else:
-            processes = self._repo.find_all()
+            processes = await self._repo.find_all()
         if manager_id is not None:
             processes = [p for p in processes if p.manager_id.get_id() == manager_id.get_id()]
         if state is not None:
@@ -132,7 +132,7 @@ class OffboardingProcessService(IOffboardingProcessService):
         """
         process = await self.get_process(process_id)
         process.start()
-        self._repo.save(process)
+        await self._repo.save(process)
         return process
 
     async def cancel_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
@@ -151,7 +151,7 @@ class OffboardingProcessService(IOffboardingProcessService):
         """
         process = await self.get_process(process_id)
         process.cancel()
-        self._repo.save(process)
+        await self._repo.save(process)
         return process
 
     async def submit_for_review(self, process_id: OffboardingProcessId) -> OffboardingProcess:
@@ -170,7 +170,7 @@ class OffboardingProcessService(IOffboardingProcessService):
         """
         process = await self.get_process(process_id)
         process.submit_for_review()
-        self._repo.save(process)
+        await self._repo.save(process)
         return process
 
     async def complete_offboarding(self, process_id: OffboardingProcessId) -> OffboardingProcess:
@@ -189,7 +189,7 @@ class OffboardingProcessService(IOffboardingProcessService):
         """
         process = await self.get_process(process_id)
         process.complete()
-        self._repo.save(process)
+        await self._repo.save(process)
         return process
 
     async def delete_process(self, process_id: OffboardingProcessId) -> None:
@@ -204,4 +204,4 @@ class OffboardingProcessService(IOffboardingProcessService):
             ProcessNotFoundError: If no process with the given ID exists.
         """
         await self.get_process(process_id)
-        self._repo.delete(process_id)
+        await self._repo.delete(process_id)

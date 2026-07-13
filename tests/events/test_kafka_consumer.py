@@ -33,7 +33,7 @@ class TestKafkaEventConsumer:
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
-                patch(f"{_PATCH_TARGET}.Session"):
+                patch(f"{_PATCH_TARGET}.AsyncSession"):
             await event_consumer._process(_message(_valid_envelope()))
 
         dispatcher.dispatch.assert_awaited_once()
@@ -62,11 +62,23 @@ class TestKafkaEventConsumer:
 
         with patch(f"{_PATCH_TARGET}.build_inbound_context"), \
                 patch(f"{_PATCH_TARGET}.get_engine"), \
-                patch(f"{_PATCH_TARGET}.Session"):
+                patch(f"{_PATCH_TARGET}.AsyncSession"):
             await event_consumer._process(_message(_valid_envelope()))
 
         dlq.send.assert_awaited_once()
         consumer.commit.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_dlq_send_failure_skips_commit_so_message_is_redelivered(self) -> None:
+        """BE-20: if the DLQ send itself fails, the offset must NOT be committed."""
+        consumer, dispatcher, dlq, graph_db = AsyncMock(), AsyncMock(), AsyncMock(), AsyncMock()
+        dlq.send.side_effect = RuntimeError("DLQ unavailable")
+        event_consumer = KafkaEventConsumer(consumer, dispatcher, dlq, graph_db)
+
+        await event_consumer._process(_message(b"garbage"))
+
+        dlq.send.assert_awaited_once()
+        consumer.commit.assert_not_awaited()
 
     @pytest.mark.anyio
     async def test_consumer_survives_repeated_failures(self) -> None:

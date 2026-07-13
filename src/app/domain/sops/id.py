@@ -9,6 +9,10 @@ class SopId(Id):
     """Class representing a SOP ID."""
 
 
+class SopCandidateId(Id):
+    """Class representing a SOP candidate ID."""
+
+
 class AuthorId(ExternalUserId):
     """Class representing the author of a SOP (an external Slack user ID)."""
 

@@ -1,10 +1,11 @@
 """Facade service composing the three domain services for use by HTTP routers."""
 
-import logging
 from datetime import datetime, timezone
 
+from app.application.observability.event_publish_operation import EventPublishOperation
 from app.application.ports.dossier_generator import IDossierGenerator
 from app.application.ports.event_publisher import IEventPublisher
+from app.application.ports.metrics import IMetricsPort
 from app.application.service_interfaces.dossier_service_interface import IDossierService
 from app.application.service_interfaces.interview_service_interface import IInterviewService
 from app.application.service_interfaces.offboarding_facade_interface import (
@@ -30,9 +31,10 @@ from app.domain.events.offboarding_events import (
     OffboardingCompleted,
     OffboardingStateChanged,
 )
-from app.domain.exceptions.dossier import DossierAlreadyExistsForProcessError
-
-logger = logging.getLogger(__name__)
+from app.domain.exceptions.dossier import (
+    DossierAlreadyExistsForProcessError,
+    DossierNotFoundError,
+)
 
 
 class OffboardingFacadeService(IOffboardingServiceFacade):
@@ -52,6 +54,7 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             dossier_service: IDossierService,
             event_publisher: IEventPublisher | None = None,
             dossier_generator: IDossierGenerator | None = None,
+            metrics: IMetricsPort | None = None,
     ) -> None:
         """Set up the facade with the three domain services.
 
@@ -64,24 +67,24 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             dossier_generator: Optional generator used by generate_dossier to produce
                 dossier content from the interview. If None, generate_dossier creates
                 an empty dossier (no summary/sections).
+            metrics: Optional port for recording a failed event publish. If
+                None, the failure is still logged but not counted (BE-20).
         """
         self._process_service = process_service
         self._interview_service = interview_service
         self._dossier_service = dossier_service
         self._event_publisher = event_publisher
         self._dossier_generator = dossier_generator
+        self._metrics = metrics
 
     async def _publish(self, event) -> None:
-        """Publish a domain event, logging a warning if publishing fails.
+        """Publish a domain event via EventPublishOperation, never raising on failure.
 
         Args:
             event: The domain event to publish.
         """
         if self._event_publisher is not None:
-            try:
-                await self._event_publisher.publish(event)
-            except Exception:
-                logger.warning("Failed to publish event %s", event.event_type, exc_info=True)
+            await EventPublishOperation(self._metrics, self._event_publisher, event).run()
 
     async def create_offboarding(
             self,
@@ -244,10 +247,12 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
             InvalidOffboardingProcessStateTransitionError: If the process is already in
                 a terminal state.
         """
+        previous_process = await self._process_service.get_process(process_id)
+        previous_state = previous_process.state_value.value
         process = await self._process_service.cancel_offboarding(process_id)
         await self._publish(OffboardingStateChanged(
             process_id=process.process_id.get_id(),
-            previous_state="in_progress",
+            previous_state=previous_state,
             new_state="cancelled",
             employee_id=process.employee_id.get_id(),
             manager_id=process.manager_id.get_id(),
@@ -416,8 +421,8 @@ class OffboardingFacadeService(IOffboardingServiceFacade):
         existing = None
         try:
             existing = await self._dossier_service.get_process_dossier(process_id)
-        except Exception:
-            pass
+        except DossierNotFoundError:
+            pass  # expected control flow: no dossier yet is not a failure
         if existing is not None:
             raise DossierAlreadyExistsForProcessError(str(process_id.get_id()))
         dossier = await self._dossier_service.create_dossier(

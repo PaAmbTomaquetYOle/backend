@@ -8,10 +8,11 @@ contexts (Slack, LLM agent, ...) are added.
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.ports.event_publisher import IEventPublisher
 from app.application.ports.graph_database import IGraphDatabasePort
+from app.application.ports.metrics import IMetricsPort
 from app.application.ports.service_credential_repository import IServiceCredentialRepository
 from app.application.ports.token_issuer import ITokenIssuer
 from app.application.service_interfaces.knowledge_graph_service_interface import (
@@ -21,6 +22,12 @@ from app.application.service_interfaces.offboarding_facade_interface import (
     IOffboardingDossierFacade,
     IOffboardingInterviewFacade,
     IOffboardingProcessFacade,
+)
+from app.application.service_interfaces.offboarding_task_service_interface import (
+    IOffboardingTaskService,
+)
+from app.application.service_interfaces.sop_candidate_service_interface import (
+    ISopCandidateService,
 )
 from app.application.service_interfaces.sop_service_interface import ISopService
 from app.application.services.dossier_service import DossierService
@@ -39,7 +46,9 @@ from app.infrastructure.adapters.repositories.offboarding_process import (
 from app.infrastructure.composition import (
     build_knowledge_graph_service,
     build_offboarding_facade,
+    build_sop_candidate_service,
     build_sop_service,
+    build_task_service,
 )
 from app.infrastructure.config.settings import Settings, get_settings
 from app.infrastructure.persistence.database import get_session
@@ -56,42 +65,42 @@ def graph_database_dependency(request: Request) -> IGraphDatabasePort:
 
 
 def offboarding_repository_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> OffboardingProcessRepository:
     """Provide a SQLModel-backed offboarding process repository."""
     return OffboardingProcessRepository(session)
 
 
 def interview_repository_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> InterviewRepository:
     """Provide a SQLModel-backed interview repository."""
     return InterviewRepository(session)
 
 
 def dossier_repository_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> DossierRepository:
     """Provide a SQLModel-backed dossier repository."""
     return DossierRepository(session)
 
 
 def offboarding_process_service_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> OffboardingProcessService:
     """Provide an offboarding process service wired with its repository."""
     return OffboardingProcessService(OffboardingProcessRepository(session))
 
 
 def interview_service_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> InterviewService:
     """Provide an interview service wired with its repository."""
     return InterviewService(InterviewRepository(session))
 
 
 def dossier_service_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> DossierService:
     """Provide a dossier service wired with its repository."""
     return DossierService(DossierRepository(session))
@@ -102,48 +111,73 @@ def event_publisher_dependency(request: Request) -> IEventPublisher:
     return request.app.state.event_publisher
 
 
+def metrics_dependency(request: Request) -> IMetricsPort | None:
+    """Retrieve the metrics port from application state, if one was wired."""
+    return getattr(request.app.state, "metrics", None)
+
+
 def offboarding_process_facade_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     request: Request,
 ) -> IOffboardingProcessFacade:
     """Provide the facade narrowed to IOffboardingProcessFacade for the process router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_offboarding_facade(session, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, metrics=metrics)
 
 
 def offboarding_interview_facade_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     request: Request,
 ) -> IOffboardingInterviewFacade:
     """Provide the facade narrowed to IOffboardingInterviewFacade for the interview router."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_offboarding_facade(session, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, metrics=metrics)
 
 
 def offboarding_dossier_facade_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     request: Request,
 ) -> IOffboardingDossierFacade:
     """Provide the facade narrowed to IOffboardingDossierFacade for the dossier router."""
     publisher = getattr(request.app.state, "event_publisher", None)
     generator = getattr(request.app.state, "dossier_generator", None)
-    return build_offboarding_facade(session, publisher, generator)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_offboarding_facade(session, publisher, generator, metrics)
 
 
 def sop_service_dependency(
-    session: Annotated[Session, Depends(get_session)],
+    session: Annotated[AsyncSession, Depends(get_session)],
     request: Request,
 ) -> ISopService:
     """Provide a SOP service wired with its repository and the event publisher."""
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_sop_service(session, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    dialect_name = session.get_bind().dialect.name
+    return build_sop_service(session, publisher, dialect_name=dialect_name, metrics=metrics)
+
+
+def sop_candidate_service_dependency(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ISopCandidateService:
+    """Provide a SOP candidate service wired with its repository."""
+    return build_sop_candidate_service(session)
+
+
+def task_service_dependency(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> IOffboardingTaskService:
+    """Provide an offboarding task service wired with its repository."""
+    return build_task_service(session)
 
 
 def knowledge_graph_service_dependency(request: Request) -> IKnowledgeGraphService:
     """Provide a knowledge graph service wired with its Neo4j-backed repository."""
     graph_db = request.app.state.graph_db
     publisher = getattr(request.app.state, "event_publisher", None)
-    return build_knowledge_graph_service(graph_db, publisher)
+    metrics = getattr(request.app.state, "metrics", None)
+    return build_knowledge_graph_service(graph_db, publisher, metrics)
 
 
 def service_credential_repository_dependency(

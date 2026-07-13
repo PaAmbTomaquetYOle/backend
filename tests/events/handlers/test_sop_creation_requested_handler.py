@@ -20,10 +20,19 @@ class TestSopCreationRequestedHandler:
     @pytest.mark.anyio
     async def test_handle_creates_sop(self) -> None:
         sops = AsyncMock(spec=ISopService)
-        context = InboundContext(offboarding=AsyncMock(), sops=sops, knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=sops,
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
             payload={
+                "title": "Rotating secrets",
                 "content": "How to rotate secrets",
                 "author": "U1",
                 "origin_channel": "C1",
@@ -35,6 +44,7 @@ class TestSopCreationRequestedHandler:
 
         sops.create_sop.assert_awaited_once()
         _, kwargs = sops.create_sop.call_args
+        assert kwargs["title"] == "Rotating secrets"
         assert kwargs["content"] == "How to rotate secrets"
         assert kwargs["author"].is_equal("U1")
         assert kwargs["origin_channel"].is_equal("C1")
@@ -43,10 +53,18 @@ class TestSopCreationRequestedHandler:
     @pytest.mark.anyio
     async def test_handle_defaults_tags_to_none(self) -> None:
         sops = AsyncMock(spec=ISopService)
-        context = InboundContext(offboarding=AsyncMock(), sops=sops, knowledge_graph=AsyncMock())
+        context = InboundContext(
+            offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=sops,
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=AsyncMock(),
+        )
         event = DomainEvent(
             event_type=SOP_CREATION_REQUESTED,
-            payload={"content": "x", "author": "U1", "origin_channel": "C1"},
+            payload={"title": "x", "content": "x", "author": "U1", "origin_channel": "C1"},
         )
 
         await SopCreationRequestedHandler().handle(event, context)

@@ -26,7 +26,13 @@ class TestKnowledgeInteractionRegisteredHandler:
     async def test_handle_registers_interaction(self) -> None:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
-            offboarding=AsyncMock(), sops=AsyncMock(), knowledge_graph=knowledge_graph
+            offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
             event_type=KNOWLEDGE_INTERACTION_REGISTERED,
@@ -55,7 +61,13 @@ class TestKnowledgeInteractionRegisteredHandler:
     async def test_handle_defaults_optional_fields_to_none(self) -> None:
         knowledge_graph = AsyncMock(spec=IKnowledgeGraphService)
         context = InboundContext(
-            offboarding=AsyncMock(), sops=AsyncMock(), knowledge_graph=knowledge_graph
+            offboarding=AsyncMock(),
+            monthly_review=AsyncMock(),
+            annual_review=AsyncMock(),
+            sops=AsyncMock(),
+            sop_candidates=AsyncMock(),
+            tasks=AsyncMock(),
+            knowledge_graph=knowledge_graph,
         )
         event = DomainEvent(
             event_type=KNOWLEDGE_INTERACTION_REGISTERED,
