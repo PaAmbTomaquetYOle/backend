@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location -Path "$scriptPath\.."
 
-Write-Host "Starting OffBoardMe Backend Development Environment..." -ForegroundColor Cyan
+Write-Host "Starting BrainTrust Backend Development Environment..." -ForegroundColor Cyan
 
 # 1. Check if .env exists
 if (!(Test-Path ".env")) {
