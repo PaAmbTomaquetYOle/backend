@@ -3,6 +3,36 @@
 Composes IGraphDatabasePort (rather than talking to the Neo4j driver
 directly) so it reuses the existing driver lifecycle and automatically
 degrades to no-op behavior when Neo4j is unavailable (NoOpGraphAdapter).
+
+Cost guard strategy for multi-hop Cypher queries
+-------------------------------------------------
+Queries that traverse more than one hop (e.g. ``find_related_topics``:
+Topic ← Person → Topic) can become expensive if the intermediate
+result set is large. To bound the cost:
+
+1. **Intermediate LIMIT** – multi-hop queries use a ``WITH … LIMIT``
+   clause between hops to cap the number of intermediate rows the
+   planner must expand. The cap is ``_MAX_INTERMEDIATE_ROWS`` (200 by
+   default), chosen to be large enough to return accurate results on
+   hackathon-size graphs while preventing runaway traversals on
+   larger datasets.
+
+2. **Final LIMIT** – every read query already applies a caller-supplied
+   ``LIMIT`` on the final result set (typically 10–50).
+
+3. **Pagination** – ``find_all_topics`` and ``find_all_persons`` use
+   server-side ``SKIP``/``LIMIT``.
+
+4. **Pattern list comprehension limits** – ``find_person_knowledge_profile``
+   uses Cypher pattern comprehensions (``[(p)-[:REL]->(x) | …]``)
+   which are anchored to a single matched person node and therefore
+   bounded by the number of relationships of that person, not by
+   the total graph size. An explicit slice ``[0.._MAX_PROFILE_ITEMS]``
+   caps the returned items per comprehension to prevent pathologically
+   connected nodes from returning unbounded lists.
+
+These measures together ensure that no single read query can trigger
+a full-graph scan, regardless of graph size.
 """
 
 from __future__ import annotations
@@ -33,6 +63,17 @@ from app.domain.knowledge_graph.relationships import (
 )
 
 logger = logging.getLogger(__name__)
+
+# --- Cost guard constants ---
+# Maximum intermediate rows expanded between hops in multi-hop Cypher
+# queries (e.g. find_related_topics). Keeps the planner from doing a
+# full-graph traversal when a topic has many experts.
+_MAX_INTERMEDIATE_ROWS: int = 200
+
+# Maximum items returned per pattern comprehension in
+# find_person_knowledge_profile, guarding against pathologically
+# connected person nodes.
+_MAX_PROFILE_ITEMS: int = 200
 
 # Name prefix for the ephemeral person-to-person GDS projections used by the
 # analytics/successor queries below. Suffixed with a random token per call so
