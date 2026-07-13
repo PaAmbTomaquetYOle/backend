@@ -37,6 +37,21 @@ class Settings(BaseSettings):
     # tracked follow-up to roll rate limiting out to other endpoints.
     auth_token_rate_limit: str = "10/minute"
 
+    # Global default rate limit applied to all endpoints via SlowAPI middleware.
+    # Individual endpoints can override this with @limiter.limit(...).
+    rate_limit_default: str = "60/minute"
+
+    # More relaxed limit for read-heavy search endpoints (GET /sops, GET /dossiers/search).
+    rate_limit_search: str = "120/minute"
+
+    # Knowledge-graph query endpoints — tighter because some queries (e.g.
+    # related-topics) involve multi-hop traversals.
+    rate_limit_knowledge_graph: str = "30/minute"
+
+    # GDS-backed analytics/successor endpoints — the most expensive, involving
+    # ephemeral graph projections and algorithm execution.
+    rate_limit_kg_analytics: str = "10/minute"
+
     # Client-credentials service accounts allowed to mint JWTs via /auth/token,
     # e.g. {"slack-agent": "<secret>", "mcp-server": "<secret>"}.
     service_credentials: dict[str, str] = {}
