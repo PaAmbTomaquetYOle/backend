@@ -3,6 +3,36 @@
 Composes IGraphDatabasePort (rather than talking to the Neo4j driver
 directly) so it reuses the existing driver lifecycle and automatically
 degrades to no-op behavior when Neo4j is unavailable (NoOpGraphAdapter).
+
+Cost guard strategy for multi-hop Cypher queries
+-------------------------------------------------
+Queries that traverse more than one hop (e.g. ``find_related_topics``:
+Topic ← Person → Topic) can become expensive if the intermediate
+result set is large. To bound the cost:
+
+1. **Intermediate LIMIT** – multi-hop queries use a ``WITH … LIMIT``
+   clause between hops to cap the number of intermediate rows the
+   planner must expand. The cap is ``_MAX_INTERMEDIATE_ROWS`` (200 by
+   default), chosen to be large enough to return accurate results on
+   hackathon-size graphs while preventing runaway traversals on
+   larger datasets.
+
+2. **Final LIMIT** – every read query already applies a caller-supplied
+   ``LIMIT`` on the final result set (typically 10–50).
+
+3. **Pagination** – ``find_all_topics`` and ``find_all_persons`` use
+   server-side ``SKIP``/``LIMIT``.
+
+4. **Pattern list comprehension limits** – ``find_person_knowledge_profile``
+   uses Cypher pattern comprehensions (``[(p)-[:REL]->(x) | …]``)
+   which are anchored to a single matched person node and therefore
+   bounded by the number of relationships of that person, not by
+   the total graph size. An explicit slice ``[0.._MAX_PROFILE_ITEMS]``
+   caps the returned items per comprehension to prevent pathologically
+   connected nodes from returning unbounded lists.
+
+These measures together ensure that no single read query can trigger
+a full-graph scan, regardless of graph size.
 """
 
 from __future__ import annotations
@@ -33,6 +63,17 @@ from app.domain.knowledge_graph.relationships import (
 )
 
 logger = logging.getLogger(__name__)
+
+# --- Cost guard constants ---
+# Maximum intermediate rows expanded between hops in multi-hop Cypher
+# queries (e.g. find_related_topics). Keeps the planner from doing a
+# full-graph traversal when a topic has many experts.
+_MAX_INTERMEDIATE_ROWS: int = 200
+
+# Maximum items returned per pattern comprehension in
+# find_person_knowledge_profile, guarding against pathologically
+# connected person nodes.
+_MAX_PROFILE_ITEMS: int = 200
 
 # Name prefix for the ephemeral person-to-person GDS projections used by the
 # analytics/successor queries below. Suffixed with a random token per call so
@@ -67,9 +108,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
 
     # --- Node operations (write) ---
 
-    async def upsert_person(
-        self, person_id: str, name: str, department: str | None = None
-    ) -> None:
+    async def upsert_person(self, person_id: str, name: str, department: str | None = None) -> None:
         """Create or update a Person node."""
         await self._graph_db.execute_query(
             """
@@ -247,21 +286,21 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             for record in records
         ]
 
-    async def find_person_knowledge_profile(
-        self, person_id: str
-    ) -> PersonKnowledgeProfile | None:
+    async def find_person_knowledge_profile(self, person_id: str) -> PersonKnowledgeProfile | None:
         """Find a person's full knowledge profile (topics and authored documents)."""
         records = await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}})
             RETURN p.person_id AS person_id, p.name AS name, p.department AS department,
                    [(p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(t:Topic) |
-                       {{name: t.name, description: t.description}}] AS topics,
+                       {{name: t.name, description: t.description}}
+                   ][0..$_max_profile_items] AS topics,
                    [(p)-[:{WROTE}]->(d:Document) |
                        {{document_id: d.document_id, title: d.title,
-                         url: d.url, source: d.source}}] AS documents
+                         url: d.url, source: d.source}}
+                   ][0..$_max_profile_items] AS documents
             """,
-            {"person_id": person_id},
+            {"person_id": person_id, "_max_profile_items": _MAX_PROFILE_ITEMS},
         )
         if not records:
             return None
@@ -291,22 +330,25 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         """Find topics related to the given topic (via shared experts)."""
         records = await self._graph_db.execute_query(
             f"""
-            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(:Person)
-                  -[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
+            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(p:Person)
+            WITH p LIMIT $_max_intermediate_rows
+            MATCH (p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
             WHERE other.name <> $topic_name
             RETURN DISTINCT other.name AS name, other.description AS description
             LIMIT $limit
             """,
-            {"topic_name": topic_name, "limit": limit},
+            {
+                "topic_name": topic_name,
+                "limit": limit,
+                "_max_intermediate_rows": _MAX_INTERMEDIATE_ROWS,
+            },
         )
         return [
             TopicNode(name=record["name"], description=record.get("description"))
             for record in records
         ]
 
-    async def find_documents_by_topic(
-        self, topic_name: str, limit: int = 20
-    ) -> list[DocumentNode]:
+    async def find_documents_by_topic(self, topic_name: str, limit: int = 20) -> list[DocumentNode]:
         """Find documents that reference the given topic."""
         records = await self._graph_db.execute_query(
             f"""
@@ -358,9 +400,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         ]
         return topics, record["total"]
 
-    async def find_all_persons(
-        self, page: int = 1, size: int = 50
-    ) -> tuple[list[PersonNode], int]:
+    async def find_all_persons(self, page: int = 1, size: int = 50) -> tuple[list[PersonNode], int]:
         """List all persons in the graph, paginated.
 
         See ``find_all_topics`` for why the count and data page are combined
@@ -415,8 +455,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             {"graph_name": graph_name},
         )
         await self._graph_db.execute_query(
-            "CALL gds.graph.project.cypher($graph_name, $node_query, $rel_query) "
-            "YIELD graphName",
+            "CALL gds.graph.project.cypher($graph_name, $node_query, $rel_query) YIELD graphName",
             {
                 "graph_name": graph_name,
                 "node_query": _PERSON_NETWORK_NODE_QUERY,

@@ -7,13 +7,14 @@ Kafka — see ``domain/events/inbound_events.py``.
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.application.service_interfaces.knowledge_graph_service_interface import (
     IKnowledgeGraphService,
 )
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import knowledge_graph_service_dependency
+from app.infrastructure.api.rate_limiter import limiter
 from app.infrastructure.api.schemas.knowledge_graph import (
     DocumentResponse,
     ExpertResponse,
@@ -32,6 +33,7 @@ from app.infrastructure.api.schemas.knowledge_graph import (
     topic_page_response,
     topic_to_response,
 )
+from app.infrastructure.config.settings import get_settings
 
 router = APIRouter(
     prefix="/knowledge-graph",
@@ -47,10 +49,12 @@ Service = Annotated[IKnowledgeGraphService, Depends(knowledge_graph_service_depe
     response_model=list[ExpertResponse],
     summary="Find experts for a topic",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_experts(
-        service: Service,
-        topic: Annotated[str, Query(description="Topic name to find experts for")],
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
+    request: Request,
+    service: Service,
+    topic: Annotated[str, Query(description="Topic name to find experts for")],
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
 ) -> list[ExpertResponse]:
     """Find the persons most associated with a topic, ranked by score."""
     experts = await service.get_experts_by_topic(topic, limit=limit)
@@ -62,10 +66,12 @@ async def get_experts(
     response_model=PersonPageResponse,
     summary="List persons known to the graph, paginated",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def list_persons(
-        service: Service,
-        page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
-        size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    request: Request,
+    service: Service,
+    page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
+    size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
 ) -> PersonPageResponse:
     """List all persons known to the graph."""
     persons, total = await service.get_persons(page=page, size=size)
@@ -77,9 +83,11 @@ async def list_persons(
     response_model=PersonKnowledgeProfileResponse,
     summary="Get a person's knowledge profile",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_person_profile(
-        person_id: str,
-        service: Service,
+    request: Request,
+    person_id: str,
+    service: Service,
 ) -> PersonKnowledgeProfileResponse:
     """Retrieve a person's full knowledge profile (topics and authored documents)."""
     profile = await service.get_person_profile(person_id)
@@ -91,10 +99,12 @@ async def get_person_profile(
     response_model=TopicPageResponse,
     summary="List topics known to the graph, paginated",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def list_topics(
-        service: Service,
-        page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
-        size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    request: Request,
+    service: Service,
+    page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
+    size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
 ) -> TopicPageResponse:
     """List all topics known to the graph."""
     topics, total = await service.get_topics(page=page, size=size)
@@ -106,10 +116,12 @@ async def list_topics(
     response_model=list[ExpertResponse],
     summary="Find experts for a specific topic",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_topic_experts(
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
 ) -> list[ExpertResponse]:
     """Find the persons most associated with the given topic, ranked by score."""
     experts = await service.get_experts_by_topic(topic_name, limit=limit)
@@ -121,10 +133,12 @@ async def get_topic_experts(
     response_model=list[TopicResponse],
     summary="Find topics related to a given topic",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_related_topics(
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum topics to return")] = 10,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum topics to return")] = 10,
 ) -> list[TopicResponse]:
     """Find topics related to the given topic (via shared experts)."""
     topics = await service.get_related_topics(topic_name, limit=limit)
@@ -136,10 +150,12 @@ async def get_related_topics(
     response_model=list[DocumentResponse],
     summary="Find documents that reference a given topic",
 )
+@limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_topic_documents(
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum documents to return")] = 20,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum documents to return")] = 20,
 ) -> list[DocumentResponse]:
     """Find documents that reference the given topic."""
     documents = await service.get_documents_by_topic(topic_name, limit=limit)
@@ -151,7 +167,8 @@ async def get_topic_documents(
     response_model=list[PersonAnalyticsResponse],
     summary="Graph analytics (community, influence, broker risk) per person",
 )
-async def get_person_analytics(service: Service) -> list[PersonAnalyticsResponse]:
+@limiter.limit(lambda: get_settings().rate_limit_kg_analytics)
+async def get_person_analytics(request: Request, service: Service) -> list[PersonAnalyticsResponse]:
     """Return each person's Louvain community, PageRank influence, and betweenness broker score.
 
     Backed by Neo4j GDS. Returns an empty list — not an error — when the GDS
@@ -166,10 +183,12 @@ async def get_person_analytics(service: Service) -> list[PersonAnalyticsResponse
     response_model=list[SuccessorCandidateResponse],
     summary="Find persons who could cover for the given person",
 )
+@limiter.limit(lambda: get_settings().rate_limit_kg_analytics)
 async def get_successor_candidates(
-        person_id: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum candidates to return")] = 5,
+    request: Request,
+    person_id: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum candidates to return")] = 5,
 ) -> list[SuccessorCandidateResponse]:
     """Rank persons by topic-overlap similarity to the given person (GDS Node Similarity).
 
