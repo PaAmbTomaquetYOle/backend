@@ -1,0 +1,116 @@
+# BrainTrust — backend component diagram (D2)
+# Render: d2 --theme 0 --pad 40 architecture.d2 architecture.svg
+
+direction: down
+
+classes: {
+  inbound: { style: { stroke: "#2563eb"; font-color: "#1e3a8a"; bold: true; stroke-width: 2 } }
+  outbound: { style: { stroke: "#16a34a"; font-color: "#14532d"; bold: true; stroke-width: 2 } }
+  ro: { style: { stroke: "#7c3aed"; font-color: "#4c1d95"; bold: true; stroke-width: 2; stroke-dash: 4 } }
+}
+
+kafka: Kafka — SASL_SSL {
+  icon: https://api.iconify.design/logos/kafka.svg
+  style.fill: "#fef9c3"
+  style.stroke: "#000000"
+  in: "slack-agent.* (10 topics)"
+  out: "offboarding.* (7 topics)"
+  dlq: offboarding.dlq
+}
+
+api: infrastructure/api/routers — FastAPI {
+  icon: https://api.iconify.design/logos/fastapi.svg
+  style.fill: "#f0fdf4"
+  style.stroke: "#16a34a"
+  ro_routes: "GET /offboarding, /sops, /dossiers, /knowledge-graph/*"
+  auth: "POST /auth/token · client-credentials, HS256"
+}
+
+consumer: Kafka consumer (main.py) {
+  style.fill: "#eff6ff"
+  style.stroke: "#2563eb"
+  disp: InboundEventDispatcher
+  handlers: "one handler per event type (services/handlers/)"
+  disp -> handlers
+}
+
+sched: APScheduler · ReviewScheduler {
+  style.fill: "#fef3c7"
+  style.stroke: "#b45309"
+  policy: ReviewSchedulingPolicy · monthly/annual eligibility
+}
+
+comp: infrastructure/composition.py {
+  style.fill: "#f5f3ff"
+  style.stroke: "#7c3aed"
+  build: build_offboarding_facade(session) · single composition root
+}
+
+facade: OffboardingFacadeService {
+  style.fill: "#fdf4ff"
+  style.stroke: "#a21caf"
+  soff: offboarding_process_service
+  sint: interview_service
+  sdos: dossier_service
+  ssop: sop_service
+  skg: knowledge_graph_service
+  stok: token_service
+}
+
+domain: domain/ — State pattern lifecycles {
+  style.fill: "#f8fafc"
+  off: OffboardingProcess states
+  int: InterviewProcess states
+  dos: DossierProcess states
+  rev: Monthly/AnnualReviewProcess states
+}
+
+adapters: infrastructure/adapters/ {
+  style.fill: "#fff7ed"
+  style.stroke: "#c2410c"
+  ai: "ai/ · FakeDossierGenerator / LLMDossierGenerator (MCP client)"
+  events: "events/ · Kafka producer/consumer/DLQ"
+  graph: "graph/ · Neo4jKnowledgeGraphRepository + GDS"
+}
+
+data: Persistence {
+  style.fill: "#f8fafc"
+  pg: Postgres 18 · SQLModel + Alembic {
+    icon: https://api.iconify.design/logos/postgresql.svg
+    shape: cylinder
+  }
+  neo: Neo4j 5 + GDS plugin {
+    icon: https://api.iconify.design/logos/neo4j.svg
+    shape: cylinder
+  }
+}
+
+mcp: mcp-server — generate_dossier (Claude) {
+  icon: https://api.iconify.design/logos/python.svg
+  style.fill: "#f5f3ff"
+  style.stroke: "#7c3aed"
+}
+
+kafka.in -> consumer.disp: "at-least-once, manual offset commit" { class: inbound }
+consumer.handlers -> comp.build
+comp.build -> facade
+
+api.ro_routes -> comp.build: "Depends() — request-scoped session" { class: ro }
+facade -> domain
+facade -> adapters
+
+adapters.ai -> mcp: "generate_dossier (MCP client)"
+adapters.graph -> data.neo
+facade.soff -> data.pg
+facade.sint -> data.pg
+facade.sdos -> data.pg
+facade.ssop -> data.pg
+
+facade -> adapters.events
+adapters.events -> kafka.out: "publishes" { class: outbound }
+adapters.events -> kafka.dlq: "malformed / handler failure (offset still committed)"
+
+sched.policy -> facade: "creates + starts due monthly/annual reviews"
+sched -> kafka.out: "same review.state_changed events as manual triggers" { class: outbound }
+
+api.auth -> data.pg: "validates SERVICE_CREDENTIALS, mints JWT"

@@ -4,7 +4,7 @@ set -e
 # Change to the directory where the docker-compose.yml is located
 cd "$(dirname "$0")/.."
 
-echo "Starting OffBoardMe Backend Development Environment..."
+echo "Starting BrainTrust Backend Development Environment..."
 
 # 1. Check if .env exists
 if [ ! -f .env ]; then

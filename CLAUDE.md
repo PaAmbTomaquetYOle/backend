@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-FastAPI backend for **BrainTrust** (OffboardMe) — orchestrates the offboarding lifecycle (interview → dossier → completion), consumes Kafka events published by `slack-agent`, and delegates dossier writing to `mcp-server`'s `generate_dossier` tool. See the parent `../CLAUDE.md` for how this fits with `slack-agent` and `mcp-server`, and `README.md` for the full Kafka topic table and AsyncAPI contract details.
+FastAPI backend for **BrainTrust** — orchestrates the offboarding lifecycle (interview → dossier → completion), consumes Kafka events published by `slack-agent`, and delegates dossier writing to `mcp-server`'s `generate_dossier` tool. See the parent `../CLAUDE.md` for how this fits with `slack-agent` and `mcp-server`, and `README.md` for the full Kafka topic table and AsyncAPI contract details.
 
 ## Commands
 

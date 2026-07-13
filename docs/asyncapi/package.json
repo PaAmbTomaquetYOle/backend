@@ -2,7 +2,13 @@
   "name": "offboardme-asyncapi",
   "version": "1.0.0",
   "private": true,
-  "description": "Tooling to validate, visualize, and generate types from the OffboardMe Kafka event contract (asyncapi.yml).",
+  "description": "Tooling to validate, visualize, and generate types from the BrainTrust Kafka event contract (asyncapi.yml).",
+  "contributors": [
+    "Erik",
+    "Luis Valdivieso",
+    "Oriol Orbea <oorbea@pasiona.com>",
+    "Ernest Rull Turigas"
+  ],
   "scripts": {
     "validate": "asyncapi validate asyncapi.yml",
     "html": "asyncapi generate fromTemplate asyncapi.yml @asyncapi/html-template -o ./html --use-new-generator --force-write",
