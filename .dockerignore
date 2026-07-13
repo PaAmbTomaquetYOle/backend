@@ -65,7 +65,6 @@ Dockerfile.*
 # Includes docs/asyncapi's own node_modules / package-lock.json (Node tooling
 # used only to validate/generate the AsyncAPI contract, never at runtime).
 docs/
-README.md
 LICENSE
 CLAUDE.md
 node_modules/
