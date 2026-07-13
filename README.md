@@ -136,6 +136,19 @@ curl -X POST http://localhost:8888/api/v1/auth/token \
 
 Valid `client_id`/`client_secret` pairs are configured via `SERVICE_CREDENTIALS` (a JSON object, e.g. `{"slack-agent": "<secret>", "mcp-server": "<secret>"}`) — see `.env.example`. Tokens expire after `TOKEN_EXPIRY_SECONDS` (default 300s); callers should cache and refresh rather than minting their own tokens.
 
+## 🛡️ Rate Limiting & Protections
+
+To protect against abuse and resource exhaustion, the API enforces rate limits on all endpoints based on the client's IP address. These are configurable via environment variables in `.env`:
+
+- `AUTH_TOKEN_RATE_LIMIT` (default: `10/minute`): Applied only to `POST /api/v1/auth/token` to slow down credential brute-forcing.
+- `RATE_LIMIT_DEFAULT` (default: `60/minute`): A global baseline limit applied to all other endpoints by default.
+- `RATE_LIMIT_SEARCH` (default: `120/minute`): A more relaxed limit for read-heavy search endpoints like `GET /api/v1/sops` and `GET /api/v1/dossiers/search`.
+- `RATE_LIMIT_KNOWLEDGE_GRAPH` (default: `30/minute`): A tighter limit for knowledge graph queries to protect against expensive multi-hop traversals.
+- `RATE_LIMIT_KG_ANALYTICS` (default: `10/minute`): The tightest limit, applied to GDS-backed analytics and successor endpoints which require expensive ephemeral graph projections.
+
+**Knowledge Graph Cost Guards**
+In addition to rate limiting, multi-hop Cypher queries in the knowledge graph are bounded by intermediate `LIMIT`s to prevent pathologically connected nodes from triggering full-graph traversals. For example, `find_related_topics` caps the intermediate persons expanded to `200` (`_MAX_INTERMEDIATE_ROWS`). Cypher pattern list comprehensions are similarly capped at `200` items (`_MAX_PROFILE_ITEMS`).
+
 ## 📨 Kafka topics
 
 > [!IMPORTANT]
