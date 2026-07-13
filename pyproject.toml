@@ -5,10 +5,10 @@ description = "Backend for the Slack Agent"
 readme = "README.md"
 requires-python = ">=3.14"
 authors = [
-    { name = "Erik Batiste" },
-    { name = "Luis Valdivieso" },
+    { name = "Erik Batiste", email = "erikbatiste10@gmail.com" },
+    { name = "Luis Valdivieso", email = "luisestebanvaldiviesogonzalez@gmail.com" },
     { name = "Oriol Orbea", email = "oriol.orbea@gmail.com" },
-    { name = "Ernest Rull" },
+    { name = "Ernest Rull", email = "ernestrull04@gmail.com" },
 ]
 dependencies = [
     "fastapi==0.139.0",
