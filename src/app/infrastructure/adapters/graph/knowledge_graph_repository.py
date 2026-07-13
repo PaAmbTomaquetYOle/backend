@@ -297,12 +297,12 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             MATCH (p:Person {{person_id: $person_id}})
             RETURN p.person_id AS person_id, p.name AS name, p.department AS department,
                    [(p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(t:Topic) |
-                       {{name: t.name, description: t.description}}] AS topics,
+                       {{name: t.name, description: t.description}}][0..$_max_profile_items] AS topics,
                    [(p)-[:{WROTE}]->(d:Document) |
                        {{document_id: d.document_id, title: d.title,
-                         url: d.url, source: d.source}}] AS documents
+                         url: d.url, source: d.source}}][0..$_max_profile_items] AS documents
             """,
-            {"person_id": person_id},
+            {"person_id": person_id, "_max_profile_items": _MAX_PROFILE_ITEMS},
         )
         if not records:
             return None
@@ -332,13 +332,18 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         """Find topics related to the given topic (via shared experts)."""
         records = await self._graph_db.execute_query(
             f"""
-            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(:Person)
-                  -[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
+            MATCH (t:Topic {{name: $topic_name}})<-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]-(p:Person)
+            WITH p LIMIT $_max_intermediate_rows
+            MATCH (p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(other:Topic)
             WHERE other.name <> $topic_name
             RETURN DISTINCT other.name AS name, other.description AS description
             LIMIT $limit
             """,
-            {"topic_name": topic_name, "limit": limit},
+            {
+                "topic_name": topic_name,
+                "limit": limit,
+                "_max_intermediate_rows": _MAX_INTERMEDIATE_ROWS,
+            },
         )
         return [
             TopicNode(name=record["name"], description=record.get("description"))
