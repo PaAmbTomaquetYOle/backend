@@ -15,7 +15,6 @@ from app.application.service_interfaces.knowledge_graph_service_interface import
 from app.infrastructure.adapters.auth.jwt_bearer import get_current_service
 from app.infrastructure.api.dependencies import knowledge_graph_service_dependency
 from app.infrastructure.api.rate_limiter import limiter
-from app.infrastructure.config.settings import get_settings
 from app.infrastructure.api.schemas.knowledge_graph import (
     DocumentResponse,
     ExpertResponse,
@@ -34,6 +33,7 @@ from app.infrastructure.api.schemas.knowledge_graph import (
     topic_page_response,
     topic_to_response,
 )
+from app.infrastructure.config.settings import get_settings
 
 router = APIRouter(
     prefix="/knowledge-graph",
@@ -51,10 +51,10 @@ Service = Annotated[IKnowledgeGraphService, Depends(knowledge_graph_service_depe
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_experts(
-        request: Request,
-        service: Service,
-        topic: Annotated[str, Query(description="Topic name to find experts for")],
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
+    request: Request,
+    service: Service,
+    topic: Annotated[str, Query(description="Topic name to find experts for")],
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
 ) -> list[ExpertResponse]:
     """Find the persons most associated with a topic, ranked by score."""
     experts = await service.get_experts_by_topic(topic, limit=limit)
@@ -68,10 +68,10 @@ async def get_experts(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def list_persons(
-        request: Request,
-        service: Service,
-        page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
-        size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    request: Request,
+    service: Service,
+    page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
+    size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
 ) -> PersonPageResponse:
     """List all persons known to the graph."""
     persons, total = await service.get_persons(page=page, size=size)
@@ -85,9 +85,9 @@ async def list_persons(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_person_profile(
-        request: Request,
-        person_id: str,
-        service: Service,
+    request: Request,
+    person_id: str,
+    service: Service,
 ) -> PersonKnowledgeProfileResponse:
     """Retrieve a person's full knowledge profile (topics and authored documents)."""
     profile = await service.get_person_profile(person_id)
@@ -101,10 +101,10 @@ async def get_person_profile(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def list_topics(
-        request: Request,
-        service: Service,
-        page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
-        size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
+    request: Request,
+    service: Service,
+    page: Annotated[int, Query(ge=1, description="1-indexed page number")] = 1,
+    size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 50,
 ) -> TopicPageResponse:
     """List all topics known to the graph."""
     topics, total = await service.get_topics(page=page, size=size)
@@ -118,10 +118,10 @@ async def list_topics(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_topic_experts(
-        request: Request,
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum experts to return")] = 10,
 ) -> list[ExpertResponse]:
     """Find the persons most associated with the given topic, ranked by score."""
     experts = await service.get_experts_by_topic(topic_name, limit=limit)
@@ -135,10 +135,10 @@ async def get_topic_experts(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_related_topics(
-        request: Request,
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum topics to return")] = 10,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum topics to return")] = 10,
 ) -> list[TopicResponse]:
     """Find topics related to the given topic (via shared experts)."""
     topics = await service.get_related_topics(topic_name, limit=limit)
@@ -152,10 +152,10 @@ async def get_related_topics(
 )
 @limiter.limit(lambda: get_settings().rate_limit_knowledge_graph)
 async def get_topic_documents(
-        request: Request,
-        topic_name: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum documents to return")] = 20,
+    request: Request,
+    topic_name: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum documents to return")] = 20,
 ) -> list[DocumentResponse]:
     """Find documents that reference the given topic."""
     documents = await service.get_documents_by_topic(topic_name, limit=limit)
@@ -185,10 +185,10 @@ async def get_person_analytics(request: Request, service: Service) -> list[Perso
 )
 @limiter.limit(lambda: get_settings().rate_limit_kg_analytics)
 async def get_successor_candidates(
-        request: Request,
-        person_id: str,
-        service: Service,
-        limit: Annotated[int, Query(ge=1, le=100, description="Maximum candidates to return")] = 5,
+    request: Request,
+    person_id: str,
+    service: Service,
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum candidates to return")] = 5,
 ) -> list[SuccessorCandidateResponse]:
     """Rank persons by topic-overlap similarity to the given person (GDS Node Similarity).
 

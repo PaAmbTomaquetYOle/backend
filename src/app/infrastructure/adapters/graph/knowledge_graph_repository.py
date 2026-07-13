@@ -108,9 +108,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
 
     # --- Node operations (write) ---
 
-    async def upsert_person(
-        self, person_id: str, name: str, department: str | None = None
-    ) -> None:
+    async def upsert_person(self, person_id: str, name: str, department: str | None = None) -> None:
         """Create or update a Person node."""
         await self._graph_db.execute_query(
             """
@@ -288,19 +286,19 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             for record in records
         ]
 
-    async def find_person_knowledge_profile(
-        self, person_id: str
-    ) -> PersonKnowledgeProfile | None:
+    async def find_person_knowledge_profile(self, person_id: str) -> PersonKnowledgeProfile | None:
         """Find a person's full knowledge profile (topics and authored documents)."""
         records = await self._graph_db.execute_query(
             f"""
             MATCH (p:Person {{person_id: $person_id}})
             RETURN p.person_id AS person_id, p.name AS name, p.department AS department,
                    [(p)-[:{KNOWS_ABOUT}|{ANSWERED_ABOUT}]->(t:Topic) |
-                       {{name: t.name, description: t.description}}][0..$_max_profile_items] AS topics,
+                       {{name: t.name, description: t.description}}
+                   ][0..$_max_profile_items] AS topics,
                    [(p)-[:{WROTE}]->(d:Document) |
                        {{document_id: d.document_id, title: d.title,
-                         url: d.url, source: d.source}}][0..$_max_profile_items] AS documents
+                         url: d.url, source: d.source}}
+                   ][0..$_max_profile_items] AS documents
             """,
             {"person_id": person_id, "_max_profile_items": _MAX_PROFILE_ITEMS},
         )
@@ -350,9 +348,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             for record in records
         ]
 
-    async def find_documents_by_topic(
-        self, topic_name: str, limit: int = 20
-    ) -> list[DocumentNode]:
+    async def find_documents_by_topic(self, topic_name: str, limit: int = 20) -> list[DocumentNode]:
         """Find documents that reference the given topic."""
         records = await self._graph_db.execute_query(
             f"""
@@ -404,9 +400,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
         ]
         return topics, record["total"]
 
-    async def find_all_persons(
-        self, page: int = 1, size: int = 50
-    ) -> tuple[list[PersonNode], int]:
+    async def find_all_persons(self, page: int = 1, size: int = 50) -> tuple[list[PersonNode], int]:
         """List all persons in the graph, paginated.
 
         See ``find_all_topics`` for why the count and data page are combined
@@ -461,8 +455,7 @@ class Neo4jKnowledgeGraphRepository(IKnowledgeGraphRepository):
             {"graph_name": graph_name},
         )
         await self._graph_db.execute_query(
-            "CALL gds.graph.project.cypher($graph_name, $node_query, $rel_query) "
-            "YIELD graphName",
+            "CALL gds.graph.project.cypher($graph_name, $node_query, $rel_query) YIELD graphName",
             {
                 "graph_name": graph_name,
                 "node_query": _PERSON_NETWORK_NODE_QUERY,

@@ -13,7 +13,6 @@ from app.infrastructure.api.schemas.dossier import (
     DossierSearchListResponse,
     dossier_search_result_to_response,
 )
-
 from app.infrastructure.config.settings import get_settings
 
 router = APIRouter(
@@ -30,14 +29,12 @@ router = APIRouter(
 )
 @limiter.limit(lambda: get_settings().rate_limit_search)
 async def search_dossiers(
-        request: Request,
-        service: Annotated[IDossierService, Depends(dossier_service_dependency)],
-        employee_name: Annotated[
-            str | None, Query(description="Partial, case-insensitive employee name to search for")
-        ] = None,
-        process_id: Annotated[
-            UUID | None, Query(description="Exact process UUID to filter by")
-        ] = None,
+    request: Request,
+    service: Annotated[IDossierService, Depends(dossier_service_dependency)],
+    employee_name: Annotated[
+        str | None, Query(description="Partial, case-insensitive employee name to search for")
+    ] = None,
+    process_id: Annotated[UUID | None, Query(description="Exact process UUID to filter by")] = None,
 ) -> DossierSearchListResponse:
     """Search offboarding dossiers by employee display name and/or associated process ID.
 
