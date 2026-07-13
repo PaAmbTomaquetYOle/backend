@@ -4,8 +4,8 @@ Processes the 3 inbound events end to end through the real facade/services/
 repositories (only Kafka I/O and the DomainEvent envelope are out of scope
 here — that is covered by test_kafka_consumer.py and test_event_deserializer.py).
 Verifies both the resulting domain state and the outbound events published in
-response, matching the acceptance criteria: "consumo de cada tipo de evento
-con verificación del efecto en el dominio y del evento de respuesta publicado".
+response, matching the acceptance criteria: "consumption of each event type
+with verification of the domain effect and of the published response event".
 """
 
 from datetime import UTC, datetime
